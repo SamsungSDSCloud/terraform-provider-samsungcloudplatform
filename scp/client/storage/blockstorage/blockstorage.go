@@ -3,8 +3,8 @@ package blockstorage
 import (
 	"context"
 
-	sdk "github.com/ScpDevTerra/trf-sdk/client"
-	blockstorage2 "github.com/ScpDevTerra/trf-sdk/library/block-storage2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
+	blockstorage2 "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/block-storage2"
 	"github.com/antihax/optional"
 )
 

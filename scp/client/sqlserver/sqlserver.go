@@ -2,8 +2,8 @@ package sqlserver
 
 import (
 	"context"
-	sdk "github.com/ScpDevTerra/trf-sdk/client"
-	"github.com/ScpDevTerra/trf-sdk/library/sqlserver2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/sqlserver2"
 	"github.com/antihax/optional"
 )
 

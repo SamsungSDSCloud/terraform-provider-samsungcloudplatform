@@ -2,8 +2,8 @@ package tibero
 
 import (
 	"context"
-	sdk "github.com/ScpDevTerra/trf-sdk/client"
-	"github.com/ScpDevTerra/trf-sdk/library/tibero2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/tibero2"
 	"github.com/antihax/optional"
 )
 

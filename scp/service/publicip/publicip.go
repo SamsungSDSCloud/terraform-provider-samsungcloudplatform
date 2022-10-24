@@ -4,9 +4,9 @@ import (
 	"context"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/ScpDevTerra/trf-provider/scp/client"
-	"github.com/ScpDevTerra/trf-provider/scp/common"
-	publicip2 "github.com/ScpDevTerra/trf-sdk/library/public-ip2"
+	"github.com/SamsungSDSCloud/terraform-provider-SamsungCloudPlatform/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-SamsungCloudPlatform/scp/common"
+	publicip2 "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/public-ip2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"

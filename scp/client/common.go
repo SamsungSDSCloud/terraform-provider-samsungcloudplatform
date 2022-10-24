@@ -3,9 +3,9 @@ package client
 import (
 	"context"
 	"fmt"
-	"github.com/ScpDevTerra/trf-provider/scp/common"
-	"github.com/ScpDevTerra/trf-sdk/library/product"
-	"github.com/ScpDevTerra/trf-sdk/library/project"
+	"github.com/SamsungSDSCloud/terraform-provider-SamsungCloudPlatform/scp/common"
+	"github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/product"
+	"github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/project"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"strconv"
 	"time"

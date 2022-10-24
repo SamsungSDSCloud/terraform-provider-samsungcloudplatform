@@ -3,7 +3,7 @@ package profile_test
 import (
 	"testing"
 
-	"github.com/ScpDevTerra/trf-provider/internal/profile"
+	"github.com/SamsungSDSCloud/terraform-provider-SamsungCloudPlatform/internal/profile"
 )
 
 func TestProfile_Empty(t *testing.T) {

@@ -2,8 +2,8 @@ package filestorage
 
 import (
 	"context"
-	sdk "github.com/ScpDevTerra/trf-sdk/client"
-	filestorage2 "github.com/ScpDevTerra/trf-sdk/library/file-storage2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
+	filestorage2 "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/file-storage2"
 	"github.com/antihax/optional"
 )
 

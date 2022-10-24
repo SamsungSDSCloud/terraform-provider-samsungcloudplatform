@@ -2,8 +2,8 @@ package image
 
 import (
 	"context"
-	sdk "github.com/ScpDevTerra/trf-sdk/client"
-	"github.com/ScpDevTerra/trf-sdk/library/image2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/image2"
 	"github.com/antihax/optional"
 )
 

@@ -2,8 +2,8 @@ package loadbalancer
 
 import (
 	"context"
-	sdk "github.com/ScpDevTerra/trf-sdk/client"
-	"github.com/ScpDevTerra/trf-sdk/library/loadbalancer2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/loadbalancer2"
 )
 
 type Client struct {

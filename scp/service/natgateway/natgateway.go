@@ -2,8 +2,8 @@ package natgateway
 
 import (
 	"context"
-	"github.com/ScpDevTerra/trf-provider/scp/client"
-	publicip2 "github.com/ScpDevTerra/trf-sdk/library/public-ip2"
+	"github.com/SamsungSDSCloud/terraform-provider-SamsungCloudPlatform/scp/client"
+	publicip2 "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/public-ip2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"

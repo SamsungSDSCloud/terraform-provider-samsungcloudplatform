@@ -2,8 +2,8 @@ package servergroup
 
 import (
 	"context"
-	sdk "github.com/ScpDevTerra/trf-sdk/client"
-	servergroup2 "github.com/ScpDevTerra/trf-sdk/library/server-group2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
+	servergroup2 "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/server-group2"
 	"github.com/antihax/optional"
 )
 

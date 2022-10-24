@@ -1,8 +1,8 @@
 package natgateway
 
 import (
-	sdk "github.com/ScpDevTerra/trf-sdk/client"
-	natgateway2 "github.com/ScpDevTerra/trf-sdk/library/nat-gateway2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
+	natgateway2 "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/nat-gateway2"
 	"golang.org/x/net/context"
 )
 

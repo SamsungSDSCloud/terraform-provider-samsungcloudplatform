@@ -2,8 +2,8 @@ package virtualserver
 
 import (
 	"context"
-	sdk "github.com/ScpDevTerra/trf-sdk/client"
-	virtualserver2 "github.com/ScpDevTerra/trf-sdk/library/virtual-server2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
+	virtualserver2 "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/virtual-server2"
 	"github.com/antihax/optional"
 )
 

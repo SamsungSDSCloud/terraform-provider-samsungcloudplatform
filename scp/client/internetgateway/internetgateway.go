@@ -2,8 +2,8 @@ package internetgateway
 
 import (
 	"context"
-	sdk "github.com/ScpDevTerra/trf-sdk/client"
-	internetgateway2 "github.com/ScpDevTerra/trf-sdk/library/internet-gateway2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
+	internetgateway2 "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/internet-gateway2"
 )
 
 type Client struct {

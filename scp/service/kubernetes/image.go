@@ -3,9 +3,9 @@ package kubernetes
 import (
 	"context"
 
-	"github.com/ScpDevTerra/trf-provider/scp/client"
-	"github.com/ScpDevTerra/trf-provider/scp/common"
-	kubernetesapps "github.com/ScpDevTerra/trf-sdk/library/kubernetes-apps"
+	"github.com/SamsungSDSCloud/terraform-provider-SamsungCloudPlatform/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-SamsungCloudPlatform/scp/common"
+	kubernetesapps "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/kubernetes-apps"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
