@@ -1,0 +1,18 @@
+# Editor configuration
+root = true
+
+# Default settings
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# Go
+[{*.go,Makefile,.gitmodules,go.mod,go.sum}]
+indent_style = tab
+
+# Terraform
+[*.tf]
+indent_size = 2

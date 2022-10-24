@@ -1,0 +1,10 @@
+*.lock.hcl
+*.tfstate
+*.lock.info
+**/*/.terraform
+**/*/*.backup
+
+v1.7/
+v1.8/
+testcase/
+test/
