@@ -2,7 +2,7 @@
 page_title: "Provider: Samsung Cloud Platform"
 ---
 
-# SCP Provider
+# SamsungCloudPlatform Provider
 
 The SCP provider is used to interact with SCP(Samsung Cloud Platform) services.
 The provider needs to be configured with the proper credentials before it can be used.
@@ -13,8 +13,8 @@ The provider needs to be configured with the proper credentials before it can be
 terraform {
   required_providers {
     scp = {
-      version = "0.0.1"
-      source  = "samsungsds/scp"
+      version = "1.8.2"
+      source  = "SamsungSDSCloud/SamsungCloudPlatform"
     }
   }
   required_version = ">= 0.13"
