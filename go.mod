@@ -2,7 +2,6 @@ module github.com/SamsungSDSCloud/terraform-provider-SamsungCloudPlatform
 
 go 1.18
 
-
 require github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform v1.8.2
 
 require (
