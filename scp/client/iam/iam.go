@@ -2,8 +2,8 @@ package iam
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
-	"github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/iam"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/iam"
 	"net/http"
 )
 

@@ -2,8 +2,8 @@ package firewall
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
-	"github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/firewall2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/firewall2"
 	"github.com/antihax/optional"
 )
 

@@ -2,8 +2,8 @@ package kubernetesengine
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
-	kubernetesengine2 "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/kubernetes-engine2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
+	kubernetesengine2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/kubernetes-engine2"
 	"io/ioutil"
 )
 

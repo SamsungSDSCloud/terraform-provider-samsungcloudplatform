@@ -2,8 +2,8 @@ package tibero
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
-	"github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/tibero2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/tibero2"
 	"github.com/antihax/optional"
 )
 

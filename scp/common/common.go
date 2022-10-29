@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/product"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/product"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 

@@ -3,10 +3,10 @@ package blockstorage
 import (
 	"context"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-SamsungCloudPlatform/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-SamsungCloudPlatform/scp/client/storage/blockstorage"
-	"github.com/SamsungSDSCloud/terraform-provider-SamsungCloudPlatform/scp/common"
-	"github.com/SamsungSDSCloud/terraform-provider-SamsungCloudPlatform/scp/service/virtualserver"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/storage/blockstorage"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/virtualserver"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )

@@ -2,8 +2,8 @@ package servergroup
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
-	servergroup2 "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/server-group2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
+	servergroup2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/server-group2"
 	"github.com/antihax/optional"
 )
 

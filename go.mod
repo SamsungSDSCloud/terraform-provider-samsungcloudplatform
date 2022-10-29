@@ -1,8 +1,8 @@
-module github.com/SamsungSDSCloud/terraform-provider-SamsungCloudPlatform
+module github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform
 
 go 1.18
 
-require github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform v1.8.2
+require github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform v1.8.3
 
 require (
 	github.com/antihax/optional v1.0.0

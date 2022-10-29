@@ -3,9 +3,9 @@ package publicip
 import (
 	"context"
 
-	"github.com/SamsungSDSCloud/terraform-provider-SamsungCloudPlatform/scp/common"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
-	publicip2 "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/public-ip2"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
+	publicip2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/public-ip2"
 	"github.com/antihax/optional"
 )
 

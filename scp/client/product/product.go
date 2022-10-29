@@ -3,8 +3,8 @@ package product
 import (
 	"context"
 
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
-	"github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/product"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/product"
 	"github.com/antihax/optional"
 )
 

@@ -2,8 +2,8 @@ package loggingaudit
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/client"
-	loggingaudit "github.com/SamsungSDSCloud/terraform-sdk-SamsungCloudPlatform/library/logging-audit"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
+	loggingaudit "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/logging-audit"
 )
 
 type Client struct {
