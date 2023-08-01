@@ -2,6 +2,7 @@ package image
 
 import (
 	"context"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/image2"
@@ -12,6 +13,10 @@ import (
 const (
 	ActiveState string = "ACTIVE"
 )
+
+func init() {
+	scp.RegisterDataSource("scp_standard_image", DatasourceStandardImage())
+}
 
 func DatasourceStandardImage() *schema.Resource {
 	return &schema.Resource{
@@ -106,11 +111,13 @@ func datasourceStandardImageRead(ctx context.Context, rd *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	servicedZoneId := projectInfo.DefaultZoneId
-	if len(servicedZoneId) == 0 {
-		vpcLocation := rd.Get("region").(string)
-		servicedZoneId, _, err = client.FindServiceZoneIdAndProductGroupId(ctx, inst.Client, vpcLocation, common.NetworkProductGroup, common.VpcProductName)
+	var servicedZoneId string
+	vpcLocation := rd.Get("region").(string)
 
+	if len(vpcLocation) == 0 {
+		servicedZoneId = projectInfo.DefaultZoneId
+	} else {
+		servicedZoneId, _, err = client.FindServiceZoneIdAndProductGroupId(ctx, inst.Client, vpcLocation, common.NetworkProductGroup, common.VpcProductName)
 		if err != nil {
 			return diag.FromErr(err)
 		}

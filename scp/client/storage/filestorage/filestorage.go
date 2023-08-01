@@ -4,7 +4,6 @@ import (
 	"context"
 	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
 	filestorage2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/file-storage2"
-	"github.com/antihax/optional"
 )
 
 type Client struct {
@@ -20,93 +19,81 @@ func NewClient(config *sdk.Configuration) *Client {
 }
 
 func (client *Client) CheckFileStorage(ctx context.Context, request CheckFileStorageRequest) (filestorage2.CheckResponse, error) {
-	fs := &filestorage2.FileStorageOpenApiV2ApiCheckFileStorageDuplicationV2Opts{
-		FileStorageName: optional.NewString(request.FileStorageName),
+	result, _, err := client.sdkClient.FileStorageOpenApiV3Api.CheckFileStorageDuplication(ctx, client.config.ProjectId, request.FileStorageName)
+	if err != nil {
+		return filestorage2.CheckResponse{}, err
 	}
-
-	if len(request.CifsId) != 0 {
-		fs.CifsId = optional.NewString(request.CifsId)
-	}
-
-	result, _, err := client.sdkClient.FileStorageOpenApiV3Api.CheckFileStorageDuplicationV3(ctx, client.config.ProjectId, client.config.UserId, client.config.Email, client.config.LoginId, "", "", request.FileStorageName)
 
 	return result, err
 }
 
 func (client *Client) CreateFileStorage(ctx context.Context, request CreateFileStorageRequest) (filestorage2.AsyncResponse, error) {
-	result, _, err := client.sdkClient.FileStorageOpenApiV3Api.CreateFileStorageV3(
-		ctx,
-		client.config.ProjectId,
-		client.config.UserId,
-		client.config.LoginId,
-		client.config.Email,
-		"",
-		"",
-		filestorage2.CreateFileStorageRequest{
-			//CifsId:                request.CifsId,
-			CifsPassword:      request.CifsPassword,
-			EncryptionEnabled: request.IsEncrypted,
-			//FileStorageCapacityGb: request.FileStorageCapacityGb,
-			FileStorageName:     request.FileStorageName,
-			FileStorageProtocol: request.FileStorageProtocol,
-			ProductGroupId:      request.ProductGroupId,
-			ProductIds:          request.ProductIds,
-			ServiceZoneId:       request.ServiceZoneId,
-			//SnapshotCapacityRate:  request.SnapshotCapacityRate,
-			DiskType:         request.DiskType,
-			SnapshotSchedule: (*filestorage2.SnapshotSchedule)(request.SnapshotSchedule),
+	tags := make([]filestorage2.TagRequest, 0)
+	for _, tag := range request.Tags {
+		tags = append(tags, filestorage2.TagRequest{
+			TagKey:   tag.TagKey,
+			TagValue: tag.TagValue,
+		})
+	}
+
+	result, _, err := client.sdkClient.FileStorageOpenApiV4Api.CreateFileStorageV4(ctx, client.config.ProjectId,
+		filestorage2.CreateFileStorageV4Request{
+			CifsPassword:          request.CifsPassword,
+			DiskType:              request.DiskType,
+			FileStorageName:       request.FileStorageName,
+			FileStorageProtocol:   request.FileStorageProtocol,
+			MultiAvailabilityZone: request.MultiAvailabilityZone,
+			ProductNames:          request.ProductNames,
+			ServiceZoneId:         request.ServiceZoneId,
+			//SnapshotRetentionCount: request.SnapshotRetentionCount,
+			//SnapshotSchedule:       (*filestorage2.SnapshotSchedule)(request.SnapshotSchedule),
+			Tags: tags,
 		})
 	return result, err
 }
 
-func (client *Client) ReadFileStorage(ctx context.Context, fileStorageId string) (filestorage2.FileStorageDetailResponseV3, int, error) {
-	result, c, err := client.sdkClient.FileStorageOpenApiV3Api.DetailFileStorageV3(ctx, client.config.ProjectId, client.config.UserId, client.config.LoginId, client.config.Email, "", "", fileStorageId)
+func (client *Client) ReadFileStorage(ctx context.Context, fileStorageId string) (filestorage2.FileStorageDetailResponse, int, error) {
+	result, c, err := client.sdkClient.FileStorageOpenApiV3Api.DetailFileStorage(ctx, client.config.ProjectId, fileStorageId)
 	return result, c.StatusCode, err
 }
 
-func (client *Client) ReadFileStorageList(ctx context.Context, request ReadFileStorageRequest) (filestorage2.ListResponseOfFileStoragesResponse, error) {
-	localVarOptionals := &filestorage2.FileStorageOpenApiV3ApiListFileStoragesV31Opts{
-		FileStorageId:   optional.NewString(request.FileStorageId),
-		FileStorageName: optional.NewString(request.FileStorageName),
-		ServiceZoneId:   optional.NewString(request.ServiceZoneId),
-		CreatedBy:       optional.NewString(request.CreatedBy),
-		Page:            optional.NewInt32(request.Page),
-		Size:            optional.NewInt32(request.Size),
-		//Sort:            optional.NewString("modifiedDt:asc"),
-	}
-
-	if len(request.FileStorageProtocol) > 0 {
-		localVarOptionals.FileStorageProtocol = optional.NewString(request.FileStorageProtocol)
-	}
-
-	result, _, err := client.sdkClient.FileStorageOpenApiV3Api.ListFileStoragesV31(
-		ctx,
-		client.config.ProjectId,
-		client.config.UserId,
-		client.config.LoginId,
-		client.config.Email,
-		"",
-		"",
-		localVarOptionals)
-
+func (client *Client) ReadFileStorageList(ctx context.Context, request filestorage2.FileStorageOpenApiV3ApiListFileStoragesOpts) (filestorage2.ListResponseOfFileStoragesResponse, error) {
+	result, _, err := client.sdkClient.FileStorageOpenApiV3Api.ListFileStorages(ctx, client.config.ProjectId, &request)
 	return result, err
 }
-
-/* no api(cannot control file storage capacity GB in v3 api)
-func (client *Client) IncreaseFileStorage(ctx context.Context, request UpdateFileStorageRequest) (filestorage2.AsyncResponse, error) {
-	result, _, err := client.sdkClient.FileStorageOpenApiV2Api.IncreaseFileStorageCapacityV2(
-		ctx,
-		client.config.ProjectId,
-		request.FileStorageId,
-		filestorage2.IncreaseFileStorageCapacityRequest{
-			FileStorageCapacityGb: request.FileStorageCapacityGb,
-		})
-
-	return result, err
-}
-*/
 
 func (client *Client) DeleteFileStorage(ctx context.Context, fileStorageId string) (filestorage2.AsyncResponse, error) {
-	result, _, err := client.sdkClient.FileStorageOpenApiV3Api.DeleteFileStorageV3(ctx, client.config.ProjectId, client.config.UserId, client.config.LoginId, client.config.Email, "", "", fileStorageId)
+	result, _, err := client.sdkClient.FileStorageOpenApiV3Api.DeleteFileStorage(ctx, client.config.ProjectId, fileStorageId)
+	return result, err
+}
+
+func (client *Client) CreateFileStorageSnapshotSchedule(ctx context.Context, fileStorageId string, retentionCount int32, schedule *SnapshotSchedule) (filestorage2.AsyncResponse, error) {
+	result, _, err := client.sdkClient.FileStorageOpenApiV3Api.CreateFileStorageSnapshotSchedule(ctx, client.config.ProjectId, fileStorageId, filestorage2.FsSnapshotScheduleRequest{
+		SnapshotRetentionCount: &retentionCount,
+		SnapshotSchedule:       (*filestorage2.SnapshotSchedule)(schedule),
+	})
+
+	return result, err
+}
+
+func (client *Client) ReadFileStorageSnapshotSchedule(ctx context.Context, fileStorageId string) (filestorage2.FileStorageSnapshotScheduleResponse, int, error) {
+	result, c, err := client.sdkClient.FileStorageOpenApiV3Api.SearchFileStorageSnapshotSchedule(ctx, client.config.ProjectId, fileStorageId)
+	return result, c.StatusCode, err
+}
+
+func (client *Client) UpdateFileStorageSnapshotSchedule(ctx context.Context, fileStorageId string, retentionCount int32, schedule *SnapshotSchedule) (filestorage2.AsyncResponse, error) {
+	result, _, err := client.sdkClient.FileStorageOpenApiV3Api.UpdateFileStorageSnapshotSchedule(
+		ctx,
+		client.config.ProjectId,
+		fileStorageId,
+		filestorage2.FsSnapshotScheduleRequest{
+			SnapshotRetentionCount: &retentionCount,
+			SnapshotSchedule:       (*filestorage2.SnapshotSchedule)(schedule),
+		})
+	return result, err
+}
+
+func (client *Client) DeleteFileStorageSnapshotSchedule(ctx context.Context, fileStorageId string) (filestorage2.AsyncResponse, error) {
+	result, _, err := client.sdkClient.FileStorageOpenApiV3Api.DeleteFileStorageSnapshotSchedule(ctx, client.config.ProjectId, fileStorageId)
 	return result, err
 }

@@ -66,11 +66,16 @@ func (client *Client) GetCategoryList(ctx context.Context, request ListCategorie
 }
 
 func (client *Client) GetMenuList(ctx context.Context, request ListMenusRequest) (product.ListResponseV2OfProductCategoryResponse, error) {
-	result, _, err := client.sdkClient.ProductV2ControllerApi.Menu(ctx, &product.ProductV2ControllerApiMenuOpts{
+	result, _, err := client.sdkClient.ProductV2ControllerApi.ListMenus(ctx, &product.ProductV2ControllerApiListMenusOpts{
 		CategoryId:   optional.NewString(request.CategoryId),
 		ExposureType: optional.NewString(request.ExposureType),
 		ProductId:    optional.NewString(request.ProductId),
 		ZoneIds:      optional.NewString(request.ZoneIds),
 	})
+	return result, err
+}
+
+func (client *Client) GetProductsUsingGET(ctx context.Context, productId string) (product.ProductResponse, error) {
+	result, _, err := client.sdkClient.ProductV2ControllerApi.DetailProduct(ctx, productId, nil)
 	return result, err
 }

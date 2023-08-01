@@ -7,12 +7,12 @@ data "scp_standard_image" "centos_image" {
   region        = data.scp_region.region.location
   filter {
     name   = "image_name"
-    values = ["CentOS 7.2"]
+    values = ["CentOS 7.8"]
   }
 }
 
 resource "scp_virtual_server" "server_001" {
-  name_prefix     = var.name
+  virtual_server_name = var.name
   admin_account   = var.id
   admin_password  = var.password
   cpu_count       = var.cpu
@@ -20,9 +20,9 @@ resource "scp_virtual_server" "server_001" {
   image_id        = data.scp_standard_image.centos_image.id
   vpc_id          = data.terraform_remote_state.vpc.outputs.id
   subnet_id       = data.terraform_remote_state.subnet.outputs.id
+  internal_ip_address = "192.169.4.17"
 
   delete_protection = false
-  timezone          = "Asia/Seoul"
   contract_discount = "None"
 
   os_storage_name      = "hellodisk1"

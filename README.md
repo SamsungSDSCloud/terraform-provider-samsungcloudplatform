@@ -38,7 +38,7 @@ Insert following parameters in `.scp/config.json` file
 
 ```
 {
-    "target": "production",
+    "host": "https://openapi.samsungsdscloud.com",
     "user-id": "1234",
     "email" : "your.email@samsung.com",
     "project-id": "PROJECT-XXXXXXXXXXXXXXXX"
@@ -108,4 +108,4 @@ Run plugin with debug mode
 Copyright 2022. Samsung SDS Co., Ltd. All rights reserved.
 
 See [LICENSE](LICENSE) for details.
-  
+

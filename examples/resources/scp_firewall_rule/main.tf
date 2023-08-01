@@ -20,6 +20,10 @@ resource "scp_firewall_rule" "vpc4fw_fwrule" {
     type  = "UDP"
     value = "22"
   }
+  service {
+    type = "TCP_ALL"
+    value = ""
+  }
 
   description = "Rule from terraform"
 }

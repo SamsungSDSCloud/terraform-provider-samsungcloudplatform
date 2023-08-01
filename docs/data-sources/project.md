@@ -26,50 +26,90 @@ output "output_my_scp_project" {
 
 ### Optional
 
-- `access_level` (String) Access level
-- `action_name` (String) Action name
-- `cmp_service_name` (String) CMP service name
-- `is_user_authorization` (Boolean) Check whether to have user authorization or not
+- `account_name` (String) Account name
+- `bill_year_month` (String) Billing year and month
+- `created_by_email` (String) Creator's email
+- `is_billing_info_demand` (Boolean) Whether to provide billing information
+- `is_resource_info_demand` (Boolean) Whether to provide resource information
+- `is_user_info_demand` (Boolean) Whether to provide user information
+- `project_name` (String) Project name
 
 ### Read-Only
 
-- `contents` (Block List) Project info list (see [below for nested schema](#nestedblock--contents))
+- `contents` (List of Object) Project info list (see [below for nested schema](#nestedatt--contents))
 - `id` (String) The ID of this resource.
 - `total_count` (Number) Total list size
 
-<a id="nestedblock--contents"></a>
+<a id="nestedatt--contents"></a>
 ### Nested Schema for `contents`
 
 Read-Only:
 
-- `account_code` (String) Account code
-- `account_id` (String) Account id
-- `account_name` (String) Account name
-- `account_type` (String) Account type
-- `billing_organization_code` (String) Billing organization code
-- `billing_unit` (String) Billing unit
-- `business_category_id` (String) Business category id
-- `business_group_id` (String) Business group id
-- `company_id` (String) Company id
-- `created_by` (String) The person who created the resource
-- `created_dt` (String) Creation date
-- `created_dt_str` (String) Creation date
-- `fixed_cost_amount` (String) Fixed cost amount
-- `fixed_exchange_rate` (String) Fixed exchange rate
-- `is_fixed_exchange_rate` (String) Check whether to be fixed exchange rate or not
-- `modified_by` (String) The person who modified the resource
-- `modified_dt` (String) Modification date
-- `modified_dt_str` (String) Modification date
-- `organization_id` (String) Organization id
-- `owner_id` (String) Owner id
-- `owner_name` (String) Owner name
-- `project_attributes` (Map of String) Project attributes
-- `project_budget` (Number) Project budget
-- `project_description` (String) Project description
-- `project_id` (String) Project id
-- `project_name` (String) Project name
-- `project_state` (String) Project status
-- `start_dt` (String) Project started date
-- `start_dt_str` (String) Project started date
+- `account_admin_email` (String)
+- `account_admin_name` (String)
+- `account_id` (String)
+- `account_name` (String)
+- `account_type` (String)
+- `billing_organization_code` (String)
+- `business_category_id` (String)
+- `business_category_name` (String)
+- `business_category_users` (List of Object) (see [below for nested schema](#nestedobjatt--contents--business_category_users))
+- `business_group_id` (String)
+- `company_id` (String)
+- `company_name` (String)
+- `created_by` (String)
+- `created_by_email` (String)
+- `created_by_name` (String)
+- `created_dt` (String)
+- `current_month_bill_amount` (Number)
+- `default_zone_id` (String)
+- `estimated_used_amount` (Number)
+- `free_trial_expired_date` (String)
+- `free_trial_expired_dday` (String)
+- `free_trial_start_date` (String)
+- `last_month_bill_amount` (Number)
+- `modified_by` (String)
+- `modified_by_email` (String)
+- `modified_by_name` (String)
+- `modified_dt` (String)
+- `network_type` (String)
+- `price_system_year` (String)
+- `project_description` (String)
+- `project_id` (String)
+- `project_member_count` (Number)
+- `project_name` (String)
+- `project_resource_count` (Number)
+- `project_service_count` (Number)
+- `project_state` (String)
+- `service_zones` (List of Object) (see [below for nested schema](#nestedobjatt--contents--service_zones))
+- `vpc_version` (String)
+
+<a id="nestedobjatt--contents--business_category_users"></a>
+### Nested Schema for `contents.business_category_users`
+
+Read-Only:
+
+- `business_category_user_email` (String)
+- `business_category_user_name` (String)
+
+
+<a id="nestedobjatt--contents--service_zones"></a>
+### Nested Schema for `contents.service_zones`
+
+Read-Only:
+
+- `availability_zones` (List of Object) (see [below for nested schema](#nestedobjatt--contents--service_zones--availability_zones))
+- `block_id` (String)
+- `is_multi_availability_zone` (Boolean)
+- `service_zone_id` (String)
+- `service_zone_location` (String)
+- `service_zone_name` (String)
+
+<a id="nestedobjatt--contents--service_zones--availability_zones"></a>
+### Nested Schema for `contents.service_zones.availability_zones`
+
+Read-Only:
+
+- `availability_zone_name` (String)
 
 

@@ -2,11 +2,17 @@ package securitygroup
 
 import (
 	"context"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+func init() {
+	scp.RegisterResource("scp_security_group", ResourceSecurityGroup())
+	scp.RegisterResource("scp_security_group_user_ip", ResourceSecurityGroupUserIp())
+}
 
 func ResourceSecurityGroup() *schema.Resource {
 	return &schema.Resource{
@@ -40,6 +46,7 @@ func ResourceSecurityGroup() *schema.Resource {
 			"is_loggable": {
 				Type:        schema.TypeBool,
 				Optional:    true,
+				Default:     false,
 				Description: "",
 			},
 		},
@@ -53,6 +60,7 @@ func resourceSecurityGroupCreate(ctx context.Context, rd *schema.ResourceData, m
 	vpcId := rd.Get("vpc_id").(string)
 	name := rd.Get("name").(string)
 	description := rd.Get("description").(string)
+	isLoggable := rd.Get("is_loggable").(bool)
 
 	inst := meta.(*client.Instance)
 
@@ -84,6 +92,17 @@ func resourceSecurityGroupCreate(ctx context.Context, rd *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
+	if isLoggable {
+		_, err = inst.Client.SecurityGroup.UpdateSecurityGroupIsLoggable(ctx, response.ResourceId, isLoggable)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		err = waitForSecurityGroupStatus(ctx, inst.Client, response.ResourceId, []string{}, []string{"ACTIVE"}, true)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
 	rd.SetId(response.ResourceId)
 
 	return resourceSecurityGroupRead(ctx, rd, meta)
@@ -95,6 +114,10 @@ func resourceSecurityGroupRead(ctx context.Context, rd *schema.ResourceData, met
 	info, _, err := inst.Client.SecurityGroup.GetSecurityGroup(ctx, rd.Id())
 	if err != nil {
 		rd.SetId("")
+		if common.IsDeleted(err) {
+			return nil
+		}
+
 		return diag.FromErr(err)
 	}
 
@@ -119,14 +142,33 @@ func resourceSecurityGroupUpdate(ctx context.Context, rd *schema.ResourceData, m
 		if err != nil {
 			return diag.FromErr(err)
 		}
+
+		err = waitForSecurityGroupStatus(ctx, inst.Client, rd.Id(), []string{}, []string{"ACTIVE"}, true)
+		if err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	return resourceSecurityGroupRead(ctx, rd, meta)
 }
 
 func resourceSecurityGroupDelete(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
+
+	isLoggable := rd.Get("is_loggable").(bool)
+
+	if isLoggable {
+		_, err := inst.Client.SecurityGroup.UpdateSecurityGroupIsLoggable(ctx, rd.Id(), false)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		err = waitForSecurityGroupStatus(ctx, inst.Client, rd.Id(), []string{}, []string{"ACTIVE"}, true)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
 	err := inst.Client.SecurityGroup.DeleteSecurityGroup(ctx, rd.Id())
-	if err != nil {
+	if err != nil && !common.IsDeleted(err) {
 		return diag.FromErr(err)
 	}
 
@@ -152,4 +194,77 @@ func waitForSecurityGroupStatus(ctx context.Context, scpClient *client.SCPClient
 		}
 		return info, info.SecurityGroupState, nil
 	})
+}
+
+func ResourceSecurityGroupUserIp() *schema.Resource {
+	return &schema.Resource{
+		CreateContext: resourceSecurityGroupUserIpCreate,
+		ReadContext:   resourceSecurityGroupUserIpRead,
+		DeleteContext: resourceSecurityGroupUserIpDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
+		Schema: map[string]*schema.Schema{
+			"security_group_id": {
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Target SecurityGroup id",
+			},
+			"user_ip_type": {
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Type of Directly Attached IP",
+			},
+			"user_ip_address": {
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Address of Directly Attached IP",
+			},
+			"user_ip_description": {
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Description of Directly Attached IP",
+			},
+		},
+		Description: "Provides a Security Group User IP Attachment resource.",
+	}
+}
+
+func resourceSecurityGroupUserIpCreate(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	// Get values from schema
+	sgId := rd.Get("security_group_id").(string)
+	userIpType := rd.Get("user_ip_type").(string)
+	userIpAddress := rd.Get("user_ip_address").(string)
+	userIpDescription := rd.Get("user_ip_description").(string)
+
+	inst := meta.(*client.Instance)
+
+	response, err := inst.Client.SecurityGroup.AttachUserIpToSecurityGroup(ctx, sgId, userIpType, userIpAddress, userIpDescription)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	rd.Set("security_group_id", response.ResourceId)
+	rd.SetId(userIpAddress)
+
+	return nil
+}
+
+func resourceSecurityGroupUserIpRead(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return nil
+}
+
+func resourceSecurityGroupUserIpDelete(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	inst := meta.(*client.Instance)
+
+	_, err := inst.Client.SecurityGroup.DetachUserIpFromSecurityGroup(ctx, rd.Get("security_group_id").(string), rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }

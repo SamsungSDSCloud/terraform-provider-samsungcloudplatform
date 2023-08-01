@@ -5,3 +5,7 @@ variable "name" {
 variable "enabled" {
   default = true
 }
+
+variable "logging_enabled" {
+  default = false
+}

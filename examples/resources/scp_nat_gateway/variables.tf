@@ -1,16 +1,8 @@
-data "terraform_remote_state" "subnet" {
-  backend = "local"
-
-  config = {
-    path = "../scp_subnet/terraform.tfstate"
-  }
+variable "vpc_name" {
+  default = "vpc4natgw"
 }
 
-
-data "terraform_remote_state" "public_ip" {
-  backend = "local"
-
-  config = {
-    path = "../scp_public_ip/terraform.tfstate"
-  }
+variable "subnet_name" {
+  default = "subnet4natgw"
 }
+

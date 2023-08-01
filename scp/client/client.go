@@ -3,31 +3,36 @@ package client
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/epas"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/baremetal"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/directconnect"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/firewall"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/iam"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/image"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/image/customimage"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/image/migrationimage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/internetgateway"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/kubernetes"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/kubernetesapps"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/kubernetesengine"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/loadbalancer"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/loggingaudit"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/mariadb"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/mysql"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/natgateway"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/peering"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/postgresql"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/product"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/project"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/publicip"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/routing"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/securitygroup"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/servergroup"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/sqlserver"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/storage/backup"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/storage/blockstorage"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/storage/bmblockstorage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/storage/filestorage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/storage/objectstorage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/subnet"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/tibero"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/tag"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/virtualserver"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/vpc"
 	scpsdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
@@ -40,12 +45,15 @@ import (
 type SCPClient struct {
 	// Networking
 	Vpc             *vpc.Client
+	Routing         *routing.Client
+	Peering         *peering.Client
 	Subnet          *subnet.Client
 	SecurityGroup   *securitygroup.Client
 	LoadBalancer    *loadbalancer.Client
 	InternetGateway *internetgateway.Client
 	NatGateway      *natgateway.Client
 	Firewall        *firewall.Client
+	DirectConnect   *directconnect.Client
 
 	// Kubernetes
 	Kubernetes       *kubernetes.Client
@@ -53,22 +61,23 @@ type SCPClient struct {
 	KubernetesApps   *kubernetesapps.Client
 
 	// Compute
-	Image         *image.Client
-	VirtualServer *virtualserver.Client
-	ServerGroup   *servergroup.Client
+	Image          *image.Client
+	CustomImage    *customimage.Client
+	MigrationImage *migrationimage.Client
+	VirtualServer  *virtualserver.Client
+	ServerGroup    *servergroup.Client
+	BareMetal      *baremetal.Client
 
 	// Storage
-	FileStorage   *filestorage.Client
-	BlockStorage  *blockstorage.Client
-	ObjectStorage *objectstorage.Client
+	FileStorage           *filestorage.Client
+	BlockStorage          *blockstorage.Client
+	ObjectStorage         *objectstorage.Client
+	BareMetalBlockStorage *bmblockstorage.Client
+	Backup                *backup.Client
 
 	// Database
 	Postgresql *postgresql.Client
-	Mariadb    *mariadb.Client
-	MySql      *mysql.Client
-	Epas       *epas.Client
 	SqlServer  *sqlserver.Client
-	Tibero     *tibero.Client
 
 	// Misc.
 	Project  *project.Client
@@ -77,6 +86,7 @@ type SCPClient struct {
 	PublicIp *publicip.Client
 
 	Loggingaudit *loggingaudit.Client
+	Tag          *tag.Client
 
 	// Config
 	config *Config
@@ -116,8 +126,13 @@ func NewDefaultConfig(config *Config, servicePath string) *scpsdk.Configuration 
 
 	tlsConfig := createTlsConfig(serviceHost)
 
+	var basePath = serviceHost
+	if len(servicePath) != 0 {
+		basePath = serviceHost + "/" + servicePath
+	}
+
 	cfg := &scpsdk.Configuration{
-		BasePath:      serviceHost + "/" + servicePath,
+		BasePath:      basePath,
 		DefaultHeader: make(map[string]string),
 		UserAgent:     "scpclient/0.0.1",
 		ProjectId:     config.ProjectId,
@@ -143,12 +158,15 @@ func NewSCPClient(providerConfig *Config) (*SCPClient, error) {
 	client := &SCPClient{
 		// Networking
 		Vpc:             vpc.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		Routing:         routing.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		Peering:         peering.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		Subnet:          subnet.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		SecurityGroup:   securitygroup.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		LoadBalancer:    loadbalancer.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		InternetGateway: internetgateway.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		NatGateway:      natgateway.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		Firewall:        firewall.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		DirectConnect:   directconnect.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 
 		// Kubernetes
 		Kubernetes:       kubernetes.NewClient(NewDefaultConfig(providerConfig, "kubernetes")),
@@ -156,29 +174,32 @@ func NewSCPClient(providerConfig *Config) (*SCPClient, error) {
 		KubernetesApps:   kubernetesapps.NewClient(NewDefaultConfig(providerConfig, "kubernetes-apps")),
 
 		// Compute
-		Image:         image.NewClient(NewDefaultConfig(providerConfig, "oss2")),
-		VirtualServer: virtualserver.NewClient(NewDefaultConfig(providerConfig, "oss2")),
-		ServerGroup:   servergroup.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		Image:          image.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		CustomImage:    customimage.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		MigrationImage: migrationimage.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		VirtualServer:  virtualserver.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		ServerGroup:    servergroup.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		BareMetal:      baremetal.NewClient(NewDefaultConfig(providerConfig, "baremetal")),
 
 		// Storage
-		FileStorage:   filestorage.NewClient(NewDefaultConfig(providerConfig, "oss2")),
-		BlockStorage:  blockstorage.NewClient(NewDefaultConfig(providerConfig, "oss2")),
-		ObjectStorage: objectstorage.NewClient(NewDefaultConfig(providerConfig, "object-storage")),
+		FileStorage:           filestorage.NewClient(NewDefaultConfig(providerConfig, "")),
+		BlockStorage:          blockstorage.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		ObjectStorage:         objectstorage.NewClient(NewDefaultConfig(providerConfig, "")),
+		BareMetalBlockStorage: bmblockstorage.NewClient(NewDefaultConfig(providerConfig, "baremetal")),
+		Backup:                backup.NewClient(NewDefaultConfig(providerConfig, "")),
 
 		// Database
 		Postgresql: postgresql.NewClient(NewDefaultConfig(providerConfig, "oss2")),
-		Mariadb:    mariadb.NewClient(NewDefaultConfig(providerConfig, "oss2")),
-		MySql:      mysql.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		SqlServer:  sqlserver.NewClient(NewDefaultConfig(providerConfig, "oss2")),
-		Tibero:     tibero.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 
-		// Misc.
+		// Common.
 		Project:  project.NewClient(NewDefaultConfig(providerConfig, "project")),
 		Product:  product.NewClient(NewDefaultConfig(providerConfig, "product")),
 		Iam:      iam.NewClient(NewDefaultConfig(providerConfig, "iam")),
 		PublicIp: publicip.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 
 		Loggingaudit: loggingaudit.NewClient(NewDefaultConfig(providerConfig, "logging-audit")),
+		Tag:          tag.NewClient(NewDefaultConfig(providerConfig, "tag")),
 
 		// Config
 		config: providerConfig,

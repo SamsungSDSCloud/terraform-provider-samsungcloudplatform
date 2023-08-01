@@ -22,12 +22,12 @@ data "scp_standard_image" "centos_image" {
   region        = data.scp_region.region.location
   filter {
     name   = "image_name"
-    values = ["CentOS 7.2"]
+    values = ["CentOS 7.8"]
   }
 }
 
 resource "scp_virtual_server" "server_001" {
-  name_prefix     = var.name
+  virtual_server_name = var.name
   admin_account   = var.id
   admin_password  = var.password
   cpu_count       = var.cpu
@@ -35,9 +35,9 @@ resource "scp_virtual_server" "server_001" {
   image_id        = data.scp_standard_image.centos_image.id
   vpc_id          = data.terraform_remote_state.vpc.outputs.id
   subnet_id       = data.terraform_remote_state.subnet.outputs.id
+  internal_ip_address = "192.169.4.17"
 
   delete_protection = false
-  timezone          = "Asia/Seoul"
   contract_discount = "None"
 
   os_storage_name      = "hellodisk1"
@@ -65,36 +65,40 @@ resource "scp_virtual_server" "server_001" {
 
 ### Required
 
-- `admin_password` (String, Sensitive) Admin account password for this virtual server OS. (CAUTION) The actual plain-text password will be sent to your email.
-- `contract_discount` (String) Contract : None, 1-year, 3-year
+- `admin_password` (String, Sensitive) Admin account password for this virtual server OS.
+- `contract_discount` (String) Contract : None, 1 Year, 3 Year
 - `cpu_count` (Number) CPU core count(2, 4, 8,..)
 - `image_id` (String) Image id of this virtual server
 - `memory_size_gb` (Number) Memory size in gigabytes(4, 8, 16,..)
-- `name_prefix` (String) VirtualServer name prefix
 - `os_storage_name` (String) OS(Boot) storage name. 3 to 28 alpha-numeric characters with space and dash starting with alphabet
 - `os_storage_size_gb` (Number) OS(Boot) storage size in gigabytes. (At least 100 GB required and size must be multiple of 10)
 - `security_group_ids` (List of String) Security-Group ids of this virtual server. Each security-group must be a valid security-group resource which is attached to the VPC.
+- `state` (String) Virtual Server State
 - `subnet_id` (String) Subnet id of this virtual server. Subnet must be a valid subnet resource which is attached to the VPC.
-- `timezone` (String) Server timezone
+- `virtual_server_name` (String) Virtual server name
 - `vpc_id` (String) VPC id of this virtual server
 
 ### Optional
 
 - `admin_account` (String) Admin account for this virtual server OS. For linux, this must be 'root'. For Windows, this must not be 'administrator'.
 - `anti_affinity` (Boolean) Enable anti-affinity feature for this virtual server
+- `availability_zone_name` (String) Availability Zone Name
 - `delete_protection` (Boolean) Enable delete protection for this virtual server
 - `external_storage` (Block List) External block storage. (see [below for nested schema](#nestedblock--external_storage))
 - `initial_script_content` (String) Initialization script
+- `internal_ip_address` (String) IP address for internal IP assignment.
 - `local_subnet` (Block List) Local subnet id of this virtual server. Local subnet must be a valid local subnet resource which is attached to the Subnet. (see [below for nested schema](#nestedblock--local_subnet))
+- `nat_enabled` (Boolean) Enable NAT IP feature.
+- `next_contract_discount` (String) Next Contract : None, 1 Year, 3 Year
 - `os_storage_encrypted` (Boolean) Enable encryption feature in OS(Boot) storage. (WARNING) This option can not be changed after creation.
 - `public_ip_id` (String) Public IP id of this virtual server. Public-IP must be a valid public-ip resource which is attached to the VPC.
+- `tags` (Map of String) Tags
 - `use_dns` (Boolean) Enable DNS feature for this virtual server.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 - `ipv4` (String) IP address of this virtual server
-- `name` (String) Actual virtual-server name
 - `nat_ipv4` (String) NAT IP address of this virtual server
 
 <a id="nestedblock--external_storage"></a>
@@ -109,6 +113,13 @@ Optional:
 
 - `encrypted` (Boolean) Use encryption for this storage
 - `product_name` (String) Storage product name : SSD
+- `shared_type` (String) SHARED/DEDICATED
+- `tags` (Map of String) Tags
+
+Read-Only:
+
+- `block_storage_id` (String) Block Storage Id
+- `product_id` (String) Storage product Id
 
 
 <a id="nestedblock--local_subnet"></a>

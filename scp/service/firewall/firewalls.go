@@ -2,12 +2,17 @@ package firewall
 
 import (
 	"context"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/firewall2"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+func init() {
+	scp.RegisterDataSource("scp_firewalls", DatasourceFirewalls())
+}
 
 func DatasourceFirewalls() *schema.Resource {
 	return &schema.Resource{

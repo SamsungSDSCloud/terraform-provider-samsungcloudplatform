@@ -8,5 +8,9 @@ data "terraform_remote_state" "engine" {
 }
 
 variable "name" {
-  default = "enginenodetest"
+  default = "joenginenodetest"
+}
+
+variable "availability_zone_name" {
+  default = "AZ1"
 }

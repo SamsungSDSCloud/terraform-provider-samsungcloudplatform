@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/kubernetesengine"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
@@ -17,6 +18,10 @@ import (
 	"time"
 )
 
+func init() {
+	scp.RegisterResource("scp_kubernetes_node_pool", ResourceKubernetesNodePool())
+}
+
 func ResourceKubernetesNodePool() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: createNodePool,
@@ -28,37 +33,39 @@ func ResourceKubernetesNodePool() *schema.Resource {
 			customdiff.ComputedIf("desired_node_count", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
 				return diff.Get("auto_scale").(bool)
 			}),
-			customdiff.ComputedIf("min_node_count", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
-				return !diff.Get("auto_scale").(bool)
-			}),
-			customdiff.ComputedIf("max_node_count", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
-				return !diff.Get("auto_scale").(bool)
-			}),
+			/*
+				customdiff.ComputedIf("min_node_count", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
+					return !diff.Get("auto_scale").(bool)
+				}),
+				customdiff.ComputedIf("max_node_count", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
+					return !diff.Get("auto_scale").(bool)
+				}),
+			*/
 			func(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
 				if diff.Get("auto_scale").(bool) {
 					if _, ok := diff.GetOk("desired_node_count"); ok {
 						return errors.New("desired_node_count is not supported when auto_scale is enabled")
 					}
 
-					if _, ok := diff.GetOk("min_node_count"); !ok {
+					/*if _, ok := diff.GetOk("min_node_count"); !ok {
 						return errors.New("min_node_count should be given when auto_scale is enabled")
 					}
 
 					if _, ok := diff.GetOk("max_node_count"); !ok {
 						return errors.New("max_node_count should be given when auto_scale is enabled")
-					}
+					}*/
 				} else {
 					if _, ok := diff.GetOk("desired_node_count"); !ok {
 						return errors.New("desired_node_count should be given when auto_scale is disabled")
 					}
 
-					if _, ok := diff.GetOk("min_node_count"); ok {
+					/*if _, ok := diff.GetOk("min_node_count"); ok {
 						return errors.New("min_node_count is not supported when auto_scale is disabled")
 					}
 
 					if _, ok := diff.GetOk("max_node_count"); ok {
 						return errors.New("max_node_count is not supported when auto_scale is disabled")
-					}
+					}*/
 				}
 
 				return nil
@@ -83,6 +90,12 @@ func ResourceKubernetesNodePool() *schema.Resource {
 				ForceNew:    false,
 				Description: "ID of scp_kubernetes_engine resource",
 			},
+			"availability_zone_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Availability zone name.",
+			},
 			"auto_recovery": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -97,7 +110,7 @@ func ResourceKubernetesNodePool() *schema.Resource {
 			},
 			"desired_node_count": {
 				Type:        schema.TypeInt,
-				Required:    true,
+				Optional:    true,
 				Description: "Desired node count in the pool (Desired node count is 0 when auto_scale is enabled)",
 			},
 			"image_id": {
@@ -126,6 +139,7 @@ func ResourceKubernetesNodePool() *schema.Resource {
 			"storage_size_gb": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Default:     "100",
 				Description: "Storage size in GB (default 100)",
 			},
 			/*"service_level": {
@@ -211,19 +225,21 @@ func createNodePool(ctx context.Context, data *schema.ResourceData, meta interfa
 		ctx,
 		engineId,
 		kubernetesengine.CreateNodePoolRequest{
-			AutoRecovery:     data.Get("auto_recovery").(bool),
-			AutoScale:        data.Get("auto_scale").(bool),
-			ContractId:       contractId,
-			DesiredNodeCount: int32(data.Get("desired_node_count").(int)),
-			ImageId:          data.Get("image_id").(string),
-			MaxNodeCount:     int32(data.Get("max_node_count").(int)),
-			MinNodeCount:     int32(data.Get("min_node_count").(int)),
-			NodePoolName:     data.Get("name").(string),
-			ProductGroupId:   productGroupId,
-			ScaleId:          scaleId,
-			ServiceLevelId:   serviceLevelId,
-			StorageId:        storageProductId,
-			StorageSize:      data.Get("storage_size_gb").(string),
+			AvailabilityZoneName: data.Get("availability_zone_name").(string),
+			AutoRecovery:         data.Get("auto_recovery").(bool),
+			AutoScale:            data.Get("auto_scale").(bool),
+			ContractId:           contractId,
+			DesiredNodeCount:     int32(data.Get("desired_node_count").(int)),
+			ImageId:              data.Get("image_id").(string),
+			MaxNodeCount:         int32(data.Get("max_node_count").(int)),
+			MinNodeCount:         int32(data.Get("min_node_count").(int)),
+			NodePoolName:         data.Get("name").(string),
+			ProductGroupId:       productGroupId,
+			ScaleId:              scaleId,
+			ServiceLevelId:       serviceLevelId,
+			StorageId:            storageProductId,
+			//StorageSize:          storageSize,
+			StorageSize: data.Get("storage_size_gb").(string),
 		})
 
 	if err != nil {
@@ -256,10 +272,29 @@ func readNodePool(ctx context.Context, data *schema.ResourceData, meta interface
 
 	inst := meta.(*client.Instance)
 
-	nodePool, _, err := inst.Client.KubernetesEngine.ReadNodePool(ctx, data.Get("engine_id").(string), data.Id())
+	//nodePool, _, err := inst.Client.KubernetesEngine.ReadNodePool(ctx, data.Get("engine_id").(string), data.Id())
+	nodePoolList, _, err := inst.Client.KubernetesEngine.GetNodePoolList(ctx, data.Get("engine_id").(string), &kubernetesengine2.NodePoolV2ControllerApiListNodePoolsV2Opts{
+		NodePoolName: optional.String{},
+		CreatedBy:    optional.String{},
+		Page:         optional.NewInt32(0),
+		Size:         optional.NewInt32(100),
+		Sort:         optional.String{},
+	})
 
 	if err != nil {
+		data.SetId("")
+		if common.IsDeleted(err) {
+			return nil
+		}
+
 		return diag.FromErr(err)
+	}
+
+	var nodePool kubernetesengine2.NodePoolsResponse
+	for _, item := range nodePoolList.Contents {
+		if item.NodePoolId == data.Id() {
+			nodePool = item
+		}
 	}
 
 	scale, err := client.FindProductById(ctx, inst.Client, nodePool.ProductGroupId, nodePool.ScaleId)
@@ -306,16 +341,20 @@ func readNodePool(ctx context.Context, data *schema.ResourceData, meta interface
 		return diag.FromErr(err)
 	}
 
+	if *nodePool.AutoScale {
+		data.Set("max_node_count", nodePool.MaxNodeCount)
+		data.Set("min_node_count", nodePool.MinNodeCount)
+	} else {
+		data.Set("desired_node_count", nodePool.DesiredNodeCount)
+	}
+
 	data.Set("service_level", serviceLevel.ProductName)
-	data.Set("name", nodePool.NodePoolName)
 	data.Set("auto_recovery", nodePool.AutoRecovery)
 	data.Set("auto_scale", nodePool.AutoScale)
-	data.Set("desired_node_count", nodePool.DesiredNodeCount)
 	data.Set("image_id", nodePool.ImageId)
-	data.Set("max_node_count", nodePool.MaxNodeCount)
-	data.Set("min_node_count", nodePool.MinNodeCount)
 	data.Set("storage_type", storage.ProductName)
 	data.Set("storage_size_gb", nodePool.StorageSize)
+	data.Set("name", nodePool.NodePoolName)
 
 	return
 }
@@ -333,6 +372,7 @@ func updateNodePool(ctx context.Context, data *schema.ResourceData, meta interfa
 		//serviceLevel := data.Get("service_level").(string)
 		serviceLevel := "None"
 		storageType := data.Get("storage_type").(string)
+		storageSize := "100"
 
 		productGroupId, contractId, scaleId, serviceLevelId, storageProductId, err := getRequiredProducts(ctx, inst.Client, engineId, cpuCount, memorySizeGB, serviceLevel, storageType)
 
@@ -349,8 +389,14 @@ func updateNodePool(ctx context.Context, data *schema.ResourceData, meta interfa
 			ScaleId:          scaleId,
 			ServiceLevelId:   serviceLevelId,
 			StorageId:        storageProductId,
-			StorageSize:      data.Get("storage_size_gb").(string),
+			StorageSize:      storageSize,
+			//StorageSize:      data.Get("storage_size_gb").(string),
 		})
+
+		time.Sleep(5 * time.Second)
+
+		//FAIL, ERROR, NOT READY, RUNNING
+		err = client.WaitForStatus(ctx, inst.Client, []string{}, []string{"Running"}, refreshNodePool(ctx, meta, engineId, data.Id(), true))
 
 		if err != nil {
 			return diag.FromErr(err)
@@ -373,7 +419,7 @@ func deleteNodePool(ctx context.Context, data *schema.ResourceData, meta interfa
 	engineId := data.Get("engine_id").(string)
 
 	_, err = inst.Client.KubernetesEngine.DeleteNodePool(ctx, engineId, data.Id())
-	if err != nil {
+	if err != nil && !common.IsDeleted(err) {
 		return
 	}
 

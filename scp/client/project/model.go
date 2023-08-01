@@ -1,10 +1,13 @@
 package project
 
 type ListProjectRequest struct {
-	AccessLevel         string
-	ActionName          string
-	CmpServiceName      string
-	IsUserAuthorization bool
+	AccountName          string
+	BillYearMonth        string
+	IsBillingInfoDemand  bool
+	IsResourceInfoDemand bool
+	IsUserInfoDemand     bool
+	ProjectName          string
+	CreatedByEmail       string
 }
 
 type ListAccountRequest struct {

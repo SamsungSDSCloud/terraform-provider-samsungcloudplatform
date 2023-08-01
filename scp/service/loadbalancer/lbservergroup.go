@@ -3,14 +3,20 @@ package loadbalancer
 import (
 	"context"
 	"fmt"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/loadbalancer"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"strings"
 )
+
+func init() {
+	scp.RegisterResource("scp_lb_server_group", ResourceLbServerGroup())
+}
 
 func ResourceLbServerGroup() *schema.Resource {
 	return &schema.Resource{
@@ -23,9 +29,10 @@ func ResourceLbServerGroup() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"lb_id": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Load-Balancer id",
 			},
 			"name": {
 				Type:             schema.TypeString,
@@ -42,7 +49,7 @@ func ResourceLbServerGroup() *schema.Resource {
 			},
 			"server_group_member": {
 				Type:        schema.TypeList,
-				Required:    true,
+				Optional:    true,
 				Description: "Server-Group members",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -62,16 +69,25 @@ func ResourceLbServerGroup() *schema.Resource {
 							Optional:    true,
 							Description: "Target object id (VM server or BareMetal server). This can not be set with 'object_ipv4'. Input resource should be in the same VPC.",
 						},
-						"object_ipv4": {
+						"object_ip_address": {
 							Type:             schema.TypeString,
 							Optional:         true,
-							Computed:         true,
 							ValidateDiagFunc: common.ValidateCidrIpv4,
-							Description:      "Target object ipv4 for manual setting.",
+							Description:      "Target object ip",
 						},
+						/*
+							"member_ip_address": {
+								Type: schema.TypeString,
+								//Optional:         true,
+								Computed: true,
+								//ValidateDiagFunc: common.ValidateCidrIpv4,
+								Description: "Target object ip",
+							},
+						*/
 						"object_port": {
-							Type:             schema.TypeInt,
-							Required:         true,
+							Type: schema.TypeInt,
+							//Required:         true,
+							Optional:         true,
 							ValidateDiagFunc: common.ValidatePortRange,
 							Description:      "Target object port for manual setting. (1 to 65535)",
 						},
@@ -85,33 +101,38 @@ func ResourceLbServerGroup() *schema.Resource {
 				},
 			},
 			"monitor_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Monitor id",
 			},
 			"monitor_protocol": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "",
+				Description: "Monitor protocol",
 			},
 			"monitor_count": {
 				Type:             schema.TypeInt,
 				Required:         true,
 				ValidateDiagFunc: common.ValidatePositiveInt,
+				Description:      "Monitor count",
 			},
 			"monitor_interval_sec": {
 				Type:             schema.TypeInt,
 				Required:         true,
 				ValidateDiagFunc: common.ValidatePositiveInt,
+				Description:      "Monitor interval time(s)",
 			},
 			"monitor_port": {
 				Type:             schema.TypeInt,
 				Required:         true,
 				ValidateDiagFunc: common.ValidatePortRange,
+				Description:      "Monitor port",
 			},
 			"monitor_timeout_sec": {
 				Type:             schema.TypeInt,
 				Required:         true,
 				ValidateDiagFunc: common.ValidatePositiveInt,
+				Description:      "Monitor timeout second",
 			},
 			"monitor_http_method": {
 				Type:        schema.TypeString,
@@ -142,12 +163,31 @@ func ResourceLbServerGroup() *schema.Resource {
 				Description: "Response body content. (Only HTTP monitor_protocol. 0 to 300 byte characters)",
 			},
 		},
+		CustomizeDiff: customdiff.All(
+			func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+				val := d.Get("server_group_member").([]interface{})
+				lbServerGroupMember, err := expandServerGroupMember(val)
+				if err != nil {
+					return err
+				}
+				for _, member := range lbServerGroupMember {
+					if member.ObjectType == "INSTANCE" || member.ObjectType == "BAREMETAL" {
+						if len(member.ObjectId) < 1 {
+							return fmt.Errorf("if the object_type is \"INSTANCE\" or \"BAREMETAL\", an object_id is required")
+						}
+						if len(member.ObjectIpAddress) > 0 {
+							return fmt.Errorf("if the object_type is \"INSTANCE\" or \"BAREMETAL\", object_ip_address is not required")
+						}
+					}
+				}
+				return nil
+			}),
+
 		Description: "Provides a Load Balancer Server Group resource.",
 	}
 }
 
-func expandMembers(rd *schema.ResourceData) ([]loadbalancer.LbServerGroupMember, error) {
-	memberList := rd.Get("server_group_member").([]interface{})
+func expandServerGroupMember(memberList []interface{}) ([]loadbalancer.LbServerGroupMember, error) {
 	// Services
 	members := make([]loadbalancer.LbServerGroupMember, len(memberList))
 	for i, member := range memberList {
@@ -191,15 +231,31 @@ func expandMembers(rd *schema.ResourceData) ([]loadbalancer.LbServerGroupMember,
 			//delete "break", because cannot include 2 virtual machines in lb group
 			//break
 		}
-
-		// Manual
-		if t, ok := m["object_ipv4"]; ok {
+		if t, ok := m["object_ip_address"]; ok {
 			members[i].ObjectIpAddress = t.(string)
 		} else {
-			return nil, fmt.Errorf("object_ipv4 must be set")
+			return nil, fmt.Errorf("object_ip_address must be set")
 		}
+
+		if requiresObjectId {
+			if t, ok := m["object_id"]; ok {
+				members[i].ObjectId = t.(string)
+			}
+		} else { // manual
+			if t, ok := m["object_ip_address"]; ok {
+				members[i].ObjectIpAddress = t.(string)
+			} else {
+				return nil, fmt.Errorf("object_ip_address must be set")
+			}
+		}
+
 	}
 	return members, nil
+}
+
+func expandMembers(rd *schema.ResourceData) ([]loadbalancer.LbServerGroupMember, error) {
+	memberList := rd.Get("server_group_member").([]interface{})
+	return expandServerGroupMember(memberList)
 }
 
 func resourceLbServerGroupCreate(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -275,12 +331,31 @@ func resourceLbServerGroupRead(ctx context.Context, rd *schema.ResourceData, met
 	info, _, err := inst.Client.LoadBalancer.GetLbServerGroup(ctx, rd.Id(), rd.Get("lb_id").(string))
 	if err != nil {
 		rd.SetId("")
+		if common.IsDeleted(err) {
+			return nil
+		}
+
 		return diag.FromErr(err)
+	}
+
+	svgMembers := common.HclSetObject{}
+	for _, svc := range info.LbServerGroupMembers {
+		member := common.HclKeyValueObject{
+			"join_state":  svc.JoinState,
+			"object_type": svc.ObjectType,
+			"object_id":   svc.ObjectId,
+			"object_port": svc.MemberPort,
+			"weight":      svc.MemberWeight,
+		}
+		if !(svc.ObjectType == "INSTANCE" || svc.ObjectType == "BAREMETAL") {
+			member["object_ip_address"] = svc.MemberIpAddress
+		}
+		svgMembers = append(svgMembers, member)
 	}
 
 	rd.Set("name", info.LbServerGroupName)
 	rd.Set("algorithm", info.LbServerGroupAlgorithm)
-	rd.Set("server_group_member", info.LbServerGroupMembers)
+	rd.Set("server_group_member", svgMembers)
 	rd.Set("monitor_id", info.LbMonitor.LbMonitorId)
 	rd.Set("monitor_http_method", info.LbMonitor.HttpMethod)
 	rd.Set("monitor_count", info.LbMonitor.LbMonitorCount)
@@ -319,6 +394,19 @@ func resourceLbServerGroupUpdate(ctx context.Context, rd *schema.ResourceData, m
 			return diag.FromErr(err)
 		}
 
+		for i, m := range members {
+			if m.ObjectType == "INSTANCE" && members[i].ObjectIpAddress == "" {
+				vsInfo, _, err := inst.Client.VirtualServer.GetVirtualServer(ctx, m.ObjectId)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+				members[i].ObjectIpAddress = vsInfo.Ip
+				if len(members[i].ObjectIpAddress) == 0 {
+					return diag.Errorf("failed to retrieve ip information from VirtualServer.")
+				}
+			}
+		}
+
 		monitor := loadbalancer.LbServerGroupMonitor{
 			HttpMethod:        rd.Get("monitor_http_method").(string),
 			HttpVersion:       rd.Get("monitor_http_version").(string),
@@ -337,14 +425,21 @@ func resourceLbServerGroupUpdate(ctx context.Context, rd *schema.ResourceData, m
 		//	tcpMultiplexingEnabled = true
 		//}
 
-		inst.Client.LoadBalancer.UpdateLbServerGroup(
+		if _, err := inst.Client.LoadBalancer.UpdateLbServerGroup(
 			ctx,
 			tcpMultiplexingEnabled,
 			rd.Get("algorithm").(string),
 			rd.Id(),
 			rd.Get("lb_id").(string),
 			&monitor,
-			members)
+			members); err != nil {
+			return diag.FromErr(err)
+		}
+
+		err = waitForLbServerGroupStatus(ctx, inst.Client, rd.Id(), rd.Get("lb_id").(string), []string{}, []string{"ACTIVE"}, true)
+		if err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return resourceLbServerGroupRead(ctx, rd, meta)
@@ -354,7 +449,7 @@ func resourceLbServerGroupDelete(ctx context.Context, rd *schema.ResourceData, m
 
 	inst := meta.(*client.Instance)
 	_, err := inst.Client.LoadBalancer.DeleteLbServerGroup(ctx, rd.Id(), rd.Get("lb_id").(string))
-	if err != nil {
+	if err != nil && !common.IsDeleted(err) {
 		return diag.FromErr(err)
 	}
 

@@ -24,6 +24,8 @@ resource "scp_lb_service" "my_lb_service_l4" {
   persistence      = "SOURCE_IP"
   app_profile_id   = data.terraform_remote_state.load_balancer_profile.outputs.id
   persistence_profile_id = data.terraform_remote_state.load_balancer_profile.outputs.persistence_id
+  nat_active       = true
+  public_ip_id     = scp_public_ip.my_public_ip_id.id
 }
 
 resource "scp_lb_service" "my_lb_service_l7" {
@@ -45,6 +47,14 @@ resource "scp_lb_service" "my_lb_service_l7" {
     lb_rule_seq = 2
     pattern_url = "/devotion"
   }
+  nat_active    = false
+}
+
+data "scp_region" "my_region" {
+}
+
+resource "scp_public_ip" "my_public_ip_id" {
+  region = data.scp_region.my_region.location
 }
 ```
 
@@ -56,7 +66,7 @@ resource "scp_lb_service" "my_lb_service_l7" {
 - `app_profile_id` (String) Application Profile ID
 - `layer_type` (String) Servicing protocol layer. (L4 for TCP, L7 for HTTP or HTTPS)
 - `lb_id` (String) Target Load-Balancer id.
-- `name` (String) Name of Load-Balancer Service. (3 to 20 characters without specials)
+- `name` (String) Name of Load-Balancer Service. (3 to 20 characters with dash in middle)
 - `persistence` (String) Persistence option. (DISABLED, SOURCE_IP, COOKIE)
 - `protocol` (String) Servicing protocol. (TCP, HTTP, HTTPS)
 - `service_ports` (String) Servicing port numbers. Multiple ports can be inserted using comma and dash. (e.g. 8000-8100,8200)
@@ -66,7 +76,9 @@ resource "scp_lb_service" "my_lb_service_l7" {
 - `forwarding_ports` (String) Forwarding port numbers. Multiple ports can be inserted using comma and dash. (e.g. 8000-8100,8200)
 - `lb_rules` (Block List) Server-Group rules. (see [below for nested schema](#nestedblock--lb_rules))
 - `lb_service_ip_id` (String)
+- `nat_active` (Boolean) Wheter to use NAT IP (public IP) or not.
 - `persistence_profile_id` (String) Persistence target profile id.
+- `public_ip_id` (String) NAT IP attached to LB service IP.
 - `service_ipv4` (String) Servicing IP address
 - `use_access_log` (Boolean)
 

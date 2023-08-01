@@ -21,7 +21,7 @@ func NewClient(config *sdk.Configuration) *Client {
 }
 
 func (client *Client) CreateApps(ctx context.Context, clusterId string, namespace string, imageId string, productGroupId string, name string) (kubernetesapps.K8sAppsResponse, int, error) {
-	result, response, err := client.sdk.ReleaseV1ControllerApi.CreateReleaseV1(ctx, client.config.ProjectId, client.config.UserId, client.config.LoginId, client.config.Email, "", "", clusterId, namespace, kubernetesapps.ReleaseCreateRequest{
+	result, response, err := client.sdk.ReleaseV1ControllerApi.CreateReleaseV1(ctx, client.config.ProjectId, clusterId, namespace, kubernetesapps.ReleaseCreateRequest{
 		ProjectId:      client.config.ProjectId,
 		ClusterId:      clusterId,
 		ImageId:        imageId,
@@ -37,7 +37,7 @@ func (client *Client) CreateApps(ctx context.Context, clusterId string, namespac
 }
 
 func (client *Client) ReadApps(ctx context.Context, id string) (kubernetesapps.K8sAppsResponse, int, error) {
-	result, response, err := client.sdk.K8sAppsV1ControllerApi.DetailK8sAppsV1(ctx, client.config.ProjectId, client.config.UserId, client.config.LoginId, client.config.Email, "", "", id)
+	result, response, err := client.sdk.K8sAppsV1ControllerApi.DetailK8sAppsV1(ctx, client.config.ProjectId, id)
 	var statusCode int
 	if response != nil {
 		statusCode = response.StatusCode
@@ -46,7 +46,7 @@ func (client *Client) ReadApps(ctx context.Context, id string) (kubernetesapps.K
 }
 
 func (client *Client) DeleteApps(ctx context.Context, clusterId string, namespace string, id string) (int, error) {
-	response, err := client.sdk.ReleaseV1ControllerApi.DeleteReleaseV1(ctx, client.config.ProjectId, client.config.UserId, client.config.LoginId, client.config.Email, "", "", clusterId, namespace, id)
+	response, err := client.sdk.ReleaseV1ControllerApi.DeleteReleaseV1(ctx, client.config.ProjectId, clusterId, namespace, id)
 	var statusCode int
 	if response != nil {
 		statusCode = response.StatusCode
@@ -55,7 +55,7 @@ func (client *Client) DeleteApps(ctx context.Context, clusterId string, namespac
 }
 
 func (client *Client) ReadImage(ctx context.Context, id string) (kubernetesapps.ImagesResponse, int, error) {
-	result, response, err := client.sdk.ImageV1ControllerApi.ListImagesV1(ctx, client.config.ProjectId, client.config.UserId, client.config.LoginId, client.config.Email, "", "", &kubernetesapps.ImageV1ControllerApiListImagesV1Opts{
+	result, response, err := client.sdk.ImageV1ControllerApi.ListImagesV1(ctx, client.config.ProjectId, &kubernetesapps.ImageV1ControllerApiListImagesV1Opts{
 		ImageId: optional.NewString(id),
 	})
 
@@ -72,7 +72,7 @@ func (client *Client) ListImages(ctx context.Context) ([]kubernetesapps.ImagesRe
 	page := 0
 
 	for {
-		result, _, err := client.sdk.ImageV1ControllerApi.ListImagesV1(ctx, client.config.ProjectId, client.config.UserId, client.config.LoginId, client.config.Email, "", "",
+		result, _, err := client.sdk.ImageV1ControllerApi.ListImagesV1(ctx, client.config.ProjectId,
 			&kubernetesapps.ImageV1ControllerApiListImagesV1Opts{
 				Page: optional.NewInt32(int32(page * 10)),
 				Size: optional.NewInt32(10),
@@ -96,7 +96,7 @@ func (client *Client) ListImages(ctx context.Context) ([]kubernetesapps.ImagesRe
 }
 
 func (client *Client) GetImageList(ctx context.Context, request ListStandardImageRequest) (kubernetesapps.PageResponseOfImagesResponse, error) {
-	result, _, err := client.sdk.ImageV1ControllerApi.ListImagesV1(ctx, client.config.ProjectId, client.config.UserId, client.config.LoginId, client.config.Email, "", "",
+	result, _, err := client.sdk.ImageV1ControllerApi.ListImagesV1(ctx, client.config.ProjectId,
 		&kubernetesapps.ImageV1ControllerApiListImagesV1Opts{
 			//Category:         optional.NewString(request.Category),
 			//ImageId:          optional.NewString(request.ImageId),

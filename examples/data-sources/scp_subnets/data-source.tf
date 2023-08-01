@@ -1,6 +1,6 @@
-data "scp_subnets" "my_scp_subnets1" {
+data "scp_subnets" "my_scp_subnets" {
 }
 
-output "output_my_scp_subnets1" {
-  value = data.scp_subnets.my_scp_subnets1
+output "contents" {
+  value = data.scp_subnets.my_scp_subnets.contents
 }

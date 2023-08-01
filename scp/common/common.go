@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"log"
+	"net"
 	"reflect"
 	"regexp"
 	"strings"
@@ -18,10 +19,12 @@ import (
 const (
 	NetworkProductGroup      string = "NETWORKING"
 	VpcProductName           string = "VPC Traffic"
+	DirectConnectProductName string = "Direct Connect"
 	PublicIpProductName      string = "Reserved IP"
 	SecurityGroupProductName string = "Security Group"
 	FileStorageProductName   string = "File Storage(New)"
 
+	StorageProductGroup           string = "STORAGE"
 	ContainerProductGroup         string = "CONTAINER"
 	KubernetesEngineVmProductName string = "Kubernetes Engine VM"
 
@@ -51,16 +54,16 @@ const (
 	VpcPublicIpUplinkType         string = "INTERNET"
 	VpcPublicIpNetworkServiceType string = "VPC"
 
-	ServicedGroupCompute     string = "COMPUTE"
-	ServicedForVirtualServer string = "Virtual Server"
-
-	ServicedGroupDatabase string = "DATABASE"
-	ServicedForPostgresql string = "PostgreSQL"
-	ServicedForMariadb    string = "Mariadb"
-	ServicedForMySql      string = "MySql"
-	ServicedForEpas       string = "EPAS"
-	ServicedForSqlServer  string = "SqlServer"
-	ServicedForTibero     string = "Tibero"
+	ServicedGroupCompute       string = "COMPUTE"
+	ServicedForVirtualServer   string = "Virtual Server"
+	ServicedForBaremetalServer string = "Baremetal Server"
+	ServicedGroupDatabase      string = "DATABASE"
+	ServicedForPostgresql      string = "PostgreSQL"
+	ServicedForMariadb         string = "Mariadb"
+	ServicedForMySql           string = "MySql"
+	ServicedForEpas            string = "EPAS"
+	ServicedForSqlServer       string = "Microsoft SQL Server"
+	ServicedForTibero          string = "Tibero"
 
 	ProductTypeDisk string = "DISK"
 
@@ -90,6 +93,10 @@ const (
 
 	DeploymentEnvironmentDev string = "DEV"
 	DeploymentEnvironmentPrd string = "PRD"
+
+	BlockStorageTypeOS      string = "OS"
+	BlockStorageTypeData    string = "DATA"
+	BlockStorageTypeArchive string = "ARCHIVE"
 )
 
 func DatabaseProcessingStates() []string {
@@ -97,7 +104,11 @@ func DatabaseProcessingStates() []string {
 }
 
 func VirtualServerProcessingStates() []string {
-	return []string{CreatingState, EditingState, StartingState, RestartingState, StoppingState, TerminatingState}
+	return []string{CreatingState, EditingState, StartingState, RestartingState, StoppingState, TerminatingState, StoppedState}
+}
+
+func NetworkProcessingStates() []string {
+	return []string{CreatingState, EditingState, StartingState, TerminatingState}
 }
 
 // ResourceMetaData Resource information meta data structure
@@ -223,6 +234,7 @@ type ExternalStorageInfo struct {
 	ProductName string
 	StorageSize int
 	Encrypted   bool
+	SharedType  string
 }
 
 func ConvertExternalStorageList(list HclListObject) []ExternalStorageInfo {
@@ -250,6 +262,17 @@ func ConvertExternalStorageList(list HclListObject) []ExternalStorageInfo {
 func ExternalStorageResourceSchema() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
+			"block_storage_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Block Storage Id",
+			},
+			"shared_type": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "DEDICATED",
+				Description: "SHARED/DEDICATED",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -261,6 +284,11 @@ func ExternalStorageResourceSchema() *schema.Resource {
 				Default:     "SSD",
 				Description: "Storage product name : SSD",
 			},
+			"product_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Storage product Id",
+			},
 			"storage_size_gb": {
 				Type:        schema.TypeInt,
 				Required:    true,
@@ -271,6 +299,11 @@ func ExternalStorageResourceSchema() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 				Description: "Use encryption for this storage",
+			},
+			"tags": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "Tags",
 			},
 		},
 	}
@@ -284,6 +317,19 @@ func ProductToIdMap(productType string, productGroup *product.ProductGroupDetail
 				continue
 			}
 			result[productInfo.ProductName] = productInfo.ProductId
+		}
+	}
+	return result
+}
+
+func ProductIdToNameMap(productType string, productGroup *product.ProductGroupDetailResponse) map[string]string {
+	result := make(map[string]string)
+	if productInfos, ok := productGroup.Products[productType]; ok {
+		for _, productInfo := range productInfos {
+			if productInfo.ProductState != ProductAvailableState {
+				continue
+			}
+			result[productInfo.ProductId] = productInfo.ProductName
 		}
 	}
 	return result
@@ -303,16 +349,16 @@ func FindProductId(productType string, productName string, productGroup *product
 	return "", fmt.Errorf("product for type '%s' not found", productType)
 }
 
-func FirstProductId(productType string, productGroup *product.ProductGroupDetailResponse) (string, error) {
+func FirstProductId(productType string, productGroup *product.ProductGroupDetailResponse) (product.ProductForCalculatorResponse, error) {
 	if productInfos, ok := productGroup.Products[productType]; ok {
 		for _, productInfo := range productInfos {
 			if productInfo.ProductState != ProductAvailableState {
 				continue
 			}
-			return productInfo.ProductId, nil
+			return productInfo, nil
 		}
 	}
-	return "", fmt.Errorf("product for type '%s' not found", productType)
+	return product.ProductForCalculatorResponse{}, fmt.Errorf("product for type '%s' not found", productType)
 }
 
 func ToSnakeCase(str string) string {
@@ -342,9 +388,11 @@ func ToMap(in any) map[string]interface{} {
 		log.Println("typeOfValue: ", reflect.TypeOf(val))
 		log.Println("=================================================")
 		if reflect.TypeOf(val) == reflect.TypeOf(typeOfValue) {
-			continue
+			m[field] = ConvertStructToMaps(val.([]interface{}))
+		} else {
+			m[field] = val
 		}
-		m[field] = val
+
 	}
 	log.Println("=================================================")
 	log.Println("ToMap: m: ", m)
@@ -368,4 +416,90 @@ func ConvertStructToMaps[T any](contents []T) []map[string]interface{} {
 	log.Println("=================================================")
 
 	return contentMaps
+}
+
+func IsSubnetContainsIp(subnetString, ipString string) bool {
+	_, subnet, _ := net.ParseCIDR(subnetString)
+	ip := net.ParseIP(ipString)
+
+	return subnet.Contains(ip)
+}
+
+func IsDeleted(err error) bool {
+	if strings.HasPrefix(err.Error(), "404") {
+		//except resource deleted error
+		log.Println("deleted resource")
+		return true
+	}
+	return false
+}
+
+func ExpandInterfaceToStringList(origin []interface{}) []string {
+	strList := make([]string, len(origin))
+	for i, v := range origin {
+		strList[i] = v.(string)
+	}
+	return strList
+}
+
+func ToStringList(interfaceList []interface{}) []string {
+	if len(interfaceList) == 0 {
+		return nil
+	}
+	stringList := make([]string, len(interfaceList))
+	for i, iVal := range interfaceList {
+		stringList[i] = iVal.(string)
+	}
+	return stringList
+}
+
+func getAddRemoveItemStringListFromStringList(oldList []string, newList []string) ([]string, []string) {
+	oldSet := make(map[string]struct{})
+	newSet := make(map[string]struct{})
+
+	for _, item := range oldList {
+		oldSet[item] = struct{}{}
+	}
+
+	for _, item := range newList {
+		newSet[item] = struct{}{}
+	}
+
+	var ok bool
+	var addList, removeList []string
+
+	for _, item := range oldList {
+		if _, ok = newSet[item]; !ok {
+			removeList = append(removeList, item)
+		}
+	}
+
+	for _, item := range newList {
+		if _, ok = oldSet[item]; !ok {
+			addList = append(addList, item)
+		}
+	}
+
+	return addList, removeList
+}
+
+func GetAddRemoveItemsStringList(rd *schema.ResourceData, key string) ([]string, []string) {
+	o, n := rd.GetChange(key)
+
+	oldList := ToStringList(o.([]interface{}))
+	newList := ToStringList(n.([]interface{}))
+
+	return getAddRemoveItemStringListFromStringList(oldList, newList)
+}
+
+func GetAddRemoveItemsStringListFromSet(rd *schema.ResourceData, key string) ([]string, []string) {
+	o, n := rd.GetChange(key)
+
+	oRaw := o.(*schema.Set).List()
+	nRaw := n.(*schema.Set).List()
+
+	oldList := ToStringList(oRaw)
+	newList := ToStringList(nRaw)
+
+	return getAddRemoveItemStringListFromStringList(oldList, newList)
 }

@@ -2,13 +2,19 @@ package subnet
 
 import (
 	"context"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"regexp"
 	"strings"
 )
+
+func init() {
+	scp.RegisterResource("scp_subnet", ResourceSubnet())
+}
 
 func ResourceSubnet() *schema.Resource {
 	return &schema.Resource{
@@ -45,10 +51,12 @@ func ResourceSubnet() *schema.Resource {
 			"type": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Subnet type ('PUBLIC' or 'PRIVATE')",
+				Description: "Subnet type ('PUBLIC'|'PRIVATE'|'BM'|'VM')",
 				ValidateFunc: validation.StringInSlice([]string{
 					"PUBLIC",
 					"PRIVATE",
+					"BM",
+					"VM",
 				}, false),
 			},
 			"cidr_ipv4": {
@@ -117,6 +125,10 @@ func resourceSubnetRead(ctx context.Context, rd *schema.ResourceData, meta inter
 	info, _, err := inst.Client.Subnet.GetSubnet(ctx, rd.Id())
 	if err != nil {
 		rd.SetId("")
+		if common.IsDeleted(err) {
+			return nil
+		}
+
 		return diag.FromErr(err)
 	}
 
@@ -124,6 +136,7 @@ func resourceSubnetRead(ctx context.Context, rd *schema.ResourceData, meta inter
 	rd.Set("cidr_ipv4", info.SubnetCidrBlock)
 	rd.Set("name", info.SubnetName)
 	rd.Set("description", info.SubnetDescription)
+	rd.Set("type", info.SubnetType)
 
 	return nil
 }
@@ -151,7 +164,7 @@ func resourceSubnetDelete(ctx context.Context, rd *schema.ResourceData, meta int
 	inst := meta.(*client.Instance)
 
 	_, err := inst.Client.Subnet.DeleteSubnet(ctx, rd.Id())
-	if err != nil {
+	if err != nil && !common.IsDeleted(err) {
 		return diag.FromErr(err)
 	}
 	err = waitForSubnetStatus(ctx, inst.Client, rd.Id(), []string{"TERMINATING"}, []string{"DELETED"}, false)

@@ -2,7 +2,7 @@
 page_title: "Provider: Samsung Cloud Platform"
 ---
 
-# SamsungCloudPlatform Provider
+# SCP Provider
 
 The SCP provider is used to interact with SCP(Samsung Cloud Platform) services.
 The provider needs to be configured with the proper credentials before it can be used.

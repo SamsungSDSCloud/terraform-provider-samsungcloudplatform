@@ -13,12 +13,11 @@ Provides list of vpcs.
 ## Example Usage
 
 ```terraform
-# Find all vpcs for current project
-data "scp_vpcs" "my_scp_vpcs1" {
+data "scp_vpcs" "vpcs" {
 }
 
-output "output_my_scp_vpcs1" {
-  value = data.scp_vpcs.my_scp_vpcs1
+output "contents" {
+  value = data.scp_vpcs.vpcs.contents
 }
 ```
 

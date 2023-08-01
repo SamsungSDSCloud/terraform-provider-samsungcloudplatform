@@ -2,6 +2,7 @@ package loadbalancer
 
 import (
 	"context"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/loadbalancer2"
@@ -10,6 +11,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	uuid "github.com/satori/go.uuid"
 )
+
+func init() {
+	scp.RegisterDataSource("scp_lb_server_groups", DatasourceLBServerGroups())
+}
 
 func DatasourceLBServerGroups() *schema.Resource {
 	return &schema.Resource{

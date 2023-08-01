@@ -1,9 +1,10 @@
 package natgateway
 
 import (
+	"context"
+
 	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
 	natgateway2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/nat-gateway2"
-	"golang.org/x/net/context"
 )
 
 type Client struct {
@@ -19,7 +20,7 @@ func NewClient(config *sdk.Configuration) *Client {
 }
 
 func (client *Client) CreateNatGateway(ctx context.Context, publicIpAddressId string, subnetId string, description string) (natgateway2.AsyncResponse, int, error) {
-	result, c, err := client.sdkClient.NatGatewayV2ControllerV2Api.CreateNatGatewayV2(ctx, client.config.ProjectId, natgateway2.NatGatewayCreateRequest{
+	result, c, err := client.sdkClient.NatGatewayV2ControllerV2Api.CreateNatGateway(ctx, client.config.ProjectId, natgateway2.NatGatewayCreateRequest{
 		PublicIpAddressId:     publicIpAddressId,
 		SubnetId:              subnetId,
 		NatGatewayDescription: description,
@@ -32,7 +33,7 @@ func (client *Client) CreateNatGateway(ctx context.Context, publicIpAddressId st
 }
 
 func (client *Client) GetNatGateway(ctx context.Context, natGatewayId string) (natgateway2.NatGatewayDetailResponse, int, error) {
-	result, c, err := client.sdkClient.NatGatewayV2ControllerV2Api.DetailNatGatewayV2(ctx, client.config.ProjectId, natGatewayId)
+	result, c, err := client.sdkClient.NatGatewayV2ControllerV2Api.DetailNatGateway(ctx, client.config.ProjectId, natGatewayId)
 	var statusCode int
 	if c != nil {
 		statusCode = c.StatusCode
@@ -41,7 +42,7 @@ func (client *Client) GetNatGateway(ctx context.Context, natGatewayId string) (n
 }
 
 func (client *Client) UpdateNatGateway(ctx context.Context, natGatewayId string, description string) (natgateway2.NatGatewayDetailResponse, int, error) {
-	result, c, err := client.sdkClient.NatGatewayV2ControllerV2Api.UpdateNatGatewayDescriptionV2(ctx, client.config.ProjectId, natGatewayId, natgateway2.NatGatewayDescriptionUpdateRequest{
+	result, c, err := client.sdkClient.NatGatewayV2ControllerV2Api.UpdateNatGatewayDescription(ctx, client.config.ProjectId, natGatewayId, natgateway2.NatGatewayDescriptionUpdateRequest{
 		NatGatewayDescription: description,
 	})
 	var statusCode int
@@ -52,7 +53,7 @@ func (client *Client) UpdateNatGateway(ctx context.Context, natGatewayId string,
 }
 
 func (client *Client) DeleteNatGateway(ctx context.Context, natGatewayId string) (natgateway2.AsyncResponse, int, error) {
-	result, c, err := client.sdkClient.NatGatewayV2ControllerV2Api.DeleteNatGatewayV2(ctx, client.config.ProjectId, natGatewayId)
+	result, c, err := client.sdkClient.NatGatewayV2ControllerV2Api.DeleteNatGateway(ctx, client.config.ProjectId, natGatewayId)
 	var statusCode int
 	if c != nil {
 		statusCode = c.StatusCode
@@ -60,16 +61,11 @@ func (client *Client) DeleteNatGateway(ctx context.Context, natGatewayId string)
 	return result, statusCode, err
 }
 
-//func (client *Client) ListNatGateway(ctx context.Context) {
-//	client.sdkClient.NatGatewayV2ControllerV2Api.ListNatGatewaysV2(ctx, client.config.ProjectId, &natgateway2.NatGatewayV2ControllerV2ApiListNatGatewaysV2Opts{
-//		NatGatewayId:    optional.String{},
-//		NatGatewayName:  optional.String{},
-//		NatGatewayState: optional.String{},
-//		SubnetId:        optional.String{},
-//		VpcId:           optional.String{},
-//		CreatedBy:       optional.String{},
-//		Page:            optional.NewInt32(0),
-//		Size:            optional.NewInt32(10000),
-//		Sort:            optional.Interface{},
-//	})
-//}
+func (client *Client) ListNatGateway(ctx context.Context, request *natgateway2.NatGatewayV2ControllerV2ApiListNatGateways1Opts) (natgateway2.ListResponseOfNatGatewayListItemResponse, int, error) {
+	result, c, err := client.sdkClient.NatGatewayV2ControllerV2Api.ListNatGateways1(ctx, client.config.ProjectId, request)
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
+}

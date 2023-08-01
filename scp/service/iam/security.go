@@ -54,25 +54,32 @@ func createSecurity(ctx context.Context, data *schema.ResourceData, meta interfa
 }
 
 func readSecurity(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	inst := meta.(*client.Instance)
-	result, err := inst.Client.Iam.GetSecurityInfo(ctx)
+	/*
+			result, err := inst.Client.Iam.GetSecurityInfo(ctx)
 
-	if err != nil {
-		data.SetId("")
-		return diag.FromErr(err)
-	}
+			if err != nil {
+				data.SetId("")
+				return diag.FromErr(err)
+			}
 
-	data.Set("ip_acl_activated", result.IpAclActivated)
-	data.Set("ip_addresses", result.IpAddresses)
-	data.Set("mfa_activated", result.MfaActivated)
+			data.Set("ip_acl_activated", result.IpAclActivated)
+			data.Set("ip_addresses", result.IpAddresses)
+			data.Set("mfa_activated", result.MfaActivated)
+		inst := meta.(*client.Instance)
+	*/
 
 	return nil
 }
+
 func updateSecurity(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
-	inst.Client.Iam.UpdateSecurityInfo(ctx, data.Get("ip_acl_activated").(bool), getIps(data), data.Get("mfa_activated").(bool))
+	_, err := inst.Client.Iam.UpdateSecurityInfo(ctx, data.Get("ip_acl_activated").(bool), getIps(data), data.Get("mfa_activated").(bool))
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	return readSecurity(ctx, data, meta)
 }
+
 func deleteSecurity(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	return nil
 }

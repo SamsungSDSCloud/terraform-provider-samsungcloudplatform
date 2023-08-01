@@ -21,8 +21,8 @@ data "scp_public_ips" "my_scp_public_ips" {
   service_zone_id = data.scp_region.region.id
 }
 
-output "output_scp_public_ips" {
-  value = data.scp_public_ips.my_scp_public_ips
+output "contents" {
+  value = data.scp_public_ips.my_scp_public_ips.contents
 }
 ```
 
@@ -57,25 +57,19 @@ output "output_scp_public_ips" {
 Read-Only:
 
 - `attached_object_name` (String) Name of object with public ip
-- `block_id` (String) Block id of this region
 - `created_by` (String) The person who created the resource
 - `created_dt` (String) Creation time
 - `ip_address` (String) Ip address
 - `ip_address_id` (String) Id of ip address
 - `modified_by` (String) The person who modified the resource
 - `modified_dt` (String) Modification time
-- `network_service_type` (String) Network service type
 - `product_group_id` (String) Product group id
 - `project_id` (String) Project id
-- `project_name` (String) Project name
 - `public_ip_address_description` (String) Description of public ip address
 - `public_ip_address_id` (String) Id of Public ip address
 - `public_ip_purpose` (String) Purpose of public ip (NAT)
 - `public_ip_state` (String) Public ip status
-- `region` (String) The region name to create
 - `service_zone_id` (String) Service zone id
 - `uplink_type` (String) Uplink type (INTERNET)
-- `user_name` (String) User name
-- `zone_name` (String) Service zone name
 
 

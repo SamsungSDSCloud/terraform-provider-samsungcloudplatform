@@ -1,43 +1,48 @@
 package filestorage
 
 type CreateFileStorageRequest struct {
-	FileStorageName      string
-	DiskType             string
-	FileStorageProtocol  string
-	CifsPassword         string
-	ProductGroupId       string
-	ProductIds           []string
-	SnapshotSchedule     *SnapshotSchedule
-	RetentionCount       int32
-	IsEncrypted          bool
-	ServiceZoneId        string
-	SnapshotCapacityRate int32
+	CifsPassword          string
+	DiskType              string
+	FileStorageName       string
+	FileStorageProtocol   string
+	MultiAvailabilityZone *bool
+	ProductNames          []string
+	ServiceZoneId         string
+	//SnapshotRetentionCount *int32
+	//SnapshotSchedule       *SnapshotSchedule
+	Tags []TagRequest
 }
+
 type SnapshotSchedule struct {
 	DayOfWeek string
 	Frequency string
-	Hour      int32
+	Hour      *int32
+}
+
+type TagRequest struct {
+	TagKey   string
+	TagValue string
 }
 
 type ReadFileStorageRequest struct {
+	BlockId             string
 	FileStorageId       string
 	FileStorageName     string
 	FileStorageProtocol string
+	FileStorageState    string
+	FileStorageStates   []string
 	ServiceZoneId       string
-	DiskType            string
 	CreatedBy           string
 	Page                int32
 	Size                int32
-	Sort                string
+	Sort                []string
 }
 
 type CheckFileStorageRequest struct {
 	ServiceZoneId   string
 	FileStorageName string
-	CifsId          string
 }
 
 type UpdateFileStorageRequest struct {
-	FileStorageId         string
-	FileStorageCapacityGb int32
+	FileStorageId string
 }

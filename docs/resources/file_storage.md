@@ -13,30 +13,15 @@ Provides a File Storage resource.
 ## Example Usage
 
 ```terraform
-data "scp_region" "region" {
-}
-
-resource "scp_file_storage" "my_nfs_fs" {
-  name            = var.name
-  disk_type       = "SSD"
-  protocol        = "NFS"
-  is_encrypted    = false
-  retention_count = 5
-  region          = data.scp_region.region.location
-}
-
-resource "scp_file_storage" "my_cifs_fs" {
-  name            = "fs_cifs_test"
-  disk_type       = "HDD"
-  protocol        = "CIFS"
-  is_encrypted    = false
-  cifs_password   = var.password
-
-  snapshot_day_of_week = "SUN"
-  snapshot_frequency   = "WEEKLY"
-  snapshot_hour        = 11
-  retention_count      = 1
-  region               = data.scp_region.region.location
+resource "scp_file_storage" "my_scp_file_storage" {
+  file_storage_name = "fs_cifs_test"
+  disk_type         = "HDD"
+  file_storage_protocol = "CIFS"
+  cifs_password = var.password
+  product_names = [
+    "HDD"
+  ]
+  service_zone_id = "ZONE-XXXXX"
 }
 ```
 
@@ -45,20 +30,19 @@ resource "scp_file_storage" "my_cifs_fs" {
 
 ### Required
 
-- `disk_type` (String) HDD / SSD / HP_SSD(Only Multi-node GPU Clusters)
-- `name` (String) The file storage name to create. (3 to 28 lowercase characters with _)
-- `protocol` (String) The file storage protocol type to create (NFS, CIFS)
-- `region` (String) The file storage region name to create.
+- `disk_type` (String) File Storage Disk Type (HDD, SSD, HP_SSD)
+- `file_storage_name` (String) File Storage Name (3 to 21 lower alphabet and numeric characters with '_' symbol are available, but it must be started with lower alphabet)
+- `file_storage_protocol` (String) File Storage Protocol (NFS, CIFS)
+- `product_names` (List of String) Product Names
+- `service_zone_id` (String) Service Zone ID
 
 ### Optional
 
-- `cifs_password` (String) Cifs password is only available for CIFS protocol. (6 to 20 characters without following special characters ($, %, {, }, [, ], ", \)
-- `is_encrypted` (Boolean) The file storage whether to use encryption.
-- `retention_count` (Number) Snapshot archiving count
-- `snapshot_day_of_week` (String) Snapshot creation cycle, It is only available when you use a Snapshot
-- `snapshot_frequency` (String) Snapshot creation frequency, It is only available when you use a Snapshot
-- `snapshot_hour` (Number) Snapshot creation hour, It is only available when you use a Snapshot
+- `cifs_password` (String) CIFS Password is only available for CIFS Protocol. (6 to 20 alphabet and numeric characters without following special characters ($, %, {, }, [, ], ", \)
+- `multi_availability_zone` (Boolean) Multi AZ (If null, default value is false)
+- `tags` (Map of String) Tags
 
 ### Read-Only
 
+- `cifs_id` (String) CIFS ID
 - `id` (String) The ID of this resource.

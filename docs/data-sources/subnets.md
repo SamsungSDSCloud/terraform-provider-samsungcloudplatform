@@ -13,11 +13,11 @@ Provides list of subnets.
 ## Example Usage
 
 ```terraform
-data "scp_subnets" "my_scp_subnets1" {
+data "scp_subnets" "my_scp_subnets" {
 }
 
-output "output_my_scp_subnets1" {
-  value = data.scp_subnets.my_scp_subnets1
+output "contents" {
+  value = data.scp_subnets.my_scp_subnets.contents
 }
 ```
 
@@ -32,6 +32,7 @@ output "output_my_scp_subnets1" {
 - `subnet_cidr_block` (String) Subnet CIDR block
 - `subnet_id` (String) Subnet id
 - `subnet_name` (String) Subnet name
+- `subnet_states` (String) Subnet states (ACTIVE, ERROR)
 - `subnet_types` (String) Subnet types (PUBLIC, PRIVATE)
 - `vpc_id` (String) VPC id
 

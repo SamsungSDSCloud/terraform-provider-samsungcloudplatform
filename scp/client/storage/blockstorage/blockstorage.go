@@ -21,16 +21,32 @@ func NewClient(config *sdk.Configuration) *Client {
 }
 
 func (client *Client) CreateBlockStorage(ctx context.Context, request CreateBlockStorageRequest) (blockstorage2.AsyncResponse, error) {
-	result, _, err := client.sdkClient.BlockStorageControllerApi.CreateBlockStorage(
-		ctx,
-		client.config.ProjectId,
-		blockstorage2.BlockStorageCreateRequest{
-			BlockStorageName: request.BlockStorageName,
-			BlockStorageSize: request.BlockStorageSize,
-			EncryptEnabled:   request.EncryptEnabled,
-			ProductId:        request.ProductId,
-			VirtualServerId:  request.VirtualServerId,
-		})
+	blockStorageCreateRequest := blockstorage2.BlockStorageCreateRequest{
+		BlockStorageName: request.BlockStorageName,
+		BlockStorageSize: request.BlockStorageSize,
+		EncryptEnabled:   &request.EncryptEnabled,
+		ProductId:        request.ProductId,
+		SharedType:       request.SharedType,
+		VirtualServerId:  request.VirtualServerId,
+	}
+	blockStorageCreateRequest.Tags = make([]blockstorage2.TagRequest, 0)
+	for _, tagReq := range request.Tags {
+		blockStorageCreateRequest.Tags = append(blockStorageCreateRequest.Tags, blockstorage2.TagRequest{
+			TagKey:   tagReq.TagKey,
+			TagValue: tagReq.TagValue})
+	}
+	//result, _, err := client.sdkClient.BlockStorageControllerApi.CreateBlockStorage(
+	//	ctx,
+	//	client.config.ProjectId,
+	//	blockstorage2.BlockStorageCreateRequest{
+	//		BlockStorageName: request.BlockStorageName,
+	//		BlockStorageSize: request.BlockStorageSize,
+	//		EncryptEnabled:   request.EncryptEnabled,
+	//		ProductId:        request.ProductId,
+	//		SharedType:       request.SharedType,
+	//		VirtualServerId:  request.VirtualServerId,
+	//	})
+	result, _, err := client.sdkClient.BlockStorageControllerApi.CreateBlockStorage(ctx, client.config.ProjectId, blockStorageCreateRequest)
 
 	return result, err
 }
@@ -76,5 +92,34 @@ func (client *Client) ResizeBlockStorage(ctx context.Context, request UpdateBloc
 
 func (client *Client) DeleteBlockStorage(ctx context.Context, blockStorageId string) (blockstorage2.AsyncResponse, error) {
 	result, _, err := client.sdkClient.BlockStorageControllerApi.DeleteBlockStorage(ctx, client.config.ProjectId, blockStorageId)
+	return result, err
+}
+
+func (client *Client) AttachBlockStorage(ctx context.Context, blockStorageId string, request BlockStorageAttachRequest) (blockstorage2.AsyncResponse, error) {
+	result, _, err := client.sdkClient.BlockStorageControllerApi.AttachBlockStorage(ctx,
+		client.config.ProjectId,
+		blockStorageId,
+		blockstorage2.BlockStorageAttachRequest{
+			VirtualServerId: request.VirtualServerId,
+		})
+	return result, err
+}
+
+func (client *Client) DetachBlockStorage(ctx context.Context, blockStorageId string, request BlockStorageDetachRequest) (blockstorage2.AsyncResponse, error) {
+	result, _, err := client.sdkClient.BlockStorageControllerApi.DetachBlockStorage(ctx,
+		client.config.ProjectId,
+		blockStorageId,
+		blockstorage2.BlockStorageDetachRequest{
+			VirtualServerId: request.VirtualServerId,
+		})
+	return result, err
+}
+
+func (client *Client) ListBlockStorageVirtualServers(ctx context.Context, blockStorageId string, request BlockStorageVirtualServersRequest) (blockstorage2.ListResponseOfBlockStorageVirtualServerResponse, error) {
+	result, _, err := client.sdkClient.BlockStorageControllerApi.ListBlockStorageVirtualServers(ctx, client.config.ProjectId, blockStorageId, &blockstorage2.BlockStorageControllerApiListBlockStorageVirtualServersOpts{
+		Page: optional.NewInt32(request.Page),
+		Size: optional.NewInt32(request.Size),
+		Sort: optional.NewInterface(request.Sort),
+	})
 	return result, err
 }

@@ -21,4 +21,3 @@ variable "namel4" {
 variable "namel7" {
   default = "lbservicel7test"
 }
-

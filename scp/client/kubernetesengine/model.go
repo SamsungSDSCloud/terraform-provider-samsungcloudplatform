@@ -5,6 +5,7 @@ type CreateEngineRequest struct {
 	K8sVersion           string
 	KubernetesEngineName string
 	LbId                 string
+	PrivateAclResources  []PrivateAclResourcesRequest
 	PublicAclIpAddress   string
 	SecurityGroupId      string
 	SubnetId             string
@@ -26,25 +27,43 @@ type ListEngineRequest struct {
 }
 
 type UpdateEngineRequest struct {
-	//CloudLoggingEnabled bool
 	K8sVersion         string
 	PublicAclIpAddress string
 }
 
+type UpdateEngineLoggingRequest struct {
+	CloudLoggingEnabled bool
+}
+
+type UpdateEngineLoadBalancerRequest struct {
+	LoadBalancerEnabled bool
+	LbId                string
+}
+
+type UpdateEngineCifsVolumeRequest struct {
+	CifsVolumeIdEnabled bool
+	CifsVolumeId        string
+}
+
+type UpdateEnginePrivateAclRequest struct {
+	PrivateAclResources []PrivateAclResourcesRequest
+}
+
 type CreateNodePoolRequest struct {
-	AutoRecovery     bool
-	AutoScale        bool
-	ContractId       string
-	DesiredNodeCount int32
-	ImageId          string
-	MaxNodeCount     int32
-	MinNodeCount     int32
-	NodePoolName     string
-	ProductGroupId   string
-	ScaleId          string
-	ServiceLevelId   string
-	StorageId        string
-	StorageSize      string
+	AvailabilityZoneName string
+	AutoRecovery         bool
+	AutoScale            bool
+	ContractId           string
+	DesiredNodeCount     int32
+	ImageId              string
+	MaxNodeCount         int32
+	MinNodeCount         int32
+	NodePoolName         string
+	ProductGroupId       string
+	ScaleId              string
+	ServiceLevelId       string
+	StorageId            string
+	StorageSize          string
 }
 
 type NodePoolUpdateRequest struct {
@@ -61,4 +80,10 @@ type NodePoolUpdateRequest struct {
 	ServiceLevelId   string
 	StorageId        string
 	StorageSize      string
+}
+
+type PrivateAclResourcesRequest struct {
+	Id    string
+	Type  string
+	Value string
 }

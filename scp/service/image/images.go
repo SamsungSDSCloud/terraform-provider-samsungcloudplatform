@@ -2,11 +2,16 @@ package image
 
 import (
 	"context"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+func init() {
+	scp.RegisterDataSource("scp_standard_images", DatasourceStandardImages())
+}
 
 func DatasourceStandardImages() *schema.Resource {
 	return &schema.Resource{
@@ -19,12 +24,12 @@ func DatasourceStandardImages() *schema.Resource {
 			"service_group": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Service group (COMPUTE, CONTAINER, DATABASE, ...)",
+				Description: "Service group (COMPUTE, DATABASE, EXTENSION, MIDDLEWARE, STORAGE, AI Service, CONTAINER)",
 			},
 			"service": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Service (Virtual Server, Kubernetes Engine VM, Postgresql, ...)",
+				Description: "Service (Baremetal Server, EPAS, Elasticsearch, GPU Server, Kubeflow, Kubernetes Apps, Kubernetes Engine, Kubernetes Engine GPU VM, Kubernetes Engine VM, MariaDB, Microsoft SQL Server, MySQL, PostgreSQL, Redis, Tibero, Vertica, Virtual Server)",
 			},
 			"standard_images": {
 				Type:        schema.TypeList,
@@ -51,9 +56,12 @@ func datasourceStandardImagesRead(ctx context.Context, rd *schema.ResourceData, 
 		return diag.FromErr(err)
 	}
 
-	servicedZoneId := projectInfo.DefaultZoneId
-	if len(servicedZoneId) == 0 {
-		vpcLocation := rd.Get("region").(string)
+	var servicedZoneId string
+	vpcLocation := rd.Get("region").(string)
+
+	if len(vpcLocation) == 0 {
+		servicedZoneId = projectInfo.DefaultZoneId
+	} else {
 		servicedZoneId, _, err = client.FindServiceZoneIdAndProductGroupId(ctx, inst.Client, vpcLocation, common.NetworkProductGroup, common.VpcProductName)
 
 		if err != nil {

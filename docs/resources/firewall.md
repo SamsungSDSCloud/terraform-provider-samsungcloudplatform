@@ -31,6 +31,7 @@ resource "scp_firewall" "vpc4fw_fw" {
   vpc_id    = scp_vpc.vpc4fw.id
   target_id = scp_internet_gateway.vpc4fw_igw.id
   enabled   = var.enabled
+  logging_enabled = var.logging_enabled
 }
 ```
 
@@ -42,6 +43,10 @@ resource "scp_firewall" "vpc4fw_fw" {
 - `enabled` (Boolean) Firewall enabled status
 - `target_id` (String) Target firewall resource id
 - `vpc_id` (String) VPC id
+
+### Optional
+
+- `logging_enabled` (Boolean) logging or not
 
 ### Read-Only
 

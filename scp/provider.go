@@ -15,34 +15,36 @@ import (
 	"strings"
 
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/firewall"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/image"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/internetgateway"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/kubernetes"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/loadbalancer"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/natgateway"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/postgresql"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/product"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/project"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/publicip"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/region"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/securitygroup"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/storage/blockstorage"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/storage/filestorage"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/subnet"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/virtualserver"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/vpc"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+var scpResources map[string]*schema.Resource
+var scpDataSources map[string]*schema.Resource
+
 func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema:               getSchema(),
-		DataSourcesMap:       getDataSourcesMap(),
-		ResourcesMap:         getResourcesMap(),
+		DataSourcesMap:       scpDataSources,
+		ResourcesMap:         scpResources,
 		ConfigureContextFunc: configureProvider,
 	}
+}
+
+// RegisterResource Register resources terraform for SCP
+func RegisterResource(name string, resourceSchema *schema.Resource) {
+	if scpResources == nil {
+		scpResources = make(map[string]*schema.Resource)
+	}
+	scpResources[name] = resourceSchema
+}
+
+// RegisterDatasource Register datasource terraform for SCP
+func RegisterDataSource(name string, DataSourceSchema *schema.Resource) {
+	if scpDataSources == nil {
+		scpDataSources = make(map[string]*schema.Resource)
+	}
+	scpDataSources[name] = DataSourceSchema
 }
 
 type authResponse struct {
@@ -104,28 +106,14 @@ type credentialConfig struct {
 }
 
 type serviceConfig struct {
-	Target    string `json:"target"`
+	Host      string `json:"host"`
 	UserId    string `json:"user-id"`
 	Email     string `json:"email"`
 	ProjectId string `json:"project-id"`
 }
 
-type serviceInfo struct {
-	host         string
-	authUrl      string
-	authClientId string
-}
-
 const serviceConfigFilename = "config.json"
 const credentialConfigFilename = "credentials.json"
-
-var serviceInfoMap = map[string]serviceInfo{
-	"production": {
-		host:         "https://openapi.samsungsdscloud.com",
-		authUrl:      "https://openapi.samsungsdscloud.com",
-		authClientId: "cmpClientProd",
-	},
-}
 
 func loadJson(filename string, result interface{}) error {
 	data, err := ioutil.ReadFile(filename)
@@ -154,14 +142,11 @@ func getVariable(rd *schema.ResourceData, name string, env string, getConfig fun
 	return res
 }
 
-func configureService(rd *schema.ResourceData, target string, service *serviceConfig, config *client.Config) error {
-	info, exists := serviceInfoMap[target]
-	fmt.Println("target:", target)
-	if !exists {
-		return fmt.Errorf("property \"target\" invalid\n")
+func configureService(rd *schema.ResourceData, service *serviceConfig, config *client.Config) error {
+	config.ServiceHost = getVariable(rd, "host", "SCP_TF_HOST", func() string { return service.Host })
+	if config.ServiceHost == "" {
+		config.ServiceHost = "https://openapi.samsungsdscloud.com" // Fallback to default host
 	}
-
-	config.ServiceHost = info.host
 
 	config.ProjectId = getVariable(rd, "project_id", "SCP_TF_PROJECT_ID", func() string { return service.ProjectId })
 	if config.ProjectId == "" {
@@ -183,29 +168,13 @@ func configureService(rd *schema.ResourceData, target string, service *serviceCo
 	return nil
 }
 
-func configureCredential(rd *schema.ResourceData, target string, credential *credentialConfig, config *client.Config) error {
+func configureCredential(rd *schema.ResourceData, credential *credentialConfig, config *client.Config) error {
 	config.AuthMethod = getVariable(rd, "auth_method", "SCP_TF_AUTH_METHOD", func() string { return credential.AuthMethod })
 	config.Credentials.AccessKey = getVariable(rd, "access_key", "SCP_TF_ACCESS_KEY", func() string { return credential.AccessKey })
 	config.Credentials.SecretKey = getVariable(rd, "secret_key", "SCP_TF_SECRET_KEY", func() string { return credential.SecretKey })
 
 	if config.AuthMethod == "access-key" {
 		return nil
-	}
-
-	if config.AuthMethod == "id-token" {
-		password := getVariable(rd, "password", "SCP_TF_PASSWORD", func() string { return credential.Password })
-
-		info, exists := serviceInfoMap[target]
-		if !exists {
-			return fmt.Errorf("property \"target\" invalid\n")
-		}
-
-		token, err := getAuthToken(info.authUrl, info.authClientId, config.Email, password)
-		if err != nil {
-			return err
-		}
-
-		config.Token = token
 	}
 
 	return fmt.Errorf("unsupported auth method")
@@ -231,13 +200,8 @@ func configureProvider(ctx context.Context, rd *schema.ResourceData) (interface{
 		return nil, diag.FromErr(err)
 	}
 
-	target := getVariable(rd, "target", "SCP_TF_TARGET", func() string { return service.Target })
-	if target == "" {
-		return nil, diag.FromErr(fmt.Errorf("property \"target\" not found in %s\n", serviceConfigFilename))
-	}
-
-	configureService(rd, target, &service, &providerConfig)
-	configureCredential(rd, target, &credential, &providerConfig)
+	configureService(rd, &service, &providerConfig)
+	configureCredential(rd, &credential, &providerConfig)
 
 	scpClient, err := client.NewSCPClient(&providerConfig)
 	if err != nil {
@@ -254,10 +218,10 @@ func configureProvider(ctx context.Context, rd *schema.ResourceData) (interface{
 
 func getSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
-		"target": {
+		"host": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "SCP target environment (development, stage, scp-maint, production)",
+			Description: "SCP Host",
 		},
 		"user_id": {
 			Type:        schema.TypeString,
@@ -297,16 +261,25 @@ func getSchema() map[string]*schema.Schema {
 	}
 }
 
+/*
 func getDataSourcesMap() map[string]*schema.Resource {
 	return map[string]*schema.Resource{
-		"scp_public_ip":                  publicip.DatasourceVpcPublicIp(),
-		"scp_project":                    project.DatasourceProjects(),
-		"scp_product":                    product.DatasourceProducts(),
+		"scp_vpc_peering_detail": peering.DataSourceVpcPeeringDetail(),
+		"scp_vpc_peerings":       peering.DataSourceVpcPeeringList(),
+		"scp_vpc_routing_rules":  routing.DataSourceVpcRoutingRule(),
+		"scp_vpc_routing_routes": routing.DataSourceVpcRoutingRoute(),
+		"scp_vpc_routing_tables": routing.DataSourceVpcRoutingTable(),
+		"scp_vpc_dnss":           vpc.DatasourceVpcDns(),
+		"scp_public_ip": publicip.DatasourceVpcPublicIp(),
+		"scp_project": project.DatasourceProjects(),
+		"scp_product": product.DatasourceProducts(),
 		"scp_vpcs":                       vpc.DatasourceVpcs(),
 		"scp_subnets":                    subnet.DatasourceSubnets(),
 		"scp_subnet_resources":           subnet.DatasourceSubnetResources(),
 		"scp_standard_images":            image.DatasourceStandardImages(),
 		"scp_standard_image":             image.DatasourceStandardImage(),
+		"scp_custom_images":              image.DatasourceCustomImages(),
+		"scp_custom_image":               image.DatasourceCustomImage(),
 		"scp_regions":                    region.DatasourceRegions(),
 		"scp_region":                     region.DatasourceRegion(),
 		"scp_kubernetes_apps_image":      kubernetes.DatasourceKubernetesAppsImage(),
@@ -320,40 +293,47 @@ func getDataSourcesMap() map[string]*schema.Resource {
 		"scp_kubernetes_node_pools":      kubernetes.DatasourceNodePools(),
 		"scp_kubernetes_subnet":          kubernetes.DatasourceSubnet(),
 		"scp_kubernetes_engine_versions": kubernetes.DatasourceEngineVersions(),
-		"scp_lb_server_groups":           loadbalancer.DatasourceLBServerGroups(),
-		"scp_lb_service_ips":             loadbalancer.DatasourceLBServiceIps(),
-		"scp_lb_services":                loadbalancer.DatasourceLBServices(),
-		"scp_load_balancers":             loadbalancer.DatasourceLoadBalancers(),
+		"scp_lb_server_groups": loadbalancer.DatasourceLBServerGroups(),
+		"scp_lb_service_ips": loadbalancer.DatasourceLBServiceIps(),
+		"scp_lb_services":    loadbalancer.DatasourceLBServices(),
+		"scp_load_balancers": loadbalancer.DatasourceLoadBalancers(),
+		"scp_members":        iam.DatasourceMembers(),
+		"scp_policies":       iam.DatasourcePolicies(),
+		"scp_groups":         iam.DatasourceGroups(),
+		"scp_roles":          iam.DatasourceRoles(),
+		"scp_object_storage":             objectstorage.DatasourceObjectStorage(),
 	}
 }
-
 func getResourcesMap() map[string]*schema.Resource {
 	return map[string]*schema.Resource{
-		"scp_vpc":                 vpc.ResourceVpc(),
-		"scp_public_ip":           publicip.ResourceVpcPublicIp(),
+		"scp_vpc_peering_cancel":  peering.ResourceVpcPeeringCancel(),
+		"scp_vpc_peering_reject":  peering.ResourceVpcPeeringReject(),
+		"scp_vpc_peering_approve": peering.ResourceVpcPeeringApprove(),
+		"scp_vpc_peering":         peering.ResourceVpcPeering(),
+		"scp_vpc_routing": routing.ResourceVpcRouting(),
+		"scp_vpc_dns":             vpc.ResourceVpcDns(),
+		"scp_vpc":       vpc.ResourceVpc(),
+		"scp_public_ip": publicip.ResourceVpcPublicIp(),
 		"scp_subnet":              subnet.ResourceSubnet(),
 		"scp_security_group":      securitygroup.ResourceSecurityGroup(),
 		"scp_security_group_rule": securitygroup.ResourceSecurityGroupRule(),
 		"scp_internet_gateway":    internetgateway.ResourceInternetGateway(),
-		"scp_nat_gateway":         natgateway.ResourceNATGateway(),
-		"scp_firewall":            firewall.ResourceFirewall(),
-		"scp_firewall_rule":       firewall.ResourceFirewallRule(),
-
+		"scp_nat_gateway":   natgateway.ResourceNATGateway(),
+		"scp_firewall":      firewall.ResourceFirewall(),
+		"scp_firewall_rule": firewall.ResourceFirewallRule(),
 		"scp_virtual_server": virtualserver.ResourceVirtualServer(),
-
 		"scp_kubernetes_engine":    kubernetes.ResourceKubernetesEngine(),
 		"scp_kubernetes_node_pool": kubernetes.ResourceKubernetesNodePool(),
 		"scp_kubernetes_namespace": kubernetes.ResourceKubernetesNamespace(),
-		"scp_kubernetes_apps":      kubernetes.ResourceKubernetesApps(),
-
+		"scp_kubernetes_apps": kubernetes.ResourceKubernetesApps(),
 		"scp_block_storage": blockstorage.ResourceBlockStorage(),
-		"scp_file_storage":  filestorage.ResourceFileStorage(),
-
+		"scp_file_storage": filestorage.ResourceFileStorage(),
+		"scp_object_storage": objectstorage.ResourceObjectStorage(),
 		"scp_load_balancer":   loadbalancer.ResourceLoadBalancer(),
 		"scp_lb_profile":      loadbalancer.ResourceLbProfile(),
 		"scp_lb_server_group": loadbalancer.ResourceLbServerGroup(),
 		"scp_lb_service":      loadbalancer.ResourceLbService(),
-
 		"scp_postgresql": postgresql.ResourcePostgresql(),
 	}
 }
+*/

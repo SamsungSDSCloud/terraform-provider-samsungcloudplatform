@@ -13,12 +13,16 @@ Provides a Subnet resource.
 ## Example Usage
 
 ```terraform
+# Find all vpcs for current project
+data "scp_vpcs" "vpcs" {
+}
+
 resource "scp_subnet" "my_subnet" {
-  vpc_id      = data.terraform_remote_state.vpc.outputs.id
+  vpc_id      = data.scp_vpcs.vpcs.contents[0].vpc_id
   name        = var.name
   type        = "PUBLIC"
   cidr_ipv4   = "192.169.4.0/24"
-  description = "Subnet generated from Terraform"
+  description = var.description
 }
 ```
 
@@ -29,7 +33,7 @@ resource "scp_subnet" "my_subnet" {
 
 - `cidr_ipv4` (String) Subnet cidr ipv4
 - `name` (String) Subnet name. (3 to 20 characters without specials)
-- `type` (String) Subnet type ('PUBLIC' or 'PRIVATE')
+- `type` (String) Subnet type ('PUBLIC'|'PRIVATE'|'BM'|'VM')
 - `vpc_id` (String) Target VPC id
 
 ### Optional

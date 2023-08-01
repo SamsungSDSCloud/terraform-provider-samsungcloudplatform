@@ -4,7 +4,6 @@ data "scp_firewalls" "my_fws1" {
 # Find all active firewalls
 data "scp_firewalls" "my_fws2" {
   vpc_id = "VPC-xxxxxx"
-state
   filter {
     name   = "state"
     values = ["ACTIVE"]

@@ -18,15 +18,18 @@ data "scp_region" "region" {
 
 resource "scp_kubernetes_engine" "engine" {
   name               = var.name
-  kubernetes_version = "v1.21.8"
+  kubernetes_version = "v1.24.8"
 
   vpc_id            = data.terraform_remote_state.vpc.outputs.id
   subnet_id         = data.terraform_remote_state.subnet.outputs.id
   security_group_id = data.terraform_remote_state.security-group.outputs.id
   volume_id         = data.terraform_remote_state.file-storage.outputs.id
 
+  // update optional field
   cloud_logging_enabled = false
+  public_acl_ip_address = "123.123.123.123"
   load_balancer_id      = data.terraform_remote_state.load_balancer.outputs.id
+  cifs_volume_id    = data.terraform_remote_state.file-storage.outputs.cifs_id
 }
 ```
 
@@ -44,8 +47,10 @@ resource "scp_kubernetes_engine" "engine" {
 
 ### Optional
 
+- `cifs_volume_id` (String) CIFS volume id
 - `cloud_logging_enabled` (Boolean) Enable cloud logging
 - `load_balancer_id` (String) Load balancer ID
+- `private_acl_resources` (Block List) Tag list (see [below for nested schema](#nestedblock--private_acl_resources))
 - `public_acl_ip_address` (String) List of comma separated IP addresses (CIDR or Single IP) for access control
 
 ### Read-Only
@@ -53,3 +58,15 @@ resource "scp_kubernetes_engine" "engine" {
 - `id` (String) The ID of this resource.
 - `kube_config` (String) Kube config of the kubernetes cluster
 - `public_endpoint` (String) Public endpoint URL for the kubernetes cluster
+
+<a id="nestedblock--private_acl_resources"></a>
+### Nested Schema for `private_acl_resources`
+
+Required:
+
+- `id` (String) Tag key
+
+Optional:
+
+- `type` (String) Tag value
+- `value` (String) Tag value

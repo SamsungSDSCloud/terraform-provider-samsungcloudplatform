@@ -21,10 +21,11 @@ func NewClient(config *sdk.Configuration) *Client {
 /*
  Load Balancer
 */
-func (client *Client) CreateLoadBalancer(ctx context.Context, blockId string, filewallEnabled bool, loadBalancerSize string, loadBalancerName string, productGroupId string, productId string, seviceIpCidr string, serviceZoneId string, vpcId string, description string) (loadbalancer2.AsyncResponse, error) {
-	result, _, err := client.sdkClient.LoadBalancerOpenApiControllerApi.CreateLoadBalancer(ctx, client.config.ProjectId, loadbalancer2.LbRequest{
+func (client *Client) CreateLoadBalancer(ctx context.Context, blockId string, firewallEnabled bool, loadBalancerSize string, loadBalancerName string, productGroupId string, productId string, seviceIpCidr string, linkIpCidr string, serviceZoneId string, vpcId string, description string) (loadbalancer2.AsyncResponse, error) {
+	req := loadbalancer2.LbRequest{
 		BlockId:                 blockId,
-		FirewallEnabled:         filewallEnabled,
+		FirewallEnabled:         &firewallEnabled,
+		LinkIpCidr:              linkIpCidr,
 		LoadBalancerName:        loadBalancerName,
 		LoadBalancerSize:        loadBalancerSize,
 		ProductGroupId:          productGroupId,
@@ -33,7 +34,8 @@ func (client *Client) CreateLoadBalancer(ctx context.Context, blockId string, fi
 		ServiceZoneId:           serviceZoneId,
 		VpcId:                   vpcId,
 		LoadBalancerDescription: description,
-	})
+	}
+	result, _, err := client.sdkClient.LoadBalancerOpenApiControllerApi.CreateLoadBalancer(ctx, client.config.ProjectId, req)
 
 	return result, err
 }
@@ -88,6 +90,24 @@ func (client *Client) GetLoadBalancerList(ctx context.Context, request *loadbala
 	return result, statusCode, err
 }
 
+func (client *Client) GetLoadBalancerServiceConnectableToAsgList(ctx context.Context, vpcId string) (loadbalancer2.ListResponseOfLbServiceForAsgResponse, int, error) {
+	result, c, err := client.sdkClient.LbServiceOpenApiControllerApi.GetAvailableLoadBalancerServiceListForAsg(ctx, client.config.ProjectId, vpcId)
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
+}
+
+func (client *Client) GetLoadBalancerServiceConnectedToAsgList(ctx context.Context, autoScalingGroupId string) (loadbalancer2.ListResponseOfLbServiceForAsgResponse, int, error) {
+	result, c, err := client.sdkClient.LbServiceOpenApiControllerApi.GetConnectedLoadBalancerServiceListForAsg(ctx, client.config.ProjectId, autoScalingGroupId)
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
+}
+
 /*
  LB Profile
 */
@@ -124,6 +144,15 @@ func (client *Client) CreateLbProfile(ctx context.Context, loadBalancerId string
 
 func (client *Client) GetLbProfile(ctx context.Context, lbProfileId string, loadBalancerId string) (loadbalancer2.LbProfileDetailResponse, int, error) {
 	result, c, err := client.sdkClient.LbProfileOpenApiControllerApi.GetLoadBalancerProfile(ctx, client.config.ProjectId, lbProfileId, loadBalancerId)
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
+}
+
+func (client *Client) GetLbProfileList(ctx context.Context, loadBalancerId string, request *loadbalancer2.LbProfileOpenApiControllerApiGetLoadBalancerProfileListOpts) (loadbalancer2.ListResponseOfLbProfileResponse, int, error) {
+	result, c, err := client.sdkClient.LbProfileOpenApiControllerApi.GetLoadBalancerProfileList(ctx, client.config.ProjectId, loadBalancerId, request)
 	var statusCode int
 	if c != nil {
 		statusCode = c.StatusCode
@@ -183,7 +212,7 @@ func (client *Client) CreateLbServerGroup(ctx context.Context, loadBalancerId st
 		LbMonitor:              monitor,
 		LbServerGroupMembers:   members,
 		LbServerGroupName:      name,
-		TcpMultiplexingEnabled: tcpMultiplexingEnabled,
+		TcpMultiplexingEnabled: &tcpMultiplexingEnabled,
 	})
 	return result, err
 }
@@ -192,7 +221,7 @@ func (client *Client) UpdateLbServerGroup(ctx context.Context, tcpMultiplexingEn
 	result, _, err := client.sdkClient.LbServerGroupOpenApiControllerApi.UpdateLoadBalancerServerGroup(ctx, client.config.ProjectId, lbServerGroupId, loadBalancerId, loadbalancer2.LbServerGroupChangeRequest{
 		LbAlgorithm:            lbAlgorithm,
 		LbMonitor:              monitor,
-		TcpMultiplexingEnabled: tcpMultiplexingEnabled,
+		TcpMultiplexingEnabled: &tcpMultiplexingEnabled,
 		LbServerGroupMembers:   members,
 	})
 
@@ -214,7 +243,7 @@ func (client *Client) GetLbServerGroupList(ctx context.Context, loadBalancerId s
 }
 
 /*
- LB Server Group
+ LB Service
 */
 type LbServiceRule = loadbalancer2.LbRuleRequest
 
@@ -227,6 +256,15 @@ func (client *Client) CheckLbServiceNameDuplicated(ctx context.Context, loadBala
 	} else {
 		return false, err
 	}
+}
+
+func (client *Client) CheckLbServiceIpPortDuplicated(ctx context.Context, loadBalancerId string, serviceIp string, servicePort string) (loadbalancer2.ListResponseOfLbServiceSubSo, int, error) {
+	result, c, err := client.sdkClient.LbServiceOpenApiControllerApi.CheckLoadBalancerServiceIpPort(ctx, client.config.ProjectId, loadBalancerId, serviceIp, servicePort)
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
 }
 
 func (client *Client) CreateLbService(
@@ -261,7 +299,7 @@ func (client *Client) CreateLbService(
 		LbServiceIpId:       lbServiceIpId,
 		ServerCertificateId: serverCertificateId,
 		ClientCertificateId: clientCertificateId,
-		UseAccessLog:        useAccessLog,
+		UseAccessLog:        &useAccessLog,
 	})
 
 	return result, err
@@ -282,18 +320,24 @@ func (client *Client) DeleteLbService(ctx context.Context, lbServiceId string, l
 }
 
 func (client *Client) UpdateLbService(ctx context.Context, lbServiceId string, loadBalancerId string,
-	appProfileId string, clientCertId string, defaultForwardingPorts string, lbRules []LbServiceRule, persistence string,
-	persistenceProfileId string, serverCertId string, servicePorts string, useAccessLog bool) (loadbalancer2.AsyncResponse, error) {
+	appProfileId string, clientCertId string, defaultForwardingPorts string, persistence string, persistenceProfileId string, serverCertId string, servicePorts string, useAccessLog bool) (loadbalancer2.AsyncResponse, error) {
 	result, _, err := client.sdkClient.LbServiceOpenApiControllerApi.UpdateLoadBalancerService(ctx, client.config.ProjectId, lbServiceId, loadBalancerId, loadbalancer2.LbServiceChangeRequest{
 		ApplicationProfileId:   appProfileId,
 		ClientCertificateId:    clientCertId,
 		DefaultForwardingPorts: defaultForwardingPorts,
-		//LbRules:                lbRules,
-		Persistence:          persistence,
-		PersistenceProfileId: persistenceProfileId,
-		ServerCertificateId:  serverCertId,
-		ServicePorts:         servicePorts,
-		UseAccessLog:         true,
+		Persistence:            persistence,
+		PersistenceProfileId:   persistenceProfileId,
+		ServerCertificateId:    serverCertId,
+		ServicePorts:           servicePorts,
+		UseAccessLog:           &useAccessLog,
+	})
+
+	return result, err
+}
+
+func (client *Client) UpdateLbRules(ctx context.Context, lbServiceId string, loadBalancerId string, lbRules []LbServiceRule) (loadbalancer2.AsyncResponse, error) {
+	result, _, err := client.sdkClient.LbServiceOpenApiControllerApi.UpdateLoadBalancerService(ctx, client.config.ProjectId, lbServiceId, loadBalancerId, loadbalancer2.LbServiceChangeRequest{
+		LbRules: lbRules,
 	})
 
 	return result, err
@@ -310,6 +354,19 @@ func (client *Client) GetLbServiceList(ctx context.Context, loadBalancerId strin
 
 func (client *Client) GetLbServiceIpList(ctx context.Context, loadBalancerId string, request *loadbalancer2.LbServiceOpenApiControllerApiGetLoadBalancerServiceIpListOpts) (loadbalancer2.ListResponseOfLbServiceIpResponse, int, error) {
 	result, c, err := client.sdkClient.LbServiceOpenApiControllerApi.GetLoadBalancerServiceIpList(ctx, client.config.ProjectId, loadBalancerId, request)
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
+}
+
+func (client *Client) AttachNatIpToLoadBalancerServiceIp(ctx context.Context, loadBalancerId string, lbServiceIpId string, natActive bool, publicIpId string) (loadbalancer2.AsyncResponse, int, error) {
+	result, c, err := client.sdkClient.LbServiceOpenApiControllerApi.AttachNatIpToLoadBalancerServiceIp(ctx, client.config.ProjectId, loadBalancerId, loadbalancer2.LbServiceIpRequest{
+		LbServiceIpId: lbServiceIpId,
+		NatActive:     &natActive,
+		PublicIpId:    publicIpId,
+	})
 	var statusCode int
 	if c != nil {
 		statusCode = c.StatusCode

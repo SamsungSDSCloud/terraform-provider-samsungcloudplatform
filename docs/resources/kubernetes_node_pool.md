@@ -23,8 +23,8 @@ data "scp_standard_image" "ubuntu_image" {
 
   filter {
     name      = "image_name"
-    values    = ["Ubuntu 18.04 *"]
-    use_regex = true
+    values    = ["Ubuntu 18.04 (Kubernetes)-v1.24.8"]
+    use_regex = false
   }
 }
 
@@ -32,15 +32,16 @@ resource "scp_kubernetes_node_pool" "pool" {
   name               = var.name
   engine_id          = data.terraform_remote_state.engine.outputs.id
   image_id           = data.scp_standard_image.ubuntu_image.id
-  desired_node_count = 0
-  storage_size_gb    = 100
+  desired_node_count = 2
   cpu_count          = 2
   memory_size_gb     = 4
+  storage_size_gb    = 100
 
-  auto_recovery      = true
-  auto_scale         = true
-  min_node_count     = 1
-  max_node_count     = 4
+  availability_zone_name = ""
+  auto_recovery      = false
+  auto_scale         = false
+  min_node_count     = null
+  max_node_count     = null
 }
 ```
 
@@ -49,7 +50,6 @@ resource "scp_kubernetes_node_pool" "pool" {
 
 ### Required
 
-- `desired_node_count` (Number) Desired node count in the pool (Desired node count is 0 when auto_scale is enabled)
 - `engine_id` (String) ID of scp_kubernetes_engine resource
 - `image_id` (String) Image ID (use scp_standard_image data source)
 - `name` (String) Node pool name
@@ -58,7 +58,9 @@ resource "scp_kubernetes_node_pool" "pool" {
 
 - `auto_recovery` (Boolean) Enable auto recovery
 - `auto_scale` (Boolean) Enable auto scale
+- `availability_zone_name` (String) Availability zone name.
 - `cpu_count` (Number) CPU count for node VMs (default 2)
+- `desired_node_count` (Number) Desired node count in the pool (Desired node count is 0 when auto_scale is enabled)
 - `max_node_count` (Number) Maximum node count
 - `memory_size_gb` (Number) Memory size in GB for node VMs (default 4)
 - `min_node_count` (Number) Minimum node count

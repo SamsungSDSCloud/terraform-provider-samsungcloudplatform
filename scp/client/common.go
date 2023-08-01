@@ -6,6 +6,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/product"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/project"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/tag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"strconv"
 	"time"
@@ -17,8 +18,8 @@ type Instance struct {
 	Client *SCPClient
 }
 
-func selectServiceZone(serviceZones []project.ProjectZoneV2, location string) *project.ProjectZoneV2 {
-	var targetServiceZone project.ProjectZoneV2
+func selectServiceZone(serviceZones []project.ZoneResponseV3, location string) *project.ZoneResponseV3 {
+	var targetServiceZone project.ZoneResponseV3
 	for _, serviceZone := range serviceZones {
 		if serviceZone.ServiceZoneLocation == location {
 			targetServiceZone = serviceZone
@@ -28,7 +29,7 @@ func selectServiceZone(serviceZones []project.ProjectZoneV2, location string) *p
 	return &targetServiceZone
 }
 
-func findServiceZoneId(ctx context.Context, client *SCPClient, location string) (string, error) {
+func FindServiceZoneId(ctx context.Context, client *SCPClient, location string) (string, error) {
 	projectInfo, err := client.Project.GetProjectInfo(ctx)
 	if err != nil {
 		return "", err
@@ -64,7 +65,7 @@ func FindProductGroupId(ctx context.Context, client *SCPClient, serviceZoneId st
 
 func FindServiceZoneIdAndProductGroupId(ctx context.Context, client *SCPClient, location string, productGroup string, product string) (string, string, error) {
 
-	serviceZoneId, err := findServiceZoneId(ctx, client, location)
+	serviceZoneId, err := FindServiceZoneId(ctx, client, location)
 	if err != nil {
 		return "", "", err
 	}
@@ -90,7 +91,7 @@ func FindLocationName(ctx context.Context, client *SCPClient, serviceZoneId stri
 	return "", nil
 }
 
-func FindProductIdByType(ctx context.Context, client *SCPClient, productGroupId string, productType string) ([]string, error) {
+func FindProductIdByType(ctx context.Context, client *SCPClient, productGroupId string, productType string, productName string) ([]string, error) {
 	productGroupInfo, err := client.Product.GetProductGroup(ctx, productGroupId)
 
 	if err != nil {
@@ -100,7 +101,7 @@ func FindProductIdByType(ctx context.Context, client *SCPClient, productGroupId 
 	var result []string
 	for _, s := range productGroupInfo.Products {
 		for _, product := range s {
-			if product.ProductType == productType {
+			if product.ProductType == productType && product.ProductName == productName {
 				result = append(result, product.ProductId)
 			}
 		}
@@ -188,6 +189,36 @@ func FindScaleProductByProducts(products []product.ProductForCalculatorResponse,
 	return ""
 }
 
+func FindScaleInfo(ctx context.Context, client *SCPClient, productGroupId string, scaleProductId string) (int, int, error) {
+
+	scale, err := FindProductById(ctx, client, productGroupId, scaleProductId)
+	if err != nil {
+		return -1, -1, fmt.Errorf("failed to find scale product.")
+	}
+
+	cpuCount := -1
+	memorySize := -1
+
+	for _, item := range scale.Item {
+		if item.ItemType == "cpu" {
+			cpuCount, err = strconv.Atoi(item.ItemValue)
+
+			if err != nil {
+				return -1, -1, fmt.Errorf("wrong cpu count.")
+			}
+		} else if item.ItemType == "memory" {
+			memorySize, err = strconv.Atoi(item.ItemValue)
+
+			if err != nil {
+				return -1, -1, fmt.Errorf("wrong memory size.")
+				continue
+			}
+		}
+	}
+
+	return cpuCount, memorySize, nil
+}
+
 func FindScaleProduct(ctx context.Context, client *SCPClient, productGroupId string, numCpus int, memorySizeGB int) (string, error) {
 	productGroupInfo, err := client.Product.GetProductGroup(ctx, productGroupId)
 
@@ -228,4 +259,71 @@ func WaitForStatus(ctx context.Context, client *SCPClient, pendingStates []strin
 	}
 
 	return nil
+}
+
+func UpdateResourceTag(ctx context.Context, client *SCPClient, resourceId string, oldTagsInterface []interface{}, newTagsInterface []interface{}) error {
+	oldTags := toTagRequestList(oldTagsInterface)
+	newTags := toTagRequestList(newTagsInterface)
+
+	oldSet := make(map[tag.TagRequest]struct{})
+	newSet := make(map[tag.TagRequest]struct{})
+
+	for _, item := range oldTags {
+		oldSet[item] = struct{}{}
+	}
+
+	for _, item := range newTags {
+		newSet[item] = struct{}{}
+	}
+
+	var ok bool
+	var addList, removeList []tag.TagRequest
+
+	for _, item := range oldTags {
+		if _, ok = newSet[item]; !ok {
+			removeList = append(removeList, item)
+		}
+	}
+
+	for _, item := range newTags {
+		if _, ok = oldSet[item]; !ok {
+			addList = append(addList, item)
+		}
+	}
+
+	if len(removeList) > 0 {
+		for _, tag := range removeList {
+			_, err := client.Tag.DetachResourceTag(ctx, resourceId, tag.TagKey)
+			if err != nil {
+				fmt.Printf("failed to remove tag %s in resource %s", resourceId, tag.TagKey)
+				return err
+			}
+		}
+	}
+
+	if len(addList) > 0 {
+		_, _, err := client.Tag.AttachResourceTag(ctx, resourceId, addList)
+		if err != nil {
+			fmt.Printf("failed to add or update tags in resource %s", resourceId)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func toTagRequestList(list []interface{}) []tag.TagRequest {
+	if len(list) == 0 {
+		return nil
+	}
+	var result []tag.TagRequest
+
+	for _, val := range list {
+		kv := val.(common.HclKeyValueObject)
+		result = append(result, tag.TagRequest{
+			TagKey:   kv["tag_key"].(string),
+			TagValue: kv["tag_value"].(string),
+		})
+	}
+	return result
 }
