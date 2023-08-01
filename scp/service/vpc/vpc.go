@@ -2,6 +2,7 @@ package vpc
 
 import (
 	"context"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -11,8 +12,13 @@ import (
 	"regexp"
 )
 
+func init() {
+	scp.RegisterResource("scp_vpc", ResourceVpc())
+}
+
 func ResourceVpc() *schema.Resource {
 	return &schema.Resource{
+		//CRUD
 		CreateContext: resourceVpcCreate,
 		ReadContext:   resourceVpcRead,
 		UpdateContext: resourceVpcUpdate,
@@ -23,17 +29,17 @@ func ResourceVpc() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
+				Required:    true, //필수 작성
+				ForceNew:    true, //해당 필드 수정시 자원 삭제 후 다시 생성됨
 				Description: "VPC name. (3 to 20 characters without specials)",
-				ValidateFunc: validation.All(
+				ValidateFunc: validation.All( //입력 값 Validation 체크
 					validation.StringLenBetween(3, 20),
 					validation.StringMatch(regexp.MustCompile(`^[a-zA-Z0-9]+$`), "must contain only alphanumeric characters"),
 				),
 			},
 			"description": {
 				Type:         schema.TypeString,
-				Optional:     true,
+				Optional:     true, //선택 입력
 				Description:  "VPC description. (Up to 50 characters)",
 				ValidateFunc: validation.StringLenBetween(0, 50),
 			},
@@ -94,6 +100,10 @@ func resourceVpcRead(ctx context.Context, rd *schema.ResourceData, meta interfac
 	vpcInfo, _, err := inst.Client.Vpc.GetVpcInfo(ctx, rd.Id())
 	if err != nil {
 		rd.SetId("")
+		if common.IsDeleted(err) {
+			return nil
+		}
+
 		return diag.FromErr(err)
 	}
 
@@ -124,7 +134,7 @@ func resourceVpcDelete(ctx context.Context, rd *schema.ResourceData, meta interf
 
 	inst := meta.(*client.Instance)
 	err := inst.Client.Vpc.DeleteVpc(ctx, rd.Id())
-	if err != nil {
+	if err != nil && !common.IsDeleted(err) {
 		return diag.FromErr(err)
 	}
 

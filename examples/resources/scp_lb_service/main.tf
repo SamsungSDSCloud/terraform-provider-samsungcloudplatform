@@ -9,6 +9,8 @@ resource "scp_lb_service" "my_lb_service_l4" {
   persistence      = "SOURCE_IP"
   app_profile_id   = data.terraform_remote_state.load_balancer_profile.outputs.id
   persistence_profile_id = data.terraform_remote_state.load_balancer_profile.outputs.persistence_id
+  nat_active       = true
+  public_ip_id     = scp_public_ip.my_public_ip_id.id
 }
 
 resource "scp_lb_service" "my_lb_service_l7" {
@@ -30,4 +32,12 @@ resource "scp_lb_service" "my_lb_service_l7" {
     lb_rule_seq = 2
     pattern_url = "/devotion"
   }
+  nat_active    = false
+}
+
+data "scp_region" "my_region" {
+}
+
+resource "scp_public_ip" "my_public_ip_id" {
+  region = data.scp_region.my_region.location
 }

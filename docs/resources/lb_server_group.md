@@ -66,14 +66,13 @@ resource "scp_lb_server_group" "my_lb_server_group_tcp" {
 ### Required
 
 - `algorithm` (String) Balancing algorithm. (ROUND_ROBIN, WEIGHTED_ROUND_ROBIN, LEAST_CONNECTION, WEIGHTED_LEAST_CONNECTION, IP_HASH)
-- `lb_id` (String)
-- `monitor_count` (Number)
-- `monitor_interval_sec` (Number)
-- `monitor_port` (Number)
-- `monitor_protocol` (String)
-- `monitor_timeout_sec` (Number)
+- `lb_id` (String) Load-Balancer id
+- `monitor_count` (Number) Monitor count
+- `monitor_interval_sec` (Number) Monitor interval time(s)
+- `monitor_port` (Number) Monitor port
+- `monitor_protocol` (String) Monitor protocol
+- `monitor_timeout_sec` (Number) Monitor timeout second
 - `name` (String) Load-Balancer server group name. (3 to 20 characters with dash in middle)
-- `server_group_member` (Block List, Min: 1) Server-Group members (see [below for nested schema](#nestedblock--server_group_member))
 
 ### Optional
 
@@ -82,11 +81,12 @@ resource "scp_lb_server_group" "my_lb_server_group_tcp" {
 - `monitor_http_response_body` (String) Response body content. (Only HTTP monitor_protocol. 0 to 300 byte characters)
 - `monitor_http_url` (String) Monitor http url path. (Only HTTP monitor_protocol. 0 to 50 alpha-numeric characters with period, dash, underscore)
 - `monitor_http_version` (String) Monitor http version. (Only HTTP monitor_protocol. 1.0, 1.1)
+- `server_group_member` (Block List) Server-Group members (see [below for nested schema](#nestedblock--server_group_member))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `monitor_id` (String)
+- `monitor_id` (String) Monitor id
 
 <a id="nestedblock--server_group_member"></a>
 ### Nested Schema for `server_group_member`
@@ -94,11 +94,11 @@ resource "scp_lb_server_group" "my_lb_server_group_tcp" {
 Required:
 
 - `join_state` (String) Target service joining state. (ENABLED, DISABLED, GRACEFUL_DISABLED)
-- `object_port` (Number) Target object port for manual setting. (1 to 65535)
 - `object_type` (String) Target object type. (INSTANCE, BAREMETAL, MANUAL)
 - `weight` (Number) Balancing weight. This is used with when weighted algorithm is set. (1 to 256)
 
 Optional:
 
 - `object_id` (String) Target object id (VM server or BareMetal server). This can not be set with 'object_ipv4'. Input resource should be in the same VPC.
-- `object_ipv4` (String) Target object ipv4 for manual setting.
+- `object_ip_address` (String) Target object ip
+- `object_port` (Number) Target object port for manual setting. (1 to 65535)

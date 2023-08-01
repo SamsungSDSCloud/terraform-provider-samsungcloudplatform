@@ -41,4 +41,13 @@ resource "scp_postgresql" "my_pg_db" {
     storage_usage   = "DATA"
     storage_size_gb = 10
   }
+
+  high_availability {
+
+  }
+
+  backup {
+    retention_day = 7
+    start_hour = 23
+  }
 }

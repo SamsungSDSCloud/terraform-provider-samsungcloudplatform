@@ -2,11 +2,19 @@ package firewall
 
 import (
 	"context"
+	"fmt"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+func init() {
+	scp.RegisterDataSource("scp_firewall", DatasourceFirewall())
+	scp.RegisterResource("scp_firewall", ResourceFirewall())
+
+}
 
 func DatasourceFirewall() *schema.Resource {
 	return &schema.Resource{
@@ -98,13 +106,11 @@ func ResourceFirewall() *schema.Resource {
 			"vpc_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "VPC id",
 			},
 			"target_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "Target firewall resource id",
 			},
 			"target_type": {
@@ -127,6 +133,12 @@ func ResourceFirewall() *schema.Resource {
 				Computed:    true,
 				Description: "Firewall status",
 			},
+			"logging_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "logging or not",
+			},
 		},
 		Description: "Provides a Firewall resource.",
 	}
@@ -138,6 +150,7 @@ func resourceFirewallCreate(ctx context.Context, rd *schema.ResourceData, meta i
 	vpcId := rd.Get("vpc_id").(string)
 	targetId := rd.Get("target_id").(string)
 	isEnabled := rd.Get("enabled").(bool)
+	isLogging := rd.Get("logging_enabled").(bool)
 
 	firewalls, _, err := inst.Client.Firewall.GetFirewallList(ctx, vpcId, targetId, "")
 	if err != nil {
@@ -151,8 +164,28 @@ func resourceFirewallCreate(ctx context.Context, rd *schema.ResourceData, meta i
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	if firewallInfo.IsEnabled != isEnabled {
+	if *firewallInfo.IsEnabled != isEnabled {
 		inst.Client.Firewall.UpdateFirewallEnabled(ctx, firewalls.Contents[0].FirewallId, isEnabled)
+		targetState := common.ActiveState
+		if !isEnabled {
+			targetState = common.InActiveState
+		}
+		err = WaitForFirewallStatus(ctx, inst.Client, firewalls.Contents[0].FirewallId, FirewallPendingStates(), []string{targetState}, true)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if isLogging {
+		res, _, err := inst.Client.Firewall.ListFirewallLogStorages(ctx, vpcId)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if res.TotalCount < 1 {
+			return diag.FromErr(fmt.Errorf("need to set up log storage first"))
+		}
+
+		inst.Client.Firewall.UpdateFirewallLoggable(ctx, firewalls.Contents[0].FirewallId, isLogging)
 		targetState := common.ActiveState
 		if !isEnabled {
 			targetState = common.InActiveState
@@ -183,6 +216,7 @@ func resourceFirewallRead(ctx context.Context, rd *schema.ResourceData, meta int
 	rd.Set("name", firewallInfo.FirewallName)
 	rd.Set("state", firewallInfo.FirewallState)
 	rd.Set("enabled", firewallInfo.IsEnabled)
+	rd.Set("logging_enabled", firewallInfo.IsLoggable)
 
 	return nil
 }
@@ -190,9 +224,8 @@ func resourceFirewallRead(ctx context.Context, rd *schema.ResourceData, meta int
 func resourceFirewallUpdate(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
+	isEnabled := rd.Get("enabled").(bool)
 	if rd.HasChanges("enabled") {
-
-		isEnabled := rd.Get("enabled").(bool)
 
 		inst.Client.Firewall.UpdateFirewallEnabled(ctx, rd.Id(), isEnabled)
 		targetState := common.ActiveState
@@ -200,6 +233,30 @@ func resourceFirewallUpdate(ctx context.Context, rd *schema.ResourceData, meta i
 			targetState = common.InActiveState
 		}
 		err := WaitForFirewallStatus(ctx, inst.Client, rd.Id(), FirewallPendingStates(), []string{targetState}, false)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if rd.HasChanges("logging_enabled") {
+		isLogging := rd.Get("logging_enabled").(bool)
+
+		if isLogging {
+			res, _, err := inst.Client.Firewall.ListFirewallLogStorages(ctx, rd.Get("vpc_id").(string))
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			if res.TotalCount < 1 {
+				return diag.FromErr(fmt.Errorf("You need to set up log storage first."))
+			}
+		}
+
+		inst.Client.Firewall.UpdateFirewallLoggable(ctx, rd.Id(), isLogging)
+		targetState := common.ActiveState
+		if !isEnabled {
+			targetState = common.InActiveState
+		}
+		err := WaitForFirewallStatus(ctx, inst.Client, rd.Id(), FirewallPendingStates(), []string{targetState}, true)
 		if err != nil {
 			return diag.FromErr(err)
 		}

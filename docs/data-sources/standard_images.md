@@ -51,8 +51,8 @@ output "result_scp_my_standard_images2" {
 ### Required
 
 - `region` (String) Region name
-- `service` (String) Service (Virtual Server, Kubernetes Engine VM, Postgresql, ...)
-- `service_group` (String) Service group (COMPUTE, CONTAINER, DATABASE, ...)
+- `service` (String) Service (Baremetal Server, EPAS, Elasticsearch, GPU Server, Kubeflow, Kubernetes Apps, Kubernetes Engine, Kubernetes Engine GPU VM, Kubernetes Engine VM, MariaDB, Microsoft SQL Server, MySQL, PostgreSQL, Redis, Tibero, Vertica, Virtual Server)
+- `service_group` (String) Service group (COMPUTE, DATABASE, EXTENSION, MIDDLEWARE, STORAGE, AI Service, CONTAINER)
 
 ### Optional
 

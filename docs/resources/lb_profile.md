@@ -48,7 +48,7 @@ resource "scp_lb_profile" "my_lb_profile_app_l7" {
 
 - `category` (String) Category of profile. (PERSISTENCE or APPLICATION)
 - `lb_id` (String) Target Load Balancer id
-- `name` (String) Name of profile. (3 to 20 without specials)
+- `name` (String) Name of profile. (3 to 20 with dash in middle)
 
 ### Optional
 

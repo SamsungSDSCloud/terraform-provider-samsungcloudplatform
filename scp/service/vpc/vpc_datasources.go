@@ -2,6 +2,7 @@ package vpc
 
 import (
 	"context"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/vpc"
@@ -11,13 +12,17 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+func init() {
+	scp.RegisterDataSource("scp_vpcs", DatasourceVpcs())
+}
+
 func DatasourceVpcs() *schema.Resource {
 	return &schema.Resource{
-		ReadContext: dataSourceList,
+		ReadContext: dataSourceList, //데이터 조회 함수
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Schema: map[string]*schema.Schema{
+		Schema: map[string]*schema.Schema{ //스키마 정의
 			common.ToSnakeCase("ServiceZoneId"): {Type: schema.TypeString, Optional: true, Description: "Service zone id"},
 			common.ToSnakeCase("VpcId"):         {Type: schema.TypeString, Optional: true, Description: "VPC id"},
 			common.ToSnakeCase("VpcName"):       {Type: schema.TypeString, Optional: true, Description: "VPC name"},

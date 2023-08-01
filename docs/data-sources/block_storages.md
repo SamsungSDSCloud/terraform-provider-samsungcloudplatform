@@ -26,6 +26,7 @@ output "output_my_scp_block_storages" {
 
 ### Optional
 
+- `block_storage_id` (String) block_storage_id
 - `created_by` (String) The person who created the resource
 - `page` (Number) Page start number from which to get the list
 - `size` (Number) Size to get list
@@ -61,5 +62,14 @@ Read-Only:
 - `service_zone_id` (String) Service zone id
 - `shared_type` (String) Shared type of block storage
 - `virtual_server_id` (String) Virtual server id to assign the block storage.
+- `virtual_servers` (List of Object) Mounted Virtual Servers (see [below for nested schema](#nestedatt--contents--virtual_servers))
+
+<a id="nestedatt--contents--virtual_servers"></a>
+### Nested Schema for `contents.virtual_servers`
+
+Read-Only:
+
+- `mount_state` (String)
+- `virtual_server_id` (String)
 
 

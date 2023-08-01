@@ -20,28 +20,28 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) GetProjectInfo(ctx context.Context) (project.ProjectDetailV2, error) {
-	result, _, err := client.sdkClient.ProjectControllerV2Api.DetailProject(ctx, client.config.ProjectId, client.config.ProjectId)
+func (client *Client) GetProjectInfo(ctx context.Context) (project.ProjectDetailResponseV3, error) {
+	result, _, err := client.sdkClient.ProjectV3ControllerApi.DetailProject1(ctx, client.config.ProjectId, client.config.ProjectId)
 	return result, err
 }
 
-func (client *Client) GetProjectList(ctx context.Context, request ListProjectRequest) (project.ProjectResponseOfProjectV2, error) {
-	result, _, err := client.sdkClient.ProjectControllerV2Api.ListProjects(ctx, &project.ProjectControllerV2ApiListProjectsOpts{
-		AccessLevel:         optional.NewString(request.AccessLevel),
-		ActionName:          optional.NewString(request.ActionName),
-		CmpServiceName:      optional.NewString(request.CmpServiceName),
-		IsUserAuthorization: optional.NewBool(request.IsUserAuthorization),
+func (client *Client) GetProjectList(ctx context.Context, request ListProjectRequest) (project.PageResponseV2OfProjectResponseV3, error) {
+	result, _, err := client.sdkClient.ProjectV3ControllerApi.ListProjects1(ctx, &project.ProjectV3ControllerApiListProjects1Opts{
+		AccountName:          optional.NewString(request.AccountName),
+		BillYearMonth:        optional.NewString(request.BillYearMonth),
+		IsBillingInfoDemand:  optional.NewBool(request.IsBillingInfoDemand),
+		IsResourceInfoDemand: optional.NewBool(request.IsResourceInfoDemand),
+		IsUserInfoDemand:     optional.NewBool(request.IsUserInfoDemand),
+		ProjectName:          optional.NewString(request.ProjectName),
+		CreatedByEmail:       optional.NewString(request.CreatedByEmail),
+		Page:                 optional.NewInt32(0),
+		Size:                 optional.NewInt32(10000),
 	})
+
 	return result, err
 }
 
-func (client *Client) GetAccountList(ctx context.Context, request ListAccountRequest) (project.ProjectResponseOfAccountV2, error) {
-	result, _, err := client.sdkClient.ProjectControllerV2Api.ListAccountsByMyProject(ctx, &project.ProjectControllerV2ApiListAccountsByMyProjectOpts{
-		AccessLevel:         optional.NewString(request.AccessLevel),
-		ActionName:          optional.NewString(request.ActionName),
-		CmpServiceName:      optional.NewString(request.CmpServiceName),
-		IsUserAuthorization: optional.NewBool(request.IsUserAuthorization),
-		MyProject:           optional.NewBool(request.MyProject),
-	})
+func (client *Client) GetAccountList(ctx context.Context) (project.ListResponseV2OfAccountResponseV3, error) {
+	result, _, err := client.sdkClient.AccountV3ControllerApi.ListAccountsByMyProject(ctx)
 	return result, err
 }

@@ -16,4 +16,5 @@ resource "scp_firewall" "vpc4fw_fw" {
   vpc_id    = scp_vpc.vpc4fw.id
   target_id = scp_internet_gateway.vpc4fw_igw.id
   enabled   = var.enabled
+  logging_enabled = var.logging_enabled
 }

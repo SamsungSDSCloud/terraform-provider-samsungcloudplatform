@@ -2,14 +2,22 @@ package subnet
 
 import (
 	"context"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/subnet2"
+	"github.com/antihax/optional"
 
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/subnet"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	uuid "github.com/satori/go.uuid"
 )
+
+func init() {
+	scp.RegisterDataSource("scp_subnets", DatasourceSubnets())
+	scp.RegisterDataSource("scp_subnet_resources", DatasourceSubnetResources())
+	scp.RegisterDataSource("scp_subnet_ip_check", DatasourceSubnetCheckIp())
+}
 
 func DatasourceSubnets() *schema.Resource {
 	return &schema.Resource{
@@ -21,6 +29,7 @@ func DatasourceSubnets() *schema.Resource {
 			"subnet_cidr_block": {Type: schema.TypeString, Optional: true, Description: "Subnet CIDR block"},
 			"subnet_id":         {Type: schema.TypeString, Optional: true, Description: "Subnet id"},
 			"subnet_name":       {Type: schema.TypeString, Optional: true, Description: "Subnet name"},
+			"subnet_states":     {Type: schema.TypeString, Optional: true, Description: "Subnet states (ACTIVE, ERROR)"},
 			"subnet_types":      {Type: schema.TypeString, Optional: true, Description: "Subnet types (PUBLIC, PRIVATE)"},
 			"vpc_id":            {Type: schema.TypeString, Optional: true, Description: "VPC id"},
 			"created_by":        {Type: schema.TypeString, Optional: true, Description: "The person who created the resource"},
@@ -36,18 +45,20 @@ func DatasourceSubnets() *schema.Resource {
 func dataSourceList(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	requestParam := subnet.ListSubnetRequest{
-		SubnetCidrBlock: rd.Get("subnet_cidr_block").(string),
-		SubnetId:        rd.Get("subnet_id").(string),
-		SubnetName:      rd.Get("subnet_name").(string),
-		SubnetTypes:     rd.Get("subnet_types").(string),
-		VpcId:           rd.Get("vpc_id").(string),
-		CreatedBy:       rd.Get("created_by").(string),
-		Page:            (int32)(rd.Get("page").(int)),
-		Size:            (int32)(rd.Get("size").(int)),
+	requestParam := &subnet2.SubnetOpenApiControllerApiListSubnetV2Opts{
+		SubnetCidrBlock: optional.NewString(rd.Get("subnet_cidr_block").(string)),
+		SubnetId:        optional.NewString(rd.Get("subnet_id").(string)),
+		SubnetName:      optional.NewString(rd.Get("subnet_name").(string)),
+		SubnetTypes:     optional.NewInterface(rd.Get("subnet_types").(string)),
+		SubnetStates:    optional.NewInterface(rd.Get("subnet_states").(string)),
+		VpcId:           optional.NewString(rd.Get("vpc_id").(string)),
+		CreatedBy:       optional.NewString(rd.Get("created_by").(string)),
+		Page:            optional.NewInt32((int32)(rd.Get("page").(int))),
+		Size:            optional.NewInt32((int32)(rd.Get("size").(int))),
+		Sort:            optional.Interface{},
 	}
 
-	responses, err := inst.Client.Subnet.GetSubnetList(ctx, requestParam)
+	responses, _, err := inst.Client.Subnet.GetSubnetList(ctx, requestParam)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -99,15 +110,17 @@ func DatasourceSubnetResources() *schema.Resource {
 func dataSourceSubnetResourceList(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	requestParam := subnet.ListSubnetResourceRequest{
-		IpAddress:        rd.Get("ip_address").(string),
-		SubnetId:         rd.Get("subnet_id").(string),
-		LinkedObjectType: rd.Get("linked_object_type").(string),
-		Page:             (int32)(rd.Get("page").(int)),
-		Size:             (int32)(rd.Get("size").(int)),
+	subnetId := rd.Get("subnet_id").(string)
+
+	requestParam := subnet2.SubnetVipOpenApiControllerApiListSubnetResourcesV2Opts{
+		IpAddress:        optional.NewString(rd.Get("ip_address").(string)),
+		LinkedObjectType: optional.NewString(rd.Get("linked_object_type").(string)),
+		Page:             optional.NewInt32((int32)(rd.Get("page").(int))),
+		Size:             optional.NewInt32((int32)(rd.Get("size").(int))),
+		Sort:             optional.Interface{},
 	}
 
-	responses, err := inst.Client.Subnet.GetSubnetResourcesV2List(ctx, requestParam)
+	responses, _, err := inst.Client.Subnet.GetSubnetResourcesV2List(ctx, subnetId, &requestParam)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -137,4 +150,34 @@ func datasourceSubnetResourceElem() *schema.Resource {
 			"modified_dt":        {Type: schema.TypeString, Computed: true, Description: "Modification date"},
 		},
 	}
+}
+
+func DatasourceSubnetCheckIp() *schema.Resource {
+	return &schema.Resource{
+		ReadContext: datasourceSubnetIpCheck,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
+		Schema: map[string]*schema.Schema{
+			"ip_address": {Type: schema.TypeString, Required: true, Description: "Subnet ip Address"},
+			"subnet_id":  {Type: schema.TypeString, Required: true, Description: "Subnet id"},
+			"result":     {Type: schema.TypeBool, Optional: true, Description: "Subnet ip Check Usable"},
+		},
+		Description: "Provides list of subnets.",
+	}
+}
+
+func datasourceSubnetIpCheck(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	inst := meta.(*client.Instance)
+
+	responses, err := inst.Client.Subnet.CheckAvailableSubnetIp(ctx, rd.Get("subnet_id").(string), rd.Get("ip_address").(string))
+
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	rd.SetId(uuid.NewV4().String())
+	rd.Set("result", responses.Result)
+
+	return nil
 }

@@ -2,151 +2,262 @@ package iam
 
 import (
 	"context"
+	"fmt"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/iam"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
+	iam2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/iam"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"regexp"
+	"unicode/utf8"
 )
 
+func init() {
+	scp.RegisterResource("scp_iam_policy", ResourcePolicy())
+}
 func ResourcePolicy() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: createPolicy,
-		ReadContext:   readPolicy,
-		UpdateContext: updatePolicy,
-		DeleteContext: deletePolicy,
+		CreateContext: resourcePolicyCreate,
+		ReadContext:   resourcePolicyRead,
+		UpdateContext: resourcePolicyUpdate,
+		DeleteContext: resourcePolicyDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
-			"policy_name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "",
-			},
 			"policy_json": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(0, 65535)),
+				Description:      "Policy json statement",
+			},
+			"policy_name": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: common.ValidateNameHangeulAlphabetSomeSpecials3to64,
+				Description:      "Policy name",
 			},
 			"principals": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				ForceNew:    false,
-				Description: "",
+				Type:     schema.TypeList,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"principal_id": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "",
+							Type:             schema.TypeString,
+							Required:         true,
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(0, 60)),
+							Description:      "Principal ID",
 						},
 						"principal_type": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "",
+							Type:             schema.TypeString,
+							Required:         true,
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(0, 50)),
+							Description:      "Principal type",
 						},
 					},
 				},
+				Description: "Policy principal list",
+			},
+			"tags": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"tag_key": {
+							Type:             schema.TypeString,
+							Required:         true,
+							ValidateDiagFunc: common.ValidateName1to256DotDashUnderscore,
+							Description:      "Tag key",
+						},
+						"tag_value": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							ValidateDiagFunc: common.ValidateName1to256DotDashUnderscore,
+							Description:      "Tag value",
+						},
+					},
+				},
+				Description: "Tag list",
 			},
 			"description": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "",
+				Type:             schema.TypeString,
+				Optional:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(0, 1000)),
+				Description:      "Description",
 			},
+
+			"project_id":             {Type: schema.TypeString, Computed: true, Description: "Project ID"},
+			"policy_id":              {Type: schema.TypeString, Computed: true, Description: "Policy ID"},
+			"policy_principal_count": {Type: schema.TypeInt, Computed: true, Description: "Policy principal count"},
+			"policy_srn":             {Type: schema.TypeString, Computed: true, Description: "Policy SRN"},
+			"policy_type":            {Type: schema.TypeString, Computed: true, Description: "Policy type"},
+			"policy_version":         {Type: schema.TypeString, Computed: true, Description: "Policy version"},
+			"created_by":             {Type: schema.TypeString, Computed: true, Description: "Creator's ID"},
+			"created_by_name":        {Type: schema.TypeString, Computed: true, Description: "Creator's name"},
+			"created_by_email":       {Type: schema.TypeString, Computed: true, Description: "Creator's email"},
+			"created_dt":             {Type: schema.TypeString, Computed: true, Description: "Created date"},
+			"modified_by":            {Type: schema.TypeString, Computed: true, Description: "Modifier's ID"},
+			"modified_by_name":       {Type: schema.TypeString, Computed: true, Description: "Modifier's name"},
+			"modified_by_email":      {Type: schema.TypeString, Computed: true, Description: "Modifier's email"},
+			"modified_dt":            {Type: schema.TypeString, Computed: true, Description: "Modified date"},
 		},
+		Description: "Provides IAM policy resource.",
 	}
 }
 
-func convertPricipal(list common.HclListObject) ([]iam.PolicyPrincipalRequest, error) {
-	var result []iam.PolicyPrincipalRequest
-	for _, l := range list {
-		itemObject := l.(common.HclKeyValueObject)
-		info := iam.PolicyPrincipalRequest{}
-		if principal_id, ok := itemObject["principal_id"]; ok {
-			info.PrincipalId = principal_id.(string)
-		}
-		if principal_type, ok := itemObject["principal_type"]; ok {
-			info.PrincipalType = principal_type.(string)
-		}
-
-		result = append(result, info)
-	}
-	return result, nil
-}
-
-func createPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourcePolicyCreate(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	_, statusCode, err := inst.Client.Iam.ValidPolicyJson(ctx, data.Get("policy_json").(string))
+	policyJson := rd.Get("policy_json").(string)
+	_, statusCode, err := inst.Client.Iam.ValidatePolicyJson(ctx, policyJson)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	if statusCode == 400 {
-		return diag.Errorf("JSON format Wrong.")
+		return diag.Errorf("Invalid json format")
 	}
 
-	principals, err := convertPricipal(data.Get("principals").(common.HclListObject))
+	policyName := rd.Get("policy_name").(string)
+	principals := toPrincipalRequestList(rd.Get("principals").([]interface{}))
+
+	response, err := inst.Client.Iam.CreatePolicy(ctx, policyName, policyJson, principals, rd.Get("tags").([]interface{}), rd.Get("description").(string))
+
 	if err != nil {
-		return nil
+		return diag.FromErr(err)
 	}
 
-	response, err := inst.Client.Iam.CreatePolicy(ctx, data.Get("policy_name").(string), data.Get("policy_json").(string), principals, data.Get("description").(string))
+	rd.SetId(response.PolicyId)
+	return resourcePolicyRead(ctx, rd, meta)
+}
+
+func resourcePolicyRead(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	inst := meta.(*client.Instance)
+	result, err := inst.Client.Iam.DetailPolicy(ctx, rd.Id())
 
 	if err != nil {
-		if err.Error() == "400 Bad Request" {
-			return diag.Errorf("400 Bad Request")
+		rd.SetId("")
+		return diag.FromErr(err)
+	}
+
+	rd.Set("policy_name", result.PolicyName)
+	rd.Set("policy_json", result.PolicyJson)
+	rd.Set("description", result.Description)
+	rd.Set("project_id", result.ProjectId)
+	rd.Set("policy_id", result.PolicyId)
+	rd.Set("policy_principal_count", result.PolicyPrincipalCount)
+	rd.Set("policy_srn", result.PolicySrn)
+	rd.Set("policy_type", result.PolicyType)
+	rd.Set("policy_version", result.PolicyVersion)
+	rd.Set("created_by", result.CreatedBy)
+	rd.Set("created_by_name", result.CreatedByName)
+	rd.Set("created_by_email", result.CreatedByEmail)
+	rd.Set("created_dt", result.CreatedDt.String())
+	rd.Set("modified_by", result.ModifiedBy)
+	rd.Set("modified_by_name", result.ModifiedByName)
+	rd.Set("modified_by_email", result.ModifiedByEmail)
+	rd.Set("modified_dt", result.ModifiedDt.String())
+	var tags common.HclSetObject
+	for _, tag := range result.Tags {
+		kv := common.HclKeyValueObject{
+			"tag_key":   tag.TagKey,
+			"tag_value": tag.TagValue,
 		}
-		return diag.FromErr(err)
+		tags = append(tags, kv)
 	}
-
-	data.SetId(response.PolicyId)
-
-	return readPolicy(ctx, data, meta)
-}
-
-func readPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	inst := meta.(*client.Instance)
-	result, err := inst.Client.Iam.DetailPolicy(ctx, data.Id())
-
-	if err != nil {
-		data.SetId("")
-		return diag.FromErr(err)
-	}
-
-	data.Set("policy_name", result.PolicyName)
-	data.Set("policy_json", result.PolicyJson)
-	data.Set("description", result.Description)
+	rd.Set("tags", tags)
 
 	return nil
 }
-func updatePolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourcePolicyUpdate(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	_, statusCode, err := inst.Client.Iam.ValidPolicyJson(ctx, data.Get("policy_json").(string))
+	if rd.HasChanges("policy_json", "principals", "policy_name", "description") {
+		policyJson := rd.Get("policy_json").(string)
+		_, statusCode, err := inst.Client.Iam.ValidatePolicyJson(ctx, policyJson)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if statusCode == 400 {
+			return diag.Errorf("Invalid json format.")
+		}
+
+		policyName := rd.Get("policy_name").(string)
+		principals := toPrincipalRequestList(rd.Get("principals").([]interface{}))
+		desc := rd.Get("description").(string)
+
+		_, err = inst.Client.Iam.UpdatePolicy(ctx, rd.Id(), policyJson, policyName, principals, desc)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	return resourcePolicyRead(ctx, rd, meta)
+}
+
+func resourcePolicyDelete(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	inst := meta.(*client.Instance)
+	_, err := inst.Client.Iam.DeletePolicy(ctx, rd.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	if statusCode == 400 {
-		return diag.Errorf("JSON format Wrong.")
+
+	return nil
+}
+
+func validatePolicyName(v interface{}, path cty.Path) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// Get attribute key
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	// Get value
+	value := v.(string)
+
+	// Check name length
+	var err error = nil
+	cnt := utf8.RuneCountInString(value) // cause we have hanguel here :)
+	if cnt < 3 {
+		err = fmt.Errorf("input must be longer than 3 characters")
+	} else if cnt > 64 {
+		err = fmt.Errorf("input must be shorter than 24 characters")
 	}
 
-	principals, err := convertPricipal(data.Get("principals").(common.HclListObject))
 	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q has errors : %s", attrKey, err.Error()),
+			AttributePath: path,
+		})
+	}
+
+	// Check characters
+	if !regexp.MustCompile("^[a-zA-Z0-9+=,.@\\-_ㄱ-ㅎ|ㅏ-ㅣ|가-힣]*$").MatchString(value) {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q must contain only alpha-numerical characters", attrKey),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
+func toPrincipalRequestList(list []interface{}) []iam2.PolicyPrincipalRequest {
+	if len(list) == 0 {
 		return nil
 	}
+	var result []iam2.PolicyPrincipalRequest
 
-	inst.Client.Iam.UpdatePolciy(ctx, data.Id(), data.Get("policy_json").(string), data.Get("policy_name").(string), principals, data.Get("description").(string))
-
-	return nil
-}
-func deletePolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-
-	inst := meta.(*client.Instance)
-	_, err := inst.Client.Iam.DeletePolicy(ctx, data.Id())
-	if err != nil {
-		return diag.FromErr(err)
+	for _, val := range list {
+		kv := val.(common.HclKeyValueObject)
+		result = append(result, iam2.PolicyPrincipalRequest{
+			PrincipalId:   kv["principal_id"].(string),
+			PrincipalType: kv["principal_type"].(string),
+		})
 	}
-
-	return nil
+	return result
 }

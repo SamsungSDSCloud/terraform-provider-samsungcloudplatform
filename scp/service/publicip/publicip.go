@@ -2,6 +2,7 @@ package publicip
 
 import (
 	"context"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
@@ -12,6 +13,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+func init() {
+	scp.RegisterResource("scp_public_ip", ResourceVpcPublicIp())
+	scp.RegisterDataSource("scp_public_ip", DatasourceVpcPublicIp())
+}
 
 func ResourceVpcPublicIp() *schema.Resource {
 	return &schema.Resource{
@@ -78,6 +84,10 @@ func resourceVpcPublicIpRead(ctx context.Context, rd *schema.ResourceData, meta 
 	info, _, err := inst.Client.PublicIp.GetPublicIp(ctx, rd.Id())
 	if err != nil {
 		rd.SetId("")
+		if common.IsDeleted(err) {
+			return nil
+		}
+
 		return diag.FromErr(err)
 	}
 
@@ -204,7 +214,7 @@ func datasourceVpcPublicIpRead(ctx context.Context, rd *schema.ResourceData, met
 		return diag.FromErr(err)
 	}
 
-	publicIpList, err := inst.Client.PublicIp.GetPublicIpList(ctx, serviceZoneId, &publicip2.PublicIpOpenApiControllerApiListPublicIpsV21Opts{
+	publicIpList, err := inst.Client.PublicIp.GetPublicIpList(ctx, serviceZoneId, &publicip2.PublicIpOpenApiControllerApiListPublicIpsV2Opts{
 		IpAddress:       optional.String{},
 		IsBillable:      optional.NewBool(true),
 		IsViewable:      optional.NewBool(true),

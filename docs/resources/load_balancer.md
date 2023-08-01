@@ -35,6 +35,7 @@ resource "scp_load_balancer" "my_lb" {
 ### Optional
 
 - `description` (String) Load balancer description. (0 to 100 characters)
+- `link_ip_cidr` (String) Load balancer link IP band
 
 ### Read-Only
 

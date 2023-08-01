@@ -2,13 +2,19 @@ package natgateway
 
 import (
 	"context"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	publicip2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/public-ip2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+func init() {
+	scp.RegisterResource("scp_nat_gateway", ResourceNATGateway())
+}
 
 func ResourceNATGateway() *schema.Resource {
 	return &schema.Resource{
@@ -91,10 +97,15 @@ func resourceNATGatewayRead(ctx context.Context, rd *schema.ResourceData, meta i
 
 	info, _, err := inst.Client.NatGateway.GetNatGateway(ctx, rd.Id())
 	if err != nil {
-		return
+		rd.SetId("")
+		if common.IsDeleted(err) {
+			return nil
+		}
+
+		return diag.FromErr(err)
 	}
 
-	publicIpInfos, err := inst.Client.PublicIp.GetPublicIpList(ctx, info.ServiceZoneId, &publicip2.PublicIpOpenApiControllerApiListPublicIpsV21Opts{
+	publicIpInfos, err := inst.Client.PublicIp.GetPublicIpList(ctx, info.ServiceZoneId, &publicip2.PublicIpOpenApiControllerApiListPublicIpsV2Opts{
 		IpAddress:       optional.NewString(info.NatGatewayIpAddress),
 		IsBillable:      optional.Bool{},
 		IsViewable:      optional.Bool{},
@@ -153,7 +164,7 @@ func resourceNATGatewayDelete(ctx context.Context, rd *schema.ResourceData, meta
 	inst := meta.(*client.Instance)
 
 	_, _, err := inst.Client.NatGateway.DeleteNatGateway(ctx, rd.Id())
-	if err != nil {
+	if err != nil && !common.IsDeleted(err) {
 		return diag.FromErr(err)
 	}
 

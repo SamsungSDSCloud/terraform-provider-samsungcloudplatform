@@ -2,196 +2,270 @@ package iam
 
 import (
 	"context"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/iam"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+func init() {
+	scp.RegisterResource("scp_iam_role", ResourceRole())
+}
 
 func ResourceRole() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: createRole,
-		ReadContext:   readRole,
-		UpdateContext: updateRole,
-		DeleteContext: deleteRole,
+		CreateContext: resourceRoleCreate,
+		ReadContext:   resourceRoleRead,
+		UpdateContext: resourceRoleUpdate,
+		DeleteContext: resourceRoleDestroy,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"role_name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "",
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "Role name",
+				ValidateDiagFunc: common.ValidateNameHangeulAlphabetSomeSpecials3to64,
 			},
-			/*"trust_principals": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				ForceNew:    false,
-				Description: "",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"project_ids": {
-							Type:     schema.TypeList,
-							Required: true,
-							ForceNew: true,
-							Elem: &schema.Schema{
-								Type: schema.TypeString,
-							},
-							Description: "",
-						},
-						"user_srns": {
-							Type:     schema.TypeList,
-							Required: true,
-							ForceNew: true,
-							Elem: &schema.Schema{
-								Type: schema.TypeString,
-							},
-							Description: "",
-						},
-					},
-				},
-			},*/
 			"trust_principals": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				ForceNew:    false,
-				Description: "",
+				Description: "Performing subjects",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"project_ids": {
 							Type:     schema.TypeList,
-							Required: true,
-							ForceNew: true,
+							Optional: true,
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
-							Description: "",
+							Description: "Project IDs",
 						},
 						"user_srns": {
 							Type:     schema.TypeList,
-							Required: true,
-							ForceNew: true,
+							Optional: true,
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
-							Description: "",
+							Description: "User SRNs",
 						},
 					},
 				},
 			},
-			"description": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "",
+			"tags": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"tag_key": {
+							Type:             schema.TypeString,
+							Required:         true,
+							ValidateDiagFunc: common.ValidateName1to256DotDashUnderscore,
+							Description:      "Tag key",
+						},
+						"tag_value": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							ValidateDiagFunc: common.ValidateName1to256DotDashUnderscore,
+							Description:      "Tag value",
+						},
+					},
+				},
+				Description: "Tag list",
 			},
+			"description": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(0, 1000)),
+				Description:      "Description",
+			},
+			"policy_ids": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Description: "List of policy IDs",
+			},
+
+			"project_id":        {Type: schema.TypeString, Computed: true, Description: "Project ID"},
+			"role_policy_count": {Type: schema.TypeInt, Computed: true, Description: "Role's policy count"},
+			"role_srn":          {Type: schema.TypeString, Computed: true, Description: "Role's SRN"},
+			"session_time":      {Type: schema.TypeInt, Computed: true, Description: "Session time"},
+			"created_by":        {Type: schema.TypeString, Computed: true, Description: "Creator's ID"},
+			"created_by_name":   {Type: schema.TypeString, Computed: true, Description: "Creator's name"},
+			"created_by_email":  {Type: schema.TypeString, Computed: true, Description: "Creator's email"},
+			"created_dt":        {Type: schema.TypeString, Computed: true, Description: "Created date"},
+			"modified_by":       {Type: schema.TypeString, Computed: true, Description: "Modifier's ID"},
+			"modified_by_name":  {Type: schema.TypeString, Computed: true, Description: "Modifier's name"},
+			"modified_by_email": {Type: schema.TypeString, Computed: true, Description: "Modifier's email"},
+			"modified_dt":       {Type: schema.TypeString, Computed: true, Description: "Modified date"},
 		},
 	}
 }
 
-func convertTrustPricipal(itemObject common.HclKeyValueObject) (iam.TrustPrincipalsResponse, error) {
-	result := iam.TrustPrincipalsResponse{}
-	if projectIds, ok := itemObject["project_ids"]; ok {
-		result.ProjectIds = projectIds.([]string)
-	}
+func convertTrustPrincipal(rd *schema.ResourceData) ([]string, []string, error) {
+	tpSet := rd.Get("trust_principals").(*schema.Set).List()
 
-	if userSrns, ok := itemObject["user_srns"]; ok {
-		result.UserSrns = userSrns.([]string)
-	}
-	return result, nil
-}
+	var resultProjectIds []string
+	var resultUserSrns []string
 
-func expandStringArray(rd *schema.ResourceData) []string {
-	addressesIpv4List := rd.Get("addresses_ipv4").([]interface{})
-	addressesIpv4 := make([]string, len(addressesIpv4List))
-	for i, valueIpv4 := range addressesIpv4List {
-		addressesIpv4[i] = valueIpv4.(string)
-	}
-	return addressesIpv4
-}
+	for _, tp := range tpSet {
+		currentTp := tp.(map[string]interface{})
 
-func convertTrustPricipal1(rd *schema.ResourceData) (iam.TrustPrincipalsResponse, error) {
-	servicesSet := rd.Get("trust_principals").(*schema.Set).List()
-	services := make([]iam.TrustPrincipalsResponse, len(servicesSet))
-	for i, valueService := range servicesSet {
-		s := valueService.(map[string]interface{})
-
-		if t, ok := s["project_ids"]; ok {
-			project_ids := t.([]interface{})
-			list := make([]string, len(project_ids))
-			for i, valueIpv4 := range project_ids {
-				list[i] = valueIpv4.(string)
+		if v, ok := currentTp["project_ids"]; ok {
+			ipidList := v.([]interface{})
+			for _, pid := range ipidList {
+				resultProjectIds = append(resultProjectIds, pid.(string))
 			}
-			services[i].ProjectIds = list
 		}
 
-		if v, ok := s["user_srns"]; ok {
-			user_srns := v.([]interface{})
-			list := make([]string, len(user_srns))
-			for i, valueIpv4 := range user_srns {
-				list[i] = valueIpv4.(string)
+		if v, ok := currentTp["user_srns"]; ok {
+			isrnList := v.([]interface{})
+			for _, srn := range isrnList {
+				resultUserSrns = append(resultUserSrns, srn.(string))
 			}
-			services[i].UserSrns = list
 		}
 	}
-	return services[0], nil
+	return resultProjectIds, resultUserSrns, nil
 }
 
-func createRole(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceRoleCreate(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	principals, err := convertTrustPricipal1(data)
-	if err != nil {
-		return nil
-	}
+	projectIds, userSrns, _ := convertTrustPrincipal(rd)
 
-	response, err := inst.Client.Iam.CreateRole(ctx, data.Get("role_name").(string), principals, data.Get("description").(string))
+	roleName := rd.Get("role_name").(string)
+	tags := rd.Get("tags").([]interface{})
+	desc := rd.Get("description").(string)
 
+	response, _, err := inst.Client.Iam.CreateRole(ctx, roleName, projectIds, userSrns, tags, desc)
 	if err != nil {
-		if err.Error() == "400 Bad Request" {
-			return diag.Errorf("400 Bad Request")
-		}
 		return diag.FromErr(err)
 	}
 
-	data.SetId(response.RoleId)
+	rd.SetId(response.RoleId)
 
-	return readPolicy(ctx, data, meta)
+	policyIdsRaw := rd.Get("policy_ids").(*schema.Set).List()
+	if len(policyIdsRaw) > 0 {
+		policyIds := common.ToStringList(policyIdsRaw)
+		_, err = inst.Client.Iam.AddRolePolicies(ctx, response.RoleId, policyIds)
+		if err != nil {
+			rd.SetId("")
+			return diag.FromErr(err)
+		}
+	}
+	return resourceRoleRead(ctx, rd, meta)
 }
 
-func readRole(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceRoleRead(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
-	result, err := inst.Client.Iam.DetailRole(ctx, data.Id())
+	result, err := inst.Client.Iam.DetailRole(ctx, rd.Id())
 
 	if err != nil {
-		data.SetId("")
+		rd.SetId("")
 		return diag.FromErr(err)
 	}
 
-	data.Set("role_name", result.RoleName)
-	data.Set("trust_principals", result.TrustPrincipals)
-	data.Set("description", result.Description)
-
-	return nil
-}
-
-func updateRole(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	inst := meta.(*client.Instance)
-
-	principals, err := convertTrustPricipal(data.Get("trust_principals").(common.HclKeyValueObject))
+	rolePolicies, err := inst.Client.Iam.ListRolePolicies(ctx, rd.Id(), "", "")
 	if err != nil {
-		return nil
+		rd.SetId("")
+		return diag.FromErr(err)
 	}
 
-	inst.Client.Iam.UpdateRole(ctx, data.Id(), data.Get("role_name").(string), principals, data.Get("description").(string))
+	policyIds := make([]string, rolePolicies.TotalCount)
+	for i, policy := range rolePolicies.Contents {
+		policyIds[i] = policy.PolicyId
+	}
 
+	rd.Set("policy_ids", policyIds)
+	rd.Set("project_id", result.ProjectId)
+	rd.Set("role_policy_count", result.RolePolicyCount)
+	rd.Set("role_srn", result.RoleSrn)
+	rd.Set("session_time", result.SessionTime)
+	rd.Set("created_by", result.CreatedBy)
+	rd.Set("created_by_name", result.CreatedByName)
+	rd.Set("created_by_email", result.CreatedByEmail)
+	rd.Set("created_dt", result.CreatedDt)
+	rd.Set("modified_by", result.ModifiedBy)
+	rd.Set("modified_by_name", result.ModifiedByName)
+	rd.Set("modified_by_email", result.ModifiedByEmail)
+	rd.Set("modified_dt", result.ModifiedDt)
+
+	var tags common.HclSetObject
+	for _, tag := range result.Tags {
+		kv := common.HclKeyValueObject{
+			"tag_key":   tag.TagKey,
+			"tag_value": tag.TagValue,
+		}
+		tags = append(tags, kv)
+	}
+	rd.Set("tags", tags)
+
+	var principals common.HclSetObject
+	if result.TrustPrincipals != nil {
+		kv := common.HclKeyValueObject{
+			"project_ids": result.TrustPrincipals.ProjectIds,
+			"user_srns":   result.TrustPrincipals.UserSrns,
+		}
+		principals = append(principals, kv)
+	}
+	rd.Set("trust_principals", principals)
 	return nil
 }
 
-func deleteRole(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-
+func resourceRoleUpdate(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
-	_, err := inst.Client.Iam.DeleteRole(ctx, data.Id())
+
+	if rd.HasChanges("role_name", "trust_principals", "description") {
+		roleName := rd.Get("role_name").(string)
+		desc := rd.Get("description").(string)
+		projectIds, userSrns, _ := convertTrustPrincipal(rd)
+
+		_, err := inst.Client.Iam.UpdateRole(ctx, rd.Id(), roleName, projectIds, userSrns, desc)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if rd.HasChanges("tags") {
+		o, n := rd.GetChange("tags")
+		oldList := o.([]interface{})
+		newList := n.([]interface{})
+
+		err := client.UpdateResourceTag(ctx, inst.Client, rd.Id(), oldList, newList)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if rd.HasChanges("policy_ids") {
+		addIds, removeIds := common.GetAddRemoveItemsStringListFromSet(rd, "policy_ids")
+
+		if len(addIds) > 0 {
+			_, err := inst.Client.Iam.AddRolePolicies(ctx, rd.Id(), addIds)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+
+		if len(removeIds) > 0 {
+			_, err := inst.Client.Iam.RemoveRolePolicies(ctx, rd.Id(), removeIds)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	}
+
+	return resourceRoleRead(ctx, rd, meta)
+}
+
+func resourceRoleDestroy(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	inst := meta.(*client.Instance)
+	_, err := inst.Client.Iam.DeleteRole(ctx, rd.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}

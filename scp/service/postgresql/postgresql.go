@@ -2,24 +2,33 @@ package postgresql
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service/image"
+	objectstorage "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/object-storage"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/postgresql2"
 	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"strconv"
 	"strings"
 	"time"
 )
 
-const (
+func init() {
+	scp.RegisterResource("scp_postgresql", ResourcePostgresql())
+}
+
+/*const (
 	BlockStorageTypeOS      string = "OS"
 	BlockStorageTypeData    string = "DATA"
 	BlockStorageTypeArchive string = "ARCHIVE"
-)
+)*/
 
 func ResourcePostgresql() *schema.Resource {
 	return &schema.Resource{
@@ -29,6 +38,11 @@ func ResourcePostgresql() *schema.Resource {
 		DeleteContext: resourcePostgresqlDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
+		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(40 * time.Minute),
+			Update: schema.DefaultTimeout(80 * time.Minute),
+			Delete: schema.DefaultTimeout(60 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
 			"image_id": {
@@ -229,8 +243,114 @@ func ResourcePostgresql() *schema.Resource {
 					},
 				},
 			},
+			"backup": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				MaxItems: 1,
+				Elem:     resourcePostgresqlBackup(),
+			},
+
+			"vip": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "private database endpoint",
+			},
+			"external_vip": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "public database endpoint",
+			},
+			"high_availability": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				MaxItems: 1,
+				ForceNew: true,
+				Elem:     resourcePostgresqlHighAvailability(),
+			},
 		},
 		Description: "Provides a PostgreSQL Database resource.",
+	}
+}
+func resourcePostgresqlBackup() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"objectstorage_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Object storage ID where backup files will be stored",
+			},
+			"retention_day": {
+				Type:        schema.TypeInt,
+				Required:    true,
+				Description: "Backup File Retention Day.(7 <= day <= 35) ",
+				ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
+					var diags diag.Diagnostics
+					value := v.(int)
+					if value < 7 || value > 35 {
+						diags = append(diags, diag.Diagnostic{
+							Severity:      diag.Error,
+							Summary:       fmt.Sprintf("Backup retion day's value must be between 7 and 35 days"),
+							AttributePath: path,
+						})
+					}
+					return diags
+				},
+			},
+			"start_hour": {
+				Type:        schema.TypeInt,
+				Required:    true,
+				Description: "The time at which the backup starts. (must be between 0 and 23)",
+				ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
+					var diags diag.Diagnostics
+					value := v.(int)
+					if value < 0 || value > 23 {
+						diags = append(diags, diag.Diagnostic{
+							Severity:      diag.Error,
+							Summary:       fmt.Sprintf("Start hour's value must be between 0 and 23"),
+							AttributePath: path,
+						})
+					}
+					return diags
+				},
+			},
+		},
+	}
+}
+
+func resourcePostgresqlHighAvailability() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"single_auto_restart": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Storage product name. (only SSD)",
+			},
+			"use_vip_nat": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "use Virtual IP NAT",
+			},
+			"reserved_natip_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "ID of Reserved Virtual NAT IP",
+			},
+			"virtual_ip": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Virtual IP for database cluster access",
+			},
+			"active_server_ip": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Static IP to assign to the ACTIVE server",
+			},
+			"standby_server_ip": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Static IP to assign to the STANDBy server",
+			},
+		},
 	}
 }
 
@@ -260,7 +380,7 @@ func resourcePostgresqlCreate(ctx context.Context, rd *schema.ResourceData, meta
 
 	dbName := rd.Get("db_name").(string)
 	dbUserId := rd.Get("db_user_id").(string)
-	dbUserPassword := rd.Get("db_user_password").(string)
+	dbUserPassword := base64.StdEncoding.EncodeToString([]byte(rd.Get("db_user_password").(string)))
 	dbPort := rd.Get("db_port").(int)
 
 	useLoggingAudit := false // := rd.Get("use_logging_audit").(bool)
@@ -355,19 +475,18 @@ func resourcePostgresqlCreate(ctx context.Context, rd *schema.ResourceData, meta
 		return
 	}
 
-	// TODO : Replica & HA
-	var networks []postgresql2.DatabaseServerNetwork
-	networks = append(networks, postgresql2.DatabaseServerNetwork{
-		ServerName: serverNamePrefix + "01",
-		//ServerName:  serverNamePrefix,
-		NodeType:    "ACTIVE",
-		ServiceIp:   "",
-		ServiceIpId: "",
-		NatIp:       "",
-		NatIpId:     "",
-	})
+	// KJ HA Test
+	networks := expandNetworkSetting(serverNamePrefix, rd.Get("high_availability").(*schema.Set))
+	ha := expandHASetting(rd.Get("high_availability").(*schema.Set))
 
-	_, _, err = inst.Client.Postgresql.CreatePostgresql(ctx, postgresql2.CreatePostgreSqlRequest{
+	// backup : 23.02.21 kj
+	backup, err := createBackupSettings(ctx, inst.Client, vpcInfo.ServiceZoneId, rd.Get("backup").(*schema.Set))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	falseVal := false
+	_, _, err = inst.Client.Postgresql.CreatePostgresql(ctx, postgresql2.CreateRdbRequest{
 		ServiceZoneId:           vpcInfo.ServiceZoneId,
 		BlockId:                 blockId,
 		ImageId:                 imageId,
@@ -383,25 +502,25 @@ func resourcePostgresqlCreate(ctx context.Context, rd *schema.ResourceData, meta
 			ScaleProductId:            scaleId,
 			ContractDiscountProductId: contractId,
 			DataBlockStorageSize:      int32(dataStorageSize),
-			EncryptEnabled:            false,
+			EncryptEnabled:            &falseVal,
 			AdditionalBlockStorages:   blockStorages,
 		},
-		HighAvailability: nil,
+		HighAvailability: ha,
 		Replica:          nil,
 		Network: &postgresql2.DatabaseNetwork{
 			NetworkEnvType: strings.ToUpper(subnetInfo.SubnetType),
 			VpcId:          vpcId,
 			SubnetId:       subnetId,
-			AutoServiceIp:  false,
-			UseNat:         false,
-			NatIp:          "",
-			NatIpId:        "",
+			//AutoServiceIp:  false,	// deprecated
+			UseNat: &falseVal,
+			//NatIp:          "",		// deprecated
+			//NatIpId:        "",		// deprecated
 			ServerNetworks: networks,
 		},
 		SecurityGroupIds:  getSecurityGroupIds(rd),
 		Maintenance:       nil,
-		Backup:            nil,
-		UseDbLoggingAudit: useLoggingAudit,
+		Backup:            backup,
+		UseDbLoggingAudit: &useLoggingAudit,
 		Timezone:          timezone,
 		DbSoftwareOptions: pgSWOption,
 	})
@@ -428,9 +547,8 @@ func resourcePostgresqlCreate(ctx context.Context, rd *schema.ResourceData, meta
 		return
 	}
 
-	err = waitForPostgresql(ctx, inst.Client, dbServerGroupId, common.DatabaseProcessingStates(), []string{common.RunningState}, true)
-	if err != nil {
-		return
+	if err := waitForPostgresql2(ctx, inst.Client, rd, dbServerGroupId, common.DatabaseProcessingStates(), []string{common.RunningState}); err != nil {
+		return diag.FromErr(err)
 	}
 
 	rd.SetId(dbServerGroupId)
@@ -450,7 +568,12 @@ func resourcePostgresqlRead(ctx context.Context, rd *schema.ResourceData, meta i
 
 	dbInfo, _, err := inst.Client.Postgresql.GetPostgresql(ctx, rd.Id())
 	if err != nil {
-		return
+		rd.SetId("")
+		if common.IsDeleted(err) {
+			return nil
+		}
+
+		return diag.FromErr(err)
 	}
 
 	if len(dbInfo.VirtualServers) == 0 {
@@ -529,7 +652,13 @@ func resourcePostgresqlRead(ctx context.Context, rd *schema.ResourceData, meta i
 
 	rd.Set("vpc_id", vsInfo.VpcId)
 	rd.Set("subnet_id", vsInfo.Network.NetworkId)
-	rd.Set("security_group_ids", dbInfo.SecurityGroups)
+
+	securityGroupIds := make([]string, 0)
+	for _, sg := range dbInfo.SecurityGroups {
+		securityGroupIds = append(securityGroupIds, sg.SecurityGroupId)
+	}
+
+	rd.Set("security_group_ids", securityGroupIds)
 
 	rd.Set("db_name", dbInfo.DbName)
 	rd.Set("db_user_id", dbInfo.DbUserId)
@@ -539,6 +668,13 @@ func resourcePostgresqlRead(ctx context.Context, rd *schema.ResourceData, meta i
 	//rd.Set("use_logging_audit")
 
 	rd.Set("timezone", dbInfo.Timezone)
+	if len(dbInfo.VirtualServers) > 1 {
+		rd.Set("vip", dbInfo.Vip)
+		rd.Set("external_vip", dbInfo.ExternalVip)
+	} else {
+		rd.Set("vip", dbInfo.VirtualServers[0].Software.SoftwareProperties["db.serviceIp"])
+		rd.Set("external_vip", "")
+	}
 
 	if encoding, ok := dbInfo.DbConfigs["pg_encoding"]; ok {
 		rd.Set("pg_encoding", encoding)
@@ -576,12 +712,6 @@ func resourcePostgresqlRead(ctx context.Context, rd *schema.ResourceData, meta i
 		}
 		// First data storage is default storage
 		if i == 1 {
-			if bs.BlockStorageType != BlockStorageTypeData {
-				// Default storage not found
-				rd.Set("data_storage_id", "")
-				continue
-			}
-			rd.Set("data_storage_id", bs.BlockStorageId)
 			rd.Set("data_storage_size_gb", bs.BlockStorageSize)
 			continue
 		}
@@ -597,11 +727,26 @@ func resourcePostgresqlRead(ctx context.Context, rd *schema.ResourceData, meta i
 	}
 	rd.Set("additional_storage", additionalStorages)
 
+	// 2023.02.21 KJ
+	if dbInfo.Backup != nil {
+		if err := rd.Set("backup", flattenBackupSettings(dbInfo.Backup)); err != nil {
+			return diag.FromErr(err)
+		}
+	}
 	return nil
 }
 
 func resourcePostgresqlUpdate(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
+
+	dbInfo, _, err := inst.Client.Postgresql.GetPostgresql(ctx, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if len(dbInfo.VirtualServers) == 0 {
+		return diag.Errorf("no server found")
+	}
 
 	// Only increase allowed
 	if rd.HasChanges("data_storage_size_gb") {
@@ -612,20 +757,11 @@ func resourcePostgresqlUpdate(ctx context.Context, rd *schema.ResourceData, meta
 			return diag.Errorf("storage size can only be increased. check size value : %d -> %d", oldVal, newVal)
 		}
 
-		dbInfo, _, err := inst.Client.Postgresql.GetPostgresql(ctx, rd.Id())
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		if len(dbInfo.VirtualServers) == 0 {
-			return diag.Errorf("no server found")
-		}
-
 		// Update all
 		for _, vs := range dbInfo.VirtualServers {
 			var dataBlockId string
 			for i, bs := range vs.BlockStorages {
-				if i == 1 && bs.BlockStorageType == BlockStorageTypeData {
+				if i == 1 && bs.BlockStorageType == common.BlockStorageTypeData {
 					dataBlockId = bs.BlockStorageId
 					break
 				}
@@ -639,8 +775,7 @@ func resourcePostgresqlUpdate(ctx context.Context, rd *schema.ResourceData, meta
 				return diag.FromErr(err)
 			}
 
-			err = waitForPostgresql(ctx, inst.Client, rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true)
-			if err != nil {
+			if err := waitForPostgresql2(ctx, inst.Client, rd, rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}); err != nil {
 				return diag.FromErr(err)
 			}
 		}
@@ -673,15 +808,6 @@ func resourcePostgresqlUpdate(ctx context.Context, rd *schema.ResourceData, meta
 			incIndices[i] = newList[i].StorageSize
 		}
 
-		dbInfo, _, err := inst.Client.Postgresql.GetPostgresql(ctx, rd.Id())
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		if len(dbInfo.VirtualServers) == 0 {
-			return diag.Errorf("no server found")
-		}
-
 		// Update all
 		for _, vsInfo := range dbInfo.VirtualServers {
 			for i, blockInfo := range vsInfo.BlockStorages {
@@ -696,8 +822,7 @@ func resourcePostgresqlUpdate(ctx context.Context, rd *schema.ResourceData, meta
 							return diag.FromErr(err)
 						}
 
-						err = waitForPostgresql(ctx, inst.Client, rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true)
-						if err != nil {
+						if err := waitForPostgresql2(ctx, inst.Client, rd, rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}); err != nil {
 							return diag.FromErr(err)
 						}
 					} else {
@@ -714,8 +839,7 @@ func resourcePostgresqlUpdate(ctx context.Context, rd *schema.ResourceData, meta
 					return diag.FromErr(err)
 				}
 
-				err = waitForPostgresql(ctx, inst.Client, rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true)
-				if err != nil {
+				if err := waitForPostgresql2(ctx, inst.Client, rd, rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}); err != nil {
 					return diag.FromErr(err)
 				}
 			}
@@ -726,15 +850,6 @@ func resourcePostgresqlUpdate(ctx context.Context, rd *schema.ResourceData, meta
 
 		cpuCount := rd.Get("cpu_count").(int)
 		memorySizeGB := rd.Get("memory_size_gb").(int)
-
-		dbInfo, _, err := inst.Client.Postgresql.GetPostgresql(ctx, rd.Id())
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		if len(dbInfo.VirtualServers) == 0 {
-			return diag.Errorf("no server found")
-		}
 
 		scaleId, err := client.FindScaleProduct(ctx, inst.Client, dbInfo.ProductGroupId, cpuCount, memorySizeGB)
 		if err != nil {
@@ -749,11 +864,49 @@ func resourcePostgresqlUpdate(ctx context.Context, rd *schema.ResourceData, meta
 		for _, vsInfo := range dbInfo.VirtualServers {
 			_, _, err = inst.Client.Postgresql.UpdatePostgresqlScale(ctx, rd.Id(), vsInfo.VirtualServerId, scaleId)
 
-			err = waitForPostgresql(ctx, inst.Client, rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true)
-			if err != nil {
+			if err := waitForPostgresql2(ctx, inst.Client, rd, rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}); err != nil {
 				return diag.FromErr(err)
 			}
 		}
+	}
+
+	if rd.HasChanges("backup") {
+		o, n := rd.GetChange("backup")
+
+		oldbackups := expandBackupSettings(o.(*schema.Set))
+		newbackups := expandBackupSettings(n.(*schema.Set))
+
+		var backup *postgresql2.DatabaseBackup
+		var useBackup bool
+		if len(newbackups) > 0 {
+			useBackup = true
+			backup = newbackups[0]
+			if len(backup.ObjectStorageId) < 1 {
+				objectStorageId, err := getObjectStorageId(ctx, inst.Client, dbInfo.ServiceZoneId)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+				backup.ObjectStorageId = objectStorageId
+			}
+
+		} else {
+			useBackup = false
+			backup = oldbackups[0]
+		}
+		updateBackupSettingRequest := postgresql2.UpdateBackupSettingRequest{
+			UseBackup: &useBackup,
+			Backup:    backup,
+		}
+		if _, _, err := inst.Client.Postgresql.UpdateBackupSetting(ctx, rd.Id(), updateBackupSettingRequest); err != nil {
+			return diag.FromErr(err)
+		}
+		// if err := waitForPostgresql(ctx, inst.Client, rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true); err != nil {
+		// 	return diag.FromErr(err)
+		// }
+		if err := waitForPostgresql2(ctx, inst.Client, rd, rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}); err != nil {
+			return diag.FromErr(err)
+		}
+
 	}
 
 	return resourcePostgresqlRead(ctx, rd, meta)
@@ -762,16 +915,106 @@ func resourcePostgresqlDelete(ctx context.Context, rd *schema.ResourceData, meta
 	inst := meta.(*client.Instance)
 
 	_, _, err := inst.Client.Postgresql.DeletePostgresql(ctx, rd.Id())
-	if err != nil {
+	if err != nil && !common.IsDeleted(err) {
 		return diag.FromErr(err)
 	}
 
-	err = waitForPostgresql(ctx, inst.Client, rd.Id(), common.DatabaseProcessingStates(), []string{common.DeletedState}, false)
-	if err != nil {
+	if err := waitDeletedForPostgresql2(ctx, inst.Client, rd, rd.Id(), common.DatabaseProcessingStates(), []string{common.DeletedState}); err != nil {
 		return diag.FromErr(err)
 	}
 
 	return nil
+}
+
+func waitForPostgresql2(ctx context.Context, scpClient *client.SCPClient, rd *schema.ResourceData, id string, pendingStates []string, targetStates []string) error {
+
+	createStateConf := &resource.StateChangeConf{
+		Pending: append(pendingStates, common.ActiveState),
+		Target:  targetStates,
+		Refresh: func() (interface{}, string, error) {
+			info, statusCode, err := scpClient.Postgresql.GetPostgresql(ctx, id)
+
+			// tflog.Debug(ctx, fmt.Sprintf("Wait -- %d\n", statusCode))
+
+			if err != nil {
+				if statusCode == 404 {
+					return nil, "", nil
+				}
+				return "", "", err
+			}
+			running := 0
+			for _, server := range info.VirtualServers {
+
+				// tflog.Debug(ctx, fmt.Sprintf("Wait Start -- %d\n", statusCode))
+				if server.VirtualServerState == common.RunningState && server.Software.SoftwareServiceState == common.RunningState {
+					running = running + 1
+				} else if server.VirtualServerState != common.RunningState && !contains(common.DatabaseProcessingStates(), server.VirtualServerState) {
+					return "", "", fmt.Errorf("Error: %s", server.VirtualServerName)
+				}
+			}
+			if running == len(info.VirtualServers) {
+				return info, common.RunningState, nil
+			}
+
+			// tflog.Debug(ctx, fmt.Sprintf("Wait END -- %s\n", info.ServerGroupState))
+			return info, info.ServerGroupState, nil
+		},
+		Timeout:                   rd.Timeout(schema.TimeoutCreate),
+		Delay:                     20 * time.Second,
+		MinTimeout:                10 * time.Second,
+		ContinuousTargetOccurence: 1,
+		NotFoundChecks:            5,
+	}
+	if _, err := createStateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for databse (%s) to be created: %s", id, err)
+	}
+	return nil
+}
+
+func waitDeletedForPostgresql2(ctx context.Context, scpClient *client.SCPClient, rd *schema.ResourceData, id string, pendingStates []string, targetStates []string) error {
+
+	tflog.Debug(ctx, "waitForPostgresql")
+
+	createStateConf := &resource.StateChangeConf{
+		Pending: append(pendingStates, common.ActiveState),
+		Target:  targetStates,
+		Refresh: func() (interface{}, string, error) {
+			info, statusCode, err := scpClient.Postgresql.GetPostgresql(ctx, id)
+
+			// tflog.Debug(ctx, fmt.Sprintf("Wait -- %d\n", statusCode))
+
+			if err != nil {
+				if statusCode == 404 {
+					return "", common.DeletedState, nil
+				} else if statusCode == 400 {
+					return nil, "", nil
+				}
+
+				return "", "", err
+			}
+			// tflog.Debug(ctx, fmt.Sprintf("Wait END -- %s\n", info.ServerGroupState))
+			return info, info.ServerGroupState, nil
+		},
+		Timeout:                   rd.Timeout(schema.TimeoutCreate),
+		Delay:                     20 * time.Second,
+		MinTimeout:                20 * time.Second,
+		ContinuousTargetOccurence: 1,
+		NotFoundChecks:            8,
+	}
+	if _, err := createStateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for databse (%s) to be created: %s", id, err)
+	}
+	return nil
+}
+
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+
+	return false
 }
 
 func waitForPostgresql(ctx context.Context, scpClient *client.SCPClient, id string, pendingStates []string, targetStates []string, errorOnNotFound bool) error {
@@ -798,15 +1041,21 @@ func waitForPostgresql(ctx context.Context, scpClient *client.SCPClient, id stri
 		baseErr = client.WaitForStatus(ctx, scpClient, pendingStates, targetStates, func() (interface{}, string, error) {
 			info, c, err := scpClient.Postgresql.GetPostgresql(ctx, id)
 			if err != nil {
-				if c == 404 && !errorOnNotFound {
+				//virtual server not found
+				if c == 400 && !errorOnNotFound {
 					return "", common.DeletedState, nil
 				}
-				if c == 403 && !errorOnNotFound {
-					return "", common.DeletedState, nil
-				}
-				if c >= 500 && !errorOnNotFound {
-					return "", common.DeletedState, nil
-				}
+				/*
+					if c == 404 && !errorOnNotFound {
+						return "", common.DeletedState, nil
+					}
+					if c == 403 && !errorOnNotFound {
+						return "", common.DeletedState, nil
+					}
+					if c >= 500 && !errorOnNotFound {
+						return "", common.DeletedState, nil
+					}
+				*/
 				return nil, "", err
 			}
 			if i >= len(info.VirtualServers) {
@@ -850,4 +1099,157 @@ func checkNameDuplication(ctx context.Context, meta interface{}, dbName string, 
 	}
 
 	return nil
+}
+
+func getObjectStorageId(ctx context.Context, scpClient *client.SCPClient, serviceZoneId string) (string, error) {
+	response, err := scpClient.ObjectStorage.ReadObjectStorageList(ctx, serviceZoneId, objectstorage.ObjectStorageV3ControllerApiListObjectStorage3Opts{})
+	if err != nil {
+		return "", fmt.Errorf("failed while querying object storage list")
+	}
+	if response.TotalCount < 1 {
+		return "", fmt.Errorf("no object storage list")
+	}
+	objectStorageId := response.Contents[0].ObsId
+
+	tflog.Debug(ctx, fmt.Sprintf("Backup.objectStorageId : %s\n", objectStorageId))
+	return objectStorageId, nil
+}
+
+func createBackupSettings(ctx context.Context, scpClient *client.SCPClient, serviceZoneId string, vAdvancedBackupSettings *schema.Set) (*postgresql2.DatabaseBackup, error) {
+	backupSetting := &postgresql2.DatabaseBackup{}
+
+	backUpList := vAdvancedBackupSettings.List()
+
+	if len(backUpList) < 1 {
+		return nil, nil
+	}
+
+	objectStorageId, err := getObjectStorageId(ctx, scpClient, serviceZoneId)
+	if err != nil {
+		return nil, err
+	}
+	backup := backUpList[0].(map[string]interface{})
+
+	backupSetting.ObjectStorageId = objectStorageId
+
+	if v, ok := backup["retention_day"].(int); ok {
+		backupSetting.BackupRetentionDay = int32(v)
+	}
+	if v, ok := backup["start_hour"].(int); ok {
+		backupSetting.BackupStartHour = int32(v)
+	}
+	return backupSetting, nil
+}
+
+func expandBackupSettings(vAdvancedBackupSettings *schema.Set) []*postgresql2.DatabaseBackup {
+	backupSettings := []*postgresql2.DatabaseBackup{}
+
+	for _, vAdvancedBackupSetting := range vAdvancedBackupSettings.List() {
+		backupSetting := &postgresql2.DatabaseBackup{}
+
+		mAdvancedBackupSetting := vAdvancedBackupSetting.(map[string]interface{})
+
+		if v, ok := mAdvancedBackupSetting["objectstorage_id"].(string); ok && v != "" {
+			backupSetting.ObjectStorageId = v
+		}
+
+		if v, ok := mAdvancedBackupSetting["retention_day"].(int); ok {
+			backupSetting.BackupRetentionDay = int32(v)
+		}
+
+		if v, ok := mAdvancedBackupSetting["start_hour"].(int); ok {
+			backupSetting.BackupStartHour = int32(v)
+		}
+		backupSettings = append(backupSettings, backupSetting)
+	}
+
+	return backupSettings
+}
+
+func flattenBackupSettings(backupSetting *postgresql2.DatabaseBackup) *schema.Set {
+
+	mAdvancedBackupSetting := map[string]interface{}{
+		"objectstorage_id": backupSetting.ObjectStorageId,
+		"retention_day":    int(backupSetting.BackupRetentionDay),
+		"start_hour":       int(backupSetting.BackupStartHour),
+	}
+
+	backupSchema := resourcePostgresqlBackup()
+	return schema.NewSet(schema.HashResource(backupSchema), []interface{}{mAdvancedBackupSetting})
+}
+
+func expandHASetting(haSchemaSet *schema.Set) *postgresql2.HaSingleRestart {
+	haSettings := []*postgresql2.HaSingleRestart{}
+
+	for _, haSet := range haSchemaSet.List() {
+
+		setting := haSet.(map[string]interface{})
+
+		haSetting := &postgresql2.HaSingleRestart{}
+
+		//if v, ok := setting["single_auto_restart"].(bool); ok {
+		//	haSetting.SingleAutoRestart = v
+		//}
+
+		if v, ok := setting["use_vip_nat"].(bool); ok {
+			haSetting.UseVipNat = &v
+		}
+
+		if v, ok := setting["reserved_natip_id"].(string); ok && v != "" {
+			haSetting.ReservedNatIpId = v
+		}
+
+		if v, ok := setting["virtual_ip"].(string); ok && v != "" {
+			haSetting.VirtualIp = v
+		}
+		haSettings = append(haSettings, haSetting)
+	}
+
+	var ha *postgresql2.HaSingleRestart
+	if len(haSettings) > 0 {
+		ha = haSettings[0]
+	} else {
+		ha = nil
+	}
+
+	return ha
+}
+
+func expandNetworkSetting(serverNamePrefix string, haSchemaSet *schema.Set) []postgresql2.DatabaseServerNetwork {
+	networks := []postgresql2.DatabaseServerNetwork{}
+
+	haSettings := haSchemaSet.List()
+
+	if len(haSettings) > 0 {
+
+		setting := haSettings[0].(map[string]interface{})
+
+		network := postgresql2.DatabaseServerNetwork{
+			ServerName: serverNamePrefix + "01",
+			NodeType:   "ACTIVE",
+		}
+		if v, ok := setting["active_server_ip"].(string); ok && v != "" {
+			network.ServiceIp = v
+		}
+
+		networks = append(networks, network)
+
+		network = postgresql2.DatabaseServerNetwork{
+			ServerName: serverNamePrefix + "02",
+			NodeType:   "STANDBY",
+		}
+		if v, ok := setting["standby_server_ip"].(string); ok && v != "" {
+			network.ServiceIp = v
+		}
+		networks = append(networks, network)
+
+	} else {
+		networks = append(networks, postgresql2.DatabaseServerNetwork{
+			ServerName: serverNamePrefix + "01",
+			NodeType:   "ACTIVE",
+			ServiceIp:  "",
+			NatIpId:    "",
+		})
+	}
+	return networks
 }

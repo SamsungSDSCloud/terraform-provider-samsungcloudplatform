@@ -22,14 +22,6 @@ data "terraform_remote_state" "security_group" {
   }
 }
 
-data "terraform_remote_state" "public_ip" {
-  backend = "local"
-
-  config = {
-    path = "../scp_public_ip/terraform.tfstate"
-  }
-}
-
 variable "id" {
   default = "root"
 }
@@ -37,7 +29,7 @@ variable "password" {
   default = ""
 }
 variable "name" {
-  default = "vmtest1"
+  default = "vmtest2"
 }
 variable "ext_name" {
   default = "bs-vs-1"

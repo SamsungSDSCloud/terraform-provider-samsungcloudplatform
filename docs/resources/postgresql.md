@@ -56,6 +56,15 @@ resource "scp_postgresql" "my_pg_db" {
     storage_usage   = "DATA"
     storage_size_gb = 10
   }
+
+  high_availability {
+
+  }
+
+  backup {
+    retention_day = 7
+    start_hour = 23
+  }
 }
 ```
 
@@ -83,12 +92,17 @@ resource "scp_postgresql" "my_pg_db" {
 ### Optional
 
 - `additional_storage` (Block List) External block storage. (Only adding is allowed) (see [below for nested schema](#nestedblock--additional_storage))
+- `backup` (Block Set, Max: 1) (see [below for nested schema](#nestedblock--backup))
+- `high_availability` (Block Set, Max: 1) (see [below for nested schema](#nestedblock--high_availability))
 - `pg_encoding` (String) Postgresql encoding. (Only 'UTF8' for now)
 - `pg_locale` (String) Postgresql locale. (Only 'C' for now)
+- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
+- `external_vip` (String) public database endpoint
 - `id` (String) The ID of this resource.
+- `vip` (String) private database endpoint
 
 <a id="nestedblock--additional_storage"></a>
 ### Nested Schema for `additional_storage`
@@ -98,3 +112,39 @@ Required:
 - `product_name` (String) Storage product name. (only SSD)
 - `storage_size_gb` (Number) Default data storage size in gigabytes. (At least 10 GB required)
 - `storage_usage` (String) Storage usage. (DATA, ARCHIVE)
+
+
+<a id="nestedblock--backup"></a>
+### Nested Schema for `backup`
+
+Required:
+
+- `retention_day` (Number) Backup File Retention Day.(7 <= day <= 35)
+- `start_hour` (Number) The time at which the backup starts. (must be between 0 and 23)
+
+Read-Only:
+
+- `objectstorage_id` (String) Object storage ID where backup files will be stored
+
+
+<a id="nestedblock--high_availability"></a>
+### Nested Schema for `high_availability`
+
+Optional:
+
+- `active_server_ip` (String) Static IP to assign to the ACTIVE server
+- `reserved_natip_id` (String) ID of Reserved Virtual NAT IP
+- `single_auto_restart` (Boolean) Storage product name. (only SSD)
+- `standby_server_ip` (String) Static IP to assign to the STANDBy server
+- `use_vip_nat` (Boolean) use Virtual IP NAT
+- `virtual_ip` (String) Virtual IP for database cluster access
+
+
+<a id="nestedblock--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String)
+- `delete` (String)
+- `update` (String)

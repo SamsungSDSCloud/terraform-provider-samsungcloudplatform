@@ -3,10 +3,8 @@ package publicip
 import (
 	"context"
 
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
 	publicip2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/public-ip2"
-	"github.com/antihax/optional"
 )
 
 type Client struct {
@@ -28,36 +26,11 @@ func (client *Client) GetAvailablePublicIpList(ctx context.Context, reservedIpPu
 }
 */
 
-func (client *Client) GetPublicIpList(ctx context.Context, serviceZoneId string, param *publicip2.PublicIpOpenApiControllerApiListPublicIpsV21Opts) (publicip2.ListResponseOfDetailPublicIpResponse, error) {
-	result, _, err := client.sdkClient.PublicIpOpenApiControllerApi.ListPublicIpsV21(ctx, client.config.ProjectId, param)
+func (client *Client) GetPublicIpList(ctx context.Context, serviceZoneId string, param *publicip2.PublicIpOpenApiControllerApiListPublicIpsV2Opts) (publicip2.ListResponseOfDetailPublicIpResponse, error) {
+	result, _, err := client.sdkClient.PublicIpOpenApiControllerApi.ListPublicIpsV2(ctx, client.config.ProjectId, param)
 	return result, err
 }
 
-func (client *Client) GetPublicIpListV2(ctx context.Context, request ListPublicIpRequest) (publicip2.ListResponseOfDetailPublicIpResponse, error) {
-	result, _, err := client.sdkClient.PublicIpOpenApiControllerApi.ListPublicIpsV21(ctx, client.config.ProjectId, &publicip2.PublicIpOpenApiControllerApiListPublicIpsV21Opts{
-		//IpAddress:       optional.NewString(request.IpAddress),
-		//IsBillable:      optional.NewBool(request.IsBillable),
-		//IsViewable:      optional.NewBool(request.IsViewable),
-		//PublicIpPurpose: optional.NewString(request.PublicIpPurpose),
-		//PublicIpState:   optional.NewString(request.PublicIpState),
-		//UplinkType:      optional.NewString(request.UplinkType),
-		//CreatedBy:       optional.NewString(request.CreatedBy),
-		//Size:            optional.NewInt32(request.Size),
-		//Page:            optional.NewInt32(request.Page),
-
-		IpAddress:       optional.String{},
-		IsBillable:      optional.NewBool(true),
-		IsViewable:      optional.NewBool(true),
-		PublicIpPurpose: optional.NewString(common.VpcPublicIpPurpose),
-		PublicIpState:   optional.String{},
-		UplinkType:      optional.NewString(common.VpcPublicIpUplinkType),
-		CreatedBy:       optional.String{},
-		Page:            optional.NewInt32(0),
-		Size:            optional.NewInt32(10000),
-		Sort:            optional.NewInterface([]string{"createdDt:desc"}),
-	})
-	return result, err
-}
 func (client *Client) GetPublicIp(ctx context.Context, publicIpAddressId string) (publicip2.DetailPublicIpResponse, int, error) {
 	result, c, err := client.sdkClient.PublicIpOpenApiControllerApi.DetailPublicIpV2(ctx, client.config.ProjectId, publicIpAddressId)
 	var statusCode int

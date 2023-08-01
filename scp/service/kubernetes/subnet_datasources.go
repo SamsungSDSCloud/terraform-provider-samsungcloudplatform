@@ -2,11 +2,16 @@ package kubernetes
 
 import (
 	"context"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	uuid "github.com/satori/go.uuid"
 )
+
+func init() {
+	scp.RegisterDataSource("scp_kubernetes_subnet", DatasourceSubnet())
+}
 
 func DatasourceSubnet() *schema.Resource {
 	return &schema.Resource{

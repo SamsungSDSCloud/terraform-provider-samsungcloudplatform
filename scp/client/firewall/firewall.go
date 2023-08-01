@@ -62,7 +62,7 @@ func (client *Client) GetFirewall(ctx context.Context, firewallId string) (firew
 
 func (client *Client) UpdateFirewallEnabled(ctx context.Context, firewallId string, enabled bool) (firewall2.AsyncResponse, int, error) {
 	result, c, err := client.sdkClient.FirewallV2Api.UpdateFirewallEnabledV2(ctx, client.config.ProjectId, firewallId, firewall2.FirewallChangeEnabledRequest{
-		IsEnabled: enabled,
+		IsEnabled: &enabled,
 	})
 	var statusCode int
 	if c != nil {
@@ -73,6 +73,15 @@ func (client *Client) UpdateFirewallEnabled(ctx context.Context, firewallId stri
 
 func (client *Client) CreateFirewallRule(ctx context.Context, firewallId string, request firewall2.FirewallCreateRuleRequest) (firewall2.AsyncResponse, int, error) {
 	result, c, err := client.sdkClient.FirewallRuleV2Api.CreateFirewallRuleV2(ctx, client.config.ProjectId, firewallId, request)
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
+}
+
+func (client *Client) CreateFirewallBulkRule(ctx context.Context, firewallId string, request firewall2.FirewallRuleCreateBulkRequest) (firewall2.AsyncResponse, int, error) {
+	result, c, err := client.sdkClient.FirewallRuleV2Api.CreateFirewallBulkRuleV2(ctx, client.config.ProjectId, firewallId, request)
 	var statusCode int
 	if c != nil {
 		statusCode = c.StatusCode
@@ -115,10 +124,76 @@ func (client *Client) UpdateFirewallRuleEnable(ctx context.Context, firewallId s
 	}
 	return result, statusCode, err
 }
+
+func (client *Client) UpdateFirewallRuleLocation(ctx context.Context, firewallId string, ruleId string, request firewall2.FirewallRuleChangeLocationRequest) (firewall2.AsyncResponse, int, error) {
+	result, c, err := client.sdkClient.FirewallRuleV2Api.UpdateFirewallRuleLocationV2(ctx, client.config.ProjectId, firewallId, ruleId, request)
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
+}
+
 func (client *Client) DeleteFirewallRule(ctx context.Context, firewallId string, ruleId string) (firewall2.AsyncResponse, int, error) {
 	result, c, err := client.sdkClient.FirewallRuleV2Api.DeleteFirewallRuleV2(ctx, client.config.ProjectId, firewallId, firewall2.FirewallRuleDeleteRequest{
 		RuleDeletionType: "PARTIAL",
 		RuleIds:          []string{ruleId},
+	})
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
+}
+
+func (client *Client) UpdateFirewallLoggable(ctx context.Context, firewallId string, loggingEnabled bool) (firewall2.AsyncResponse, int, error) {
+	result, c, err := client.sdkClient.FirewallV2Api.UpdateFirewallLoggableV2(ctx, client.config.ProjectId, firewallId, firewall2.FirewallChangeLoggableRequest{
+		IsLoggable: &loggingEnabled,
+	})
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
+}
+
+func (client *Client) CreateFirewallLogStorage(ctx context.Context, request firewall2.FirewallLogStorageCreatRequest) (firewall2.FirewallLogStorageDetailResponse, int, error) {
+	result, c, err := client.sdkClient.FirewallLogStorageV2Api.CreateFirewallLogStorageV2(ctx, client.config.ProjectId, request)
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
+}
+
+func (client *Client) UpdateFirewallLogStorage(ctx context.Context, logStorageId string, obsBucketId string) (firewall2.FirewallLogStorageDetailResponse, int, error) {
+	result, c, err := client.sdkClient.FirewallLogStorageV2Api.UpdateFirewallLogStorageV2(ctx, client.config.ProjectId, logStorageId, firewall2.FirewallLogStorageUpdateRequest{
+		ObsBucketId: obsBucketId,
+	})
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
+}
+
+func (client *Client) GetFirewallLogStorage(ctx context.Context, logStorageId string) (firewall2.FirewallLogStorageDetailResponse, int, error) {
+	result, c, err := client.sdkClient.FirewallLogStorageV2Api.DetailFirewallLogStorageV2(ctx, client.config.ProjectId, logStorageId)
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
+}
+
+func (client *Client) DeleteFirewallLogStorage(ctx context.Context, logStorageId string) error {
+	_, err := client.sdkClient.FirewallLogStorageV2Api.DeleteFirewallLogStorageV2(ctx, client.config.ProjectId, logStorageId)
+	return err
+}
+
+func (client *Client) ListFirewallLogStorages(ctx context.Context, vpcId string) (firewall2.ListResponseOfFirewallLogStorageDetailResponse, int, error) {
+	result, c, err := client.sdkClient.FirewallLogStorageV2Api.ListFirewallLogStoragesV2(ctx, client.config.ProjectId, vpcId, &firewall2.FirewallLogStorageV2ApiListFirewallLogStoragesV2Opts{
+		LogStorageType: optional.NewString("FIREWALL"),
 	})
 	var statusCode int
 	if c != nil {

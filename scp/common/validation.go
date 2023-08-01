@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"net"
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 func checkStringLength(str string, min int, max int) error {
@@ -114,7 +116,7 @@ func ValidateBlockStorageSizeForOS(v interface{}, path cty.Path) diag.Diagnostic
 
 func ValidateBlockStorageSize(v interface{}, path cty.Path) diag.Diagnostics {
 	var diags diag.Diagnostics
-	if v.(int) < 10 {
+	if v.(int) < 10 || v.(int) > 7168 {
 		diags = append(diags, diag.Diagnostic{
 			Severity:      diag.Error,
 			Summary:       fmt.Sprintf("size must be at least 10 GB"),
@@ -165,7 +167,7 @@ func ValidateName3to20DashUnderscore(v interface{}, path cty.Path) diag.Diagnost
 	return diags
 }
 
-func ValidateName3to28UnderscoreLowercase(v interface{}, path cty.Path) diag.Diagnostics {
+func ValidateName1to128DotDashUnderscore(v interface{}, path cty.Path) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	// Get attribute key
@@ -176,7 +178,7 @@ func ValidateName3to28UnderscoreLowercase(v interface{}, path cty.Path) diag.Dia
 	value := v.(string)
 
 	// Check name length
-	err := checkStringLength(value, 3, 28)
+	err := checkStringLength(value, 1, 128)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity:      diag.Error,
@@ -186,10 +188,74 @@ func ValidateName3to28UnderscoreLowercase(v interface{}, path cty.Path) diag.Dia
 	}
 
 	// Check characters
-	if !regexp.MustCompile("^[a-z][a-z\\_0-9]+$").MatchString(value) {
+	if !regexp.MustCompile("^[a-z\\-\\_A-Z0-9\\.]+$").MatchString(value) {
 		diags = append(diags, diag.Diagnostic{
 			Severity:      diag.Error,
 			Summary:       fmt.Sprintf("Attribute %q must contain only alpha-numerical characters", attrKey),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
+func ValidateName1to256DotDashUnderscore(v interface{}, path cty.Path) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// Get attribute key
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	// Get value
+	value := v.(string)
+
+	// Check name length
+	err := checkStringLength(value, 1, 256)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q has errors : %s", attrKey, err.Error()),
+			AttributePath: path,
+		})
+	}
+
+	// Check characters
+	if !regexp.MustCompile("^[a-z\\-\\_A-Z0-9\\.]+$").MatchString(value) {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q must contain only alpha-numerical characters", attrKey),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
+func ValidateName3to21LowerAlphaAndNumericWithUnderscoreStartsWithLowerAlpha(v interface{}, path cty.Path) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// Get attribute key
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	// Get value
+	value := v.(string)
+
+	// Check name length
+	err := checkStringLength(value, 3, 21)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q has errors : %s", attrKey, err.Error()),
+			AttributePath: path,
+		})
+	}
+
+	// Check characters
+	if !regexp.MustCompile("^[a-z]([a-z0-9_]){2,20}$").MatchString(value) {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q must contain only lower alpha-numeric characters and underscore", attrKey),
 			AttributePath: path,
 		})
 	}
@@ -293,6 +359,70 @@ func ValidateName3to20DashInMiddle(v interface{}, path cty.Path) diag.Diagnostic
 	return diags
 }
 
+func ValidateName3to60AlphaNumericWithSpaceDashUnderscoreStartsWithLowerAlpha(v interface{}, path cty.Path) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// Get attribute key
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	// Get value
+	value := v.(string)
+
+	// Check name length
+	err := checkStringLength(value, 3, 60)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q has errors : %s", attrKey, err.Error()),
+			AttributePath: path,
+		})
+	}
+
+	// Check characters
+	if !regexp.MustCompile("[a-z][a-zA-Z0-9\\-\\_\\.\\/\\s]*").MatchString(value) {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q must contain only alpha-numerical characters", attrKey),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
+func ValidateName3to30AlphaNumeric(v interface{}, path cty.Path) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// Get attribute key
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	// Get value
+	value := v.(string)
+
+	// Check name length
+	err := checkStringLength(value, 3, 30)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q has errors : %s", attrKey, err.Error()),
+			AttributePath: path,
+		})
+	}
+
+	// Check characters
+	if !regexp.MustCompile("[a-zA-Z0-9]*").MatchString(value) {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q must contain only alpha-numerical characters", attrKey),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
 func ValidateName3to20AlphaOnly(v interface{}, path cty.Path) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -318,6 +448,70 @@ func ValidateName3to20AlphaOnly(v interface{}, path cty.Path) diag.Diagnostics {
 		diags = append(diags, diag.Diagnostic{
 			Severity:      diag.Error,
 			Summary:       fmt.Sprintf("Attribute %q must contain only alpha characters", attrKey),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
+func ValidateName1to15AlphaOnlyStartsWithCapitalLetter(v interface{}, path cty.Path) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// Get attribute key
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	// Get value
+	value := v.(string)
+
+	// Check name length
+	err := checkStringLength(value, 1, 15)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q has errors : %s", attrKey, err.Error()),
+			AttributePath: path,
+		})
+	}
+
+	// Check characters
+	if !regexp.MustCompile("[A-Z][a-zA-Z]+$").MatchString(value) {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q has errors : %s", attrKey, err.Error()),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
+func ValidateName3to28AlphaDashStartsWithLowerCase(v interface{}, path cty.Path) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// Get attribute key
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	// Get value
+	value := v.(string)
+
+	// Check name length
+	err := checkStringLength(value, 3, 28)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q has errors : %s", attrKey, err.Error()),
+			AttributePath: path,
+		})
+	}
+
+	// Check characters
+	if !regexp.MustCompile("[a-z][a-z0-9\\-]*").MatchString(value) {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q must contain only alpha-numerical characters", attrKey),
 			AttributePath: path,
 		})
 	}
@@ -389,6 +583,38 @@ func ValidateName2to20LowerAlphaOnly(v interface{}, path cty.Path) diag.Diagnost
 	return diags
 }
 
+func ValidateName2to20AlphaNumeric(v interface{}, path cty.Path) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// Get attribute key
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	// Get value
+	value := v.(string)
+
+	// Check name length
+	err := checkStringLength(value, 2, 20)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q has errors : %s", attrKey, err.Error()),
+			AttributePath: path,
+		})
+	}
+
+	// Check characters
+	if !regexp.MustCompile("^[a-z]+$").MatchString(value) {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q must contain only alpha-numerical characters", attrKey),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
 func ValidateName3to13AlphaNumberDash(v interface{}, path cty.Path) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -414,6 +640,46 @@ func ValidateName3to13AlphaNumberDash(v interface{}, path cty.Path) diag.Diagnos
 		diags = append(diags, diag.Diagnostic{
 			Severity:      diag.Error,
 			Summary:       fmt.Sprintf("Attribute %q must contain only alpha-numerical characters with dash", attrKey),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
+// ^[a-zA-Z0-9+=,.@\-_ㄱ-ㅎ|ㅏ-ㅣ|가-힣]*$
+func ValidateNameHangeulAlphabetSomeSpecials3to64(v interface{}, path cty.Path) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// Get attribute key
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	// Get value
+	value := v.(string)
+
+	// Check name length
+	var err error = nil
+	cnt := utf8.RuneCountInString(value) // cause we have hanguel here :)
+	if cnt < 3 {
+		err = fmt.Errorf("input must be longer than 3 characters")
+	} else if cnt > 64 {
+		err = fmt.Errorf("input must be shorter than 24 characters")
+	}
+
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q has errors : %s", attrKey, err.Error()),
+			AttributePath: path,
+		})
+	}
+
+	// Check characters
+	if !regexp.MustCompile("^[a-zA-Z0-9+=,.@\\-_ㄱ-ㅎ|ㅏ-ㅣ|가-힣]*$").MatchString(value) {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q must contain only alpha-numerical characters", attrKey),
 			AttributePath: path,
 		})
 	}
@@ -517,7 +783,7 @@ func ValidateName4to20NoSpecialsLowercase(v interface{}, path cty.Path) diag.Dia
 	return diags
 }
 
-func ValidateName6to20(v interface{}, path cty.Path) diag.Diagnostics {
+func ValidateName6to20AlphaAndNumericWithoutSomeSpecials(v interface{}, path cty.Path) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	// Get attribute key
@@ -538,10 +804,10 @@ func ValidateName6to20(v interface{}, path cty.Path) diag.Diagnostics {
 	}
 
 	// Check characters ($ % { } [ ] " \ 제외)
-	if !regexp.MustCompile("[a-zA-Z0-9`~!@#^&*()-_=+|;:',.<>/?]+$").MatchString(value) {
+	if !regexp.MustCompile("[a-zA-Z0-9`~!@#^&*()-_=+|;:',.<>/?]{6,20}$").MatchString(value) {
 		diags = append(diags, diag.Diagnostic{
 			Severity:      diag.Error,
-			Summary:       fmt.Sprintf("Attribute %q must contain only alpha-numerical characters", attrKey),
+			Summary:       fmt.Sprintf("Attribute %q must contain only alpha-numeric characters without some specials", attrKey),
 			AttributePath: path,
 		})
 	}
@@ -552,7 +818,29 @@ func ValidateName6to20(v interface{}, path cty.Path) diag.Diagnostics {
 func ValidateCidrIpv4(v interface{}, path cty.Path) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	// TODO : Check CIDR for IPv4 spec and add test case
+	// Get attribute key
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	// Get value
+	value := v.(string)
+
+	_, ipNet, err := net.ParseCIDR(value)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q has errors : %s", attrKey, err.Error()),
+			AttributePath: path,
+		})
+	}
+
+	if ipNet.IP.To4() == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q is an invalid IPv4 CIDR format", attrKey),
+			AttributePath: path,
+		})
+	}
 
 	return diags
 }
@@ -726,6 +1014,66 @@ func ValidatePositiveInt(v interface{}, path cty.Path) diag.Diagnostics {
 		diags = append(diags, diag.Diagnostic{
 			Severity:      diag.Error,
 			Summary:       fmt.Sprintf("Attribute %q has errors : %s", attrKey, err.Error()),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
+func ValidateIpv4(v interface{}, path cty.Path) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	value := v.(string)
+
+	trial := net.ParseIP(value)
+	if trial.To4() == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q is not IP address", attrKey),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
+func ValidateThatVmStateOnlyHasRunningOrStopped(v interface{}, path cty.Path) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	value := v.(string)
+
+	if !regexp.MustCompile("RUNNING|STOPPED|running|stopped").MatchString(value) {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Only RUNNING or STOPPED value of Attribute %q is allowed ", attrKey),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
+func ValidateContractDesc(v interface{}, path cty.Path) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	value := v.(string)
+
+	if !regexp.MustCompile("None|1 Year|3 Year").MatchString(value) {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Only 'None' or '1 Year' or '3 Year' value of Attribute %q is allowed ", attrKey),
 			AttributePath: path,
 		})
 	}

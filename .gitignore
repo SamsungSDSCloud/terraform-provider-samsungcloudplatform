@@ -200,5 +200,7 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+v1.7/
+v1.8/
 # End of https://www.toptal.com/developers/gitignore/api/go,visualstudiocode,goland,windows,linux,macos
 

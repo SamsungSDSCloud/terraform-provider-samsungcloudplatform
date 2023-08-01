@@ -18,8 +18,8 @@ type BlockStorageInfo struct {
 	DiskSize int32
 	// 암호화 여부
 	EncryptEnabled bool
-	// Block Storage Product ID productId is obtained through @[Get Product List By Zone ID]
-	ProductId string
+	//DiskType
+	DiskType string
 }
 
 type LocalSubnetInfo struct {
@@ -51,7 +51,7 @@ type CreateRequest struct {
 	// Information of Block Storage for default Volume(OS)
 	BlockStorage BlockStorageInfo
 	// Contract Prduct ID productId is obtained through @[Get Product List By Zone ID]
-	ContractId string
+	ContractDiscount string
 	// is Delete Protection enabled
 	DeletionProtectionEnabled bool
 	// Is DNS used
@@ -68,20 +68,55 @@ type CreateRequest struct {
 	Nic NicInfo
 	// OS Admin account information
 	OsAdmin OsAdminInfo
-	// Product Group ID productGroupId is obtained through @[Get Product Groups List By Zone ID]
-	ProductGroupId string
 	// Security Group ID list securityGroupId is obtained through @[Get List of Security Groups]
 	SecurityGroupIds []string
 	// Server Group ID serverGroupId is obtained through @[Get List of Server Group]
 	ServerGroupId string
 	// Server Type ID productId is obtained through @[Get Product List By Zone ID]
-	ServerTypeId string
+	ServerType string
 	// Service Level Product ID productId is obtained through @[Get Product List By Zone ID]
-	ServiceLevelId string
 	// Zone ID serviceZoneId is obtained through @[View Project Details]
 	ServiceZoneId string
 	// Time zone
 	Timezone string
 	// Virtual Server name
-	VirtualServerName string
+	VirtualServerName    string
+	AvailabilityZoneName string
+	Tags                 []TagRequest
+}
+
+type ListVirtualServersRequestParam struct {
+	AutoscalingEnabled   bool
+	ServerGroupId        string
+	ServicedForList      []string
+	ServicedGroupForList []string
+	VirtualServerName    string
+	Page                 int32
+	Size                 int32
+	Sort                 string
+}
+
+type VirtualServerSubnetIpUpdateRequest struct {
+	InternalIpAddress string
+	SubnetId          string
+}
+
+type VirtualServerContractUpdateRequest struct {
+	ContractDiscount string
+}
+
+type ExternalStorage struct {
+	BlockStorageName string
+	BlockStorageId   string
+	StorageSizeGb    int32
+	SharedType       string
+	EncryptEnabled   bool
+	ProductName      string
+	ProductId        string
+	Tags             []TagRequest
+}
+
+type TagRequest struct {
+	TagKey   string
+	TagValue string
 }

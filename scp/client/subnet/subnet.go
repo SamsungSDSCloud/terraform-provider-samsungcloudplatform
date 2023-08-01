@@ -5,7 +5,6 @@ import (
 
 	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/subnet2"
-	"github.com/antihax/optional"
 )
 
 type Client struct {
@@ -40,28 +39,40 @@ func (client *Client) GetSubnet(ctx context.Context, subnetId string) (subnet2.S
 	return result, statusCode, err
 }
 
-func (client *Client) GetSubnetList(ctx context.Context, request ListSubnetRequest) (subnet2.ListResponseOfSubnetListItemResVo, error) {
-	result, _, err := client.sdkClient.SubnetOpenApiControllerApi.ListSubnetV21(ctx, client.config.ProjectId, &subnet2.SubnetOpenApiControllerApiListSubnetV21Opts{
-		SubnetCidrBlock: optional.NewString(request.SubnetCidrBlock),
-		SubnetId:        optional.NewString(request.SubnetId),
-		SubnetName:      optional.NewString(request.SubnetName),
-		//SubnetTypes:     optional.NewInterface(request.SubnetTypes), //TODO:
-		VpcId:     optional.NewString(request.VpcId),
-		CreatedBy: optional.NewString(request.CreatedBy),
-		Page:      optional.NewInt32(request.Page),
-		Size:      optional.NewInt32(request.Size),
-	})
-	return result, err
+func (client *Client) GetSubnetList(ctx context.Context, request *subnet2.SubnetOpenApiControllerApiListSubnetV2Opts) (subnet2.ListResponseOfSubnetListItemResVo, int, error) {
+	result, c, err := client.sdkClient.SubnetOpenApiControllerApi.ListSubnetV2(ctx, client.config.ProjectId, request)
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
 }
 
-func (client *Client) GetSubnetResourcesV2List(ctx context.Context, request ListSubnetResourceRequest) (subnet2.ListResponseOfSubnetResourceIpListItemResVo, error) {
-	result, _, err := client.sdkClient.SubnetOpenApiControllerApi.ListSubnetResourcesV2(ctx, client.config.ProjectId, request.SubnetId, &subnet2.SubnetOpenApiControllerApiListSubnetResourcesV2Opts{
-		IpAddress:        optional.NewString(request.IpAddress),
-		LinkedObjectType: optional.NewString(request.LinkedObjectType),
-		Page:             optional.NewInt32(request.Page),
-		Size:             optional.NewInt32(request.Size),
-	})
-	return result, err
+func (client *Client) GetSubnetResourcesV2List(ctx context.Context, subnetId string, request *subnet2.SubnetVipOpenApiControllerApiListSubnetResourcesV2Opts) (subnet2.ListResponseOfSubnetResourceIpListItemResVo, int, error) {
+	result, c, err := client.sdkClient.SubnetVipOpenApiControllerApi.ListSubnetResourcesV2(ctx, client.config.ProjectId, subnetId, request)
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
+}
+
+func (client *Client) GetSubnetVipV2List(ctx context.Context, subnetId string, request *subnet2.SubnetVipOpenApiControllerApiListSubnetVipsV2Opts) (subnet2.ListResponseOfSubnetVirtualIpListItemResVo, int, error) {
+	result, c, err := client.sdkClient.SubnetVipOpenApiControllerApi.ListSubnetVipsV2(ctx, client.config.ProjectId, subnetId, request)
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
+}
+
+func (client *Client) GetSubnetVip(ctx context.Context, subnetId string, vipId string) (subnet2.SubnetVirtualIpDetailResVo, int, error) {
+	result, c, err := client.sdkClient.SubnetVipOpenApiControllerApi.DetailSubnetVipsV2(ctx, client.config.ProjectId, subnetId, vipId)
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
 }
 
 func (client *Client) UpdateSubnetDescription(ctx context.Context, subnetId string, description string) (subnet2.AsyncResponse, error) {
@@ -85,10 +96,42 @@ func (client *Client) DeleteSubnet(ctx context.Context, subnetId string) (subnet
 
 func (client *Client) CheckSubnetName(ctx context.Context, name string) (bool, error) {
 	result, _, err := client.sdkClient.SubnetOpenApiControllerApi.CheckSubnetNameDuplicationV2(ctx, client.config.ProjectId, name)
-	return result.Result, err
+	if result.Result == nil {
+		return false, err
+	}
+	return *result.Result, err
 }
 
 func (client *Client) CheckSubnetCidrIpv4(ctx context.Context, subnetCidrBlock string, vpcId string) (bool, error) {
 	result, _, err := client.sdkClient.SubnetOpenApiControllerApi.CheckSubnetCidrBlockDuplicationV2(ctx, client.config.ProjectId, subnetCidrBlock, vpcId)
-	return result.Result, err
+	if result.Result == nil {
+		return false, err
+	}
+	return *result.Result, err
+}
+func (client *Client) CheckAvailableSubnetIp(ctx context.Context, subnetId string, ipAddress string) (subnet2.CheckResponse, error) {
+	result, _, err := client.sdkClient.SubnetOpenApiControllerApi.CheckAvailableSubnetIpV2(ctx, client.config.ProjectId, subnetId, ipAddress)
+
+	if err != nil {
+		return subnet2.CheckResponse{}, err
+	}
+
+	return result, err
+}
+
+func (client *Client) GetSubnetAvailableVipV2List(ctx context.Context, subnetId string, request *subnet2.SubnetVipOpenApiControllerApiListAvailableVipsV2Opts) (subnet2.ListResponseOfSubnetVirtualIpAvailableListItemResVo, error) {
+	result, _, err := client.sdkClient.SubnetVipOpenApiControllerApi.ListAvailableVipsV2(ctx, client.config.ProjectId, subnetId, request)
+	return result, err
+}
+
+func (client *Client) ReserveSubnetVipsV2(ctx context.Context, subnetId string, subnetIpId string, vipDescription string) (subnet2.AsyncResponse, error) {
+	result, _, err := client.sdkClient.SubnetVipOpenApiControllerApi.ReserveSubnetVipsV2(ctx, client.config.ProjectId, subnetId, subnetIpId, subnet2.SubnetVirtualIpDescriptionRequest{
+		VipDescription: vipDescription,
+	})
+	return result, err
+}
+
+func (client *Client) ReleaseSubnetVipsV2(ctx context.Context, subnetId string, subnetIpId string) (subnet2.AsyncResponse, error) {
+	result, _, err := client.sdkClient.SubnetVipOpenApiControllerApi.ReleaseSubnetVipsV2(ctx, client.config.ProjectId, subnetId, subnetIpId)
+	return result, err
 }

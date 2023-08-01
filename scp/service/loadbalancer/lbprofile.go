@@ -3,12 +3,17 @@ package loadbalancer
 import (
 	"context"
 	"fmt"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+func init() {
+	scp.RegisterResource("scp_lb_profile", ResourceLbProfile())
+}
 
 func ResourceLbProfile() *schema.Resource {
 	return &schema.Resource{
@@ -30,8 +35,8 @@ func ResourceLbProfile() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				ForceNew:         true,
-				ValidateDiagFunc: common.ValidateName3to20NoSpecials,
-				Description:      "Name of profile. (3 to 20 without specials)",
+				ValidateDiagFunc: common.ValidateName3to20DashInMiddle,
+				Description:      "Name of profile. (3 to 20 with dash in middle)",
 			},
 			"category": {
 				Type:             schema.TypeString,
@@ -181,6 +186,10 @@ func resourceLbProfileRead(ctx context.Context, rd *schema.ResourceData, meta in
 	info, _, err := inst.Client.LoadBalancer.GetLbProfile(ctx, rd.Id(), rd.Get("lb_id").(string))
 	if err != nil {
 		rd.SetId("")
+		if common.IsDeleted(err) {
+			return nil
+		}
+
 		return diag.FromErr(err)
 	}
 
@@ -224,6 +233,11 @@ func resourceLbProfileUpdate(ctx context.Context, rd *schema.ResourceData, meta 
 		}
 	}
 
+	err := waitForLbProfileStatus(ctx, inst.Client, rd.Id(), rd.Get("lb_id").(string), []string{}, []string{"ACTIVE"}, false)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	return resourceLbProfileRead(ctx, rd, meta)
 }
 
@@ -231,10 +245,11 @@ func resourceLbProfileDelete(ctx context.Context, rd *schema.ResourceData, meta 
 	inst := meta.(*client.Instance)
 
 	_, err := inst.Client.LoadBalancer.DeleteLbProfile(ctx, rd.Id(), rd.Get("lb_id").(string))
-	if err != nil {
+	if err != nil && !common.IsDeleted(err) {
 		return diag.FromErr(err)
 	}
-	err = waitForLoadBalancerStatus(ctx, inst.Client, rd.Id(), []string{"TERMINATING"}, []string{"DELETED"}, false)
+
+	err = waitForLbProfileStatus(ctx, inst.Client, rd.Id(), rd.Get("lb_id").(string), []string{"TERMINATING"}, []string{"DELETED"}, false)
 	if err != nil {
 		return diag.FromErr(err)
 	}

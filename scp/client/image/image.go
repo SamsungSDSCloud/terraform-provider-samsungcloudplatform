@@ -20,7 +20,7 @@ func NewClient(config *sdk.Configuration) *Client {
 }
 
 func (client *Client) GetStandardImageList(ctx context.Context, zoneId string, imageState string, servicedGroupFor string, servicedFor string) (image2.ListResponseOfStandardImageResponse, error) {
-	result, _, err := client.sdkClient.StandardImageControllerApi.ListStandardImages(ctx, zoneId, &image2.StandardImageControllerApiListStandardImagesOpts{
+	result, _, err := client.sdkClient.StandardImageV2Api.ListStandardImages(ctx, client.config.ProjectId, zoneId, &image2.StandardImageV2ApiListStandardImagesOpts{
 		ImageState:       optional.NewString(imageState),
 		ServicedFor:      optional.NewString(servicedFor),
 		ServicedGroupFor: optional.NewString(servicedGroupFor),
@@ -32,6 +32,11 @@ func (client *Client) GetStandardImageList(ctx context.Context, zoneId string, i
 }
 
 func (client *Client) GetStandardImageInfo(ctx context.Context, standardImageId string) (image2.StandardImageResponse, error) {
-	result, _, err := client.sdkClient.StandardImageControllerApi.DetailStandardImage1(ctx, standardImageId)
+	result, _, err := client.sdkClient.StandardImageV2Api.DetailStandardImage1(ctx, client.config.ProjectId, standardImageId)
 	return result, err
+}
+
+func (client *Client) GetImageType(ctx context.Context, imageId string) (string, error) {
+	result, _, err := client.sdkClient.CommonImageV2Api.DetailImageType(ctx, client.config.ProjectId, imageId)
+	return result.ImageType, err // STANDARD, CUSTOM, MIGRATION
 }

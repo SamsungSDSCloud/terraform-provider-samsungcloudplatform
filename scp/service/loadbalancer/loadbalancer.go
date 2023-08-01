@@ -3,6 +3,7 @@ package loadbalancer
 import (
 	"context"
 	"fmt"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/hashicorp/go-cty/cty"
@@ -12,6 +13,10 @@ import (
 	"regexp"
 	"strings"
 )
+
+func init() {
+	scp.RegisterResource("scp_load_balancer", ResourceLoadBalancer())
+}
 
 func ResourceLoadBalancer() *schema.Resource {
 	return &schema.Resource{
@@ -52,6 +57,12 @@ func ResourceLoadBalancer() *schema.Resource {
 				Description:      "Load balancer cidr ipv4",
 				ValidateDiagFunc: common.ValidateCidrIpv4,
 			},
+			"link_ip_cidr": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				Description:      "Load balancer link IP band",
+				ValidateDiagFunc: common.ValidateCidrIpv4,
+			},
 			"size": {
 				Type:             schema.TypeString,
 				Required:         true,
@@ -76,7 +87,6 @@ func ResourceLoadBalancer() *schema.Resource {
 }
 
 func resourceLoadBalancerCreate(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
-
 	// Get values from schema
 	vpcId := rd.Get("vpc_id").(string)
 	name := rd.Get("name").(string)
@@ -84,6 +94,7 @@ func resourceLoadBalancerCreate(ctx context.Context, rd *schema.ResourceData, me
 	cidrIpv4 := rd.Get("cidr_ipv4").(string)
 	size := strings.ToUpper(rd.Get("size").(string))
 	firewallEnabled := false // rd.Get("firewall_enabled").(bool)
+	linkIpCidr := rd.Get("link_ip_cidr").(string)
 
 	inst := meta.(*client.Instance)
 
@@ -100,7 +111,7 @@ func resourceLoadBalancerCreate(ctx context.Context, rd *schema.ResourceData, me
 		return diag.Errorf("Input load balancer name is invalid (maybe duplicated) : " + name)
 	}
 
-	isCidrInvalid, err := inst.Client.Subnet.CheckSubnetCidrIpv4(ctx, cidrIpv4, vpcId)
+	isCidrInvalid, err := inst.Client.Subnet.CheckSubnetCidrIpv4(ctx, cidrIpv4, vpcId) // console : /27~/22, API : /24, need to fix backend
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -141,7 +152,7 @@ func resourceLoadBalancerCreate(ctx context.Context, rd *schema.ResourceData, me
 		return diag.FromErr(err)
 	}
 
-	result, err := inst.Client.LoadBalancer.CreateLoadBalancer(ctx, targetBlockId, firewallEnabled, size, name, targetProductGroupId, productId, cidrIpv4, vpcInfo.ServiceZoneId, vpcId, description)
+	result, err := inst.Client.LoadBalancer.CreateLoadBalancer(ctx, targetBlockId, firewallEnabled, size, name, targetProductGroupId, productId, cidrIpv4, linkIpCidr, vpcInfo.ServiceZoneId, vpcId, description)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -166,6 +177,10 @@ func resourceLoadBalancerRead(ctx context.Context, rd *schema.ResourceData, meta
 	info, _, err := inst.Client.LoadBalancer.GetLoadBalancer(ctx, rd.Id())
 	if err != nil {
 		rd.SetId("")
+		if common.IsDeleted(err) {
+			return nil
+		}
+
 		return diag.FromErr(err)
 	}
 
@@ -195,7 +210,7 @@ func resourceLoadBalancerDelete(ctx context.Context, rd *schema.ResourceData, me
 	inst := meta.(*client.Instance)
 
 	_, err := inst.Client.LoadBalancer.DeleteLoadBalancer(ctx, rd.Id())
-	if err != nil {
+	if err != nil && !common.IsDeleted(err) {
 		return diag.FromErr(err)
 	}
 	err = waitForLoadBalancerStatus(ctx, inst.Client, rd.Id(), []string{"TERMINATING"}, []string{"DELETED"}, false)

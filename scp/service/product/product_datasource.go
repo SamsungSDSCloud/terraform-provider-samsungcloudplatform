@@ -2,6 +2,8 @@ package product
 
 import (
 	"context"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/product"
@@ -11,27 +13,42 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+func init() {
+	scp.RegisterDataSource("scp_product", DatasourceProducts())
+}
+
 func DatasourceProducts() *schema.Resource {
 	return &schema.Resource{
-		ReadContext: dataSourceList,
+		ReadContext: datasourceProductsRead,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
+			"filter":         common.DatasourceFilter(),
 			"category_id":    {Type: schema.TypeString, Optional: true, Description: "Product category id"},
 			"category_state": {Type: schema.TypeString, Optional: true, Description: "Product category status"},
-			"exposure_scope": {Type: schema.TypeString, Optional: true, Description: "Exposure scope"},
-			"product_id":     {Type: schema.TypeString, Optional: true, Description: "Product id"},
-			"product_state":  {Type: schema.TypeString, Optional: true, Description: "Product status"},
-			"language_code":  {Type: schema.TypeString, Optional: true, Default: "ko", Description: "Language code (ko, en)"},
-			"contents":       {Type: schema.TypeList, Optional: true, Description: "Product list", Elem: datasourceElem()},
-			"total_count":    {Type: schema.TypeInt, Computed: true, Description: "Total list size"},
+			"exposure_scope": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"ADMIN", "CONSOLE", "LANDING"}, false)),
+				Description:      "Exposure scope",
+			},
+			"language_code": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"ko_KR", "en_US"}, false)),
+				Description:      "Language code (ko_KR, en_US)",
+			},
+			"product_id":    {Type: schema.TypeString, Optional: true, Description: "Product id"},
+			"product_state": {Type: schema.TypeString, Optional: true, Description: "Product status"},
+			"contents":      {Type: schema.TypeList, Optional: true, Description: "Product list", Elem: datasourceProductElem()},
+			"total_count":   {Type: schema.TypeInt, Computed: true, Description: "Total list size"},
 		},
 		Description: "Provides list of products.",
 	}
 }
 
-func dataSourceList(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func datasourceProductsRead(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
 	requestParam := product.ListCategoriesRequest{
@@ -49,14 +66,22 @@ func dataSourceList(ctx context.Context, rd *schema.ResourceData, meta interface
 	}
 
 	contents := common.ConvertStructToMaps(responses.Contents)
+	for _, content := range contents {
+		delete(content, "product")
+	}
+
+	if f, ok := rd.GetOk("filter"); ok {
+		contents = common.ApplyFilter(DatasourceProducts().Schema, f.(*schema.Set), contents)
+	}
+
 	rd.SetId(uuid.NewV4().String())
 	rd.Set("contents", contents)
-	rd.Set("total_count", responses.TotalCount)
+	rd.Set("total_count", len(contents))
 
 	return nil
 }
 
-func datasourceElem() *schema.Resource {
+func datasourceProductElem() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"icon_file_name": {Type: schema.TypeString, Computed: true, Description: "Icon file name"},
@@ -83,7 +108,7 @@ func DatasourceMenus() *schema.Resource {
 			common.ToSnakeCase("ExposureScope"): {Type: schema.TypeString, Optional: true, Description: "Exposure scope"},
 			common.ToSnakeCase("ProductId"):     {Type: schema.TypeString, Optional: true, Description: "Product id"},
 			common.ToSnakeCase("ZoneIds"):       {Type: schema.TypeString, Optional: true, Description: "Service Zone id list"},
-			"contents":                          {Type: schema.TypeList, Computed: true, Description: "Contents", Elem: datasourceElem()},
+			"contents":                          {Type: schema.TypeList, Computed: true, Description: "Contents", Elem: datasourceProductElem()},
 			"total_count":                       {Type: schema.TypeInt, Computed: true},
 		},
 	}

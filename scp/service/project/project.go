@@ -77,7 +77,7 @@ func datasourceProjectRead(ctx context.Context, rd *schema.ResourceData, meta in
 	rd.Set("project_id", projectInfo.ProjectId)
 	rd.Set("project_name", projectInfo.ProjectName)
 	rd.Set("project_state", projectInfo.ProjectState)
-	rd.Set("account_code", projectInfo.AccountCode)
+	//rd.Set("account_code", projectInfo.AccountCode) 	// deprecated
 	rd.Set("account_id", projectInfo.AccountId)
 	rd.Set("account_name", projectInfo.AccountName)
 	rd.Set("account_type", projectInfo.AccountType)

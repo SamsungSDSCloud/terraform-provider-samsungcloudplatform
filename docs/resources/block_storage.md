@@ -30,12 +30,15 @@ resource "scp_block_storage" "my_bs" {
 
 - `name` (String) The block storage name to create. (3 to 28 characters with -)
 - `product_name` (String) You can use by selecting SSD or HDD based storage.
+- `shared_type` (String) You can use by selecting DEDICATED or SHARED
 - `storage_size_gb` (Number) The storage size(GB) of the block storage to create. (4 to  12288 GB)
-- `virtual_server_id` (String) Virtual server ID to which you want to assign the block storage.
 
 ### Optional
 
 - `encrypt_enable` (Boolean) The block storage whether to use encryption. This can be enabled when the virtual server is encryption enabled.
+- `tags` (Map of String)
+- `virtual_server_id` (String) Virtual server ID to which you want to assign the block storage.
+- `virtual_server_ids` (List of String) Virtual server IDs to which you want to assign the block storage.
 
 ### Read-Only
 

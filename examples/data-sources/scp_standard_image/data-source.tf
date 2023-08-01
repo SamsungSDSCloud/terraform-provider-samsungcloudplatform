@@ -3,8 +3,8 @@ data "scp_region" "region" {
 
 # Find standard image
 data "scp_standard_image" "ubuntu_image" {
-  service_group = "CONTAINER"
-  service       = "Kubernetes Engine VM"
+  service_group = "COMPUTE"
+  service       = "Virtual Server"
   region        = data.scp_region.region.location
 
   # Apply filter for 'image_name' regex value "Ubuntu 18.04 *"

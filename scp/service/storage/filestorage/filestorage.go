@@ -3,12 +3,17 @@ package filestorage
 import (
 	"context"
 	"fmt"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/storage/filestorage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+func init() {
+	scp.RegisterResource("scp_file_storage", ResourceFileStorage())
+}
 
 func ResourceFileStorage() *schema.Resource {
 	return &schema.Resource{
@@ -20,210 +25,161 @@ func ResourceFileStorage() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:             schema.TypeString,
-				Required:         true,
-				ForceNew:         true,
-				Description:      "The file storage name to create. (3 to 28 lowercase characters with _)",
-				ValidateDiagFunc: common.ValidateName3to28UnderscoreLowercase,
-			},
-			"disk_type": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "HDD / SSD / HP_SSD(Only Multi-node GPU Clusters)",
-			},
-			"protocol": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The file storage protocol type to create (NFS, CIFS)",
-			},
-			/* auto generated
-			"storage_size_gb": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "The storage size(GB) of the file storage to create. (1 to 102,400 GB)",
-				ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
-					var diags diag.Diagnostics
-
-					// Get attribute key
-					attr := path[len(path)-1].(cty.GetAttrStep)
-					attrKey := attr.Name
-
-					// Get value
-					value := (int32)(v.(int))
-
-					if value < 1 || value > 102400 {
-						diags = append(diags, diag.Diagnostic{
-							Severity:      diag.Error,
-							Summary:       fmt.Sprintf("Attribute %q has errors : %s", attrKey, fmt.Errorf("storage size is out of bounds. (1 < size < 102400 gb) ")),
-							AttributePath: path,
-						})
-					}
-					return diags
-				},
-			},
-			*/
-			"region": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The file storage region name to create.",
-			},
-			/* auto generated
-			"cifs_id": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				ForceNew:         true,
-				Description:      "Cifs ID is only available for CIFS protocol. (4 to 20 characters without specials)",
-				ValidateDiagFunc: common.ValidateName4to20NoSpecialsLowercase, // 영소문자시작, 영소문자+숫자 4-20
-			},
-			*/
 			"cifs_password": {
 				Type:             schema.TypeString,
 				Optional:         true,
 				ForceNew:         true,
-				Description:      "Cifs password is only available for CIFS protocol. (6 to 20 characters without following special characters ($, %, {, }, [, ], \", \\)",
-				ValidateDiagFunc: common.ValidateName6to20, // 영문+숫자+특수문자 6-20 ($ % { } [ ] " \ 제외)
+				Description:      "CIFS Password is only available for CIFS Protocol. (6 to 20 alphabet and numeric characters without following special characters ($, %, {, }, [, ], \", \\)",
+				ValidateDiagFunc: common.ValidateName6to20AlphaAndNumericWithoutSomeSpecials, // 영문+숫자+특수문자 6-20 ($ % { } [ ] " \ 제외)
 			},
-			/* deleted in v3 api
-			"snapshot_capacity_rate": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				ForceNew:    true,
-				Description: "The capacity rate of the snapshot to create.",
-			},
-			*/
-			"snapshot_day_of_week": {
+			"disk_type": {
 				Type:        schema.TypeString,
-				Optional:    true,
+				Required:    true,
 				ForceNew:    true,
-				Description: "Snapshot creation cycle, It is only available when you use a Snapshot",
+				Description: "File Storage Disk Type (HDD, SSD, HP_SSD)",
 			},
-			"snapshot_frequency": {
+			"file_storage_name": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "File Storage Name (3 to 21 lower alphabet and numeric characters with '_' symbol are available, but it must be started with lower alphabet)",
+				ValidateDiagFunc: common.ValidateName3to21LowerAlphaAndNumericWithUnderscoreStartsWithLowerAlpha,
+			},
+			"file_storage_protocol": {
 				Type:        schema.TypeString,
-				Optional:    true,
+				Required:    true,
 				ForceNew:    true,
-				Description: "Snapshot creation frequency, It is only available when you use a Snapshot",
+				Description: "File Storage Protocol (NFS, CIFS)",
 			},
-			"snapshot_hour": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				ForceNew:    true,
-				Description: "Snapshot creation hour, It is only available when you use a Snapshot",
-			},
-			"retention_count": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "Snapshot archiving count",
-			},
-			"is_encrypted": {
+			"multi_availability_zone": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				ForceNew:    true,
-				Description: "The file storage whether to use encryption.",
+				Default:     false,
+				Description: "Multi AZ (If null, default value is false)",
+			},
+			"product_names": {
+				Type:     schema.TypeList,
+				Required: true,
+				ForceNew: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Description: "Product Names",
+			},
+			"service_zone_id": {
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Service Zone ID",
+			},
+			"cifs_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "CIFS ID",
+			},
+			/*"snapshot_retention_count": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "Snapshot retention count",
+				ValidateFunc: validation.All(
+					validation.IntBetween(1, 128),
+				),
+			},
+			"snapshotSchedule": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "Snapshot schedule",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"frequency": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Snapshot schedule frequency must be one of \"DAILY\" or \"WEEKLY\"",
+						},
+						"day_of_week": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Snapshot schedule dayOfWeek must be one of \"SUN\", \"MON\", \"TUE\", \"WED\", \"THU\", \"FRI\" or \"SAT\"",
+						},
+						"hour": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: "Snapshot schedule hour (0 to 23)",
+						},
+					},
+				},
+			},*/
+			//"tags": {
+			//	Type:     schema.TypeList,
+			//	Optional: true,
+			//	Elem: &schema.Resource{
+			//		Schema: map[string]*schema.Schema{
+			//			"tag_key": {
+			//				Type:             schema.TypeString,
+			//				Required:         true,
+			//				ValidateDiagFunc: common.ValidateName1to256DotDashUnderscore,
+			//				Description:      "Tag Key",
+			//			},
+			//			"tag_value": {
+			//				Type:             schema.TypeString,
+			//				Optional:         true,
+			//				ValidateDiagFunc: common.ValidateName1to256DotDashUnderscore,
+			//				Description:      "Tag Value",
+			//			},
+			//		},
+			//	},
+			//	Description: "Tag list",
+			//},
+			"tags": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "Tags",
 			},
 		},
 		Description: "Provides a File Storage resource.",
 	}
 }
 
-func createFileStorage(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func createFileStorage(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	protocol := data.Get("protocol").(string)
-	//cifsId := data.Get("cifs_id").(string)
-	cifsPw := data.Get("cifs_password").(string)
-	/*
-		if protocol == "CIFS" {
-			if len(cifsId) == 0 {
-				return diag.Errorf("The cifsId value is required.")
-			}
-			if len(cifsPw) == 0 {
-				return diag.Errorf("The cifsPw value is required.")
-			}
-		} else {
-			if len(cifsId) > 0 {
-				return diag.Errorf("If it is not CIFS protocol, cifsId accepts null only")
-			}
-			if len(cifsPw) > 0 {
-				return diag.Errorf("If it is not CIFS protocol, cifsPassword accepts null only")
-			}
-		}*/
-
-	name := data.Get("name").(string)
-	region := data.Get("region").(string)
-	serviceZoneId, productGroupId, err := client.FindServiceZoneIdAndProductGroupId(ctx, inst.Client, region, "", common.FileStorageProductName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fileStorageName := rd.Get("file_storage_name").(string)
+	serviceZoneId := rd.Get("service_zone_id").(string)
 
 	isNameInvalid, err := inst.Client.FileStorage.CheckFileStorage(ctx, filestorage.CheckFileStorageRequest{
 		ServiceZoneId:   serviceZoneId,
-		FileStorageName: name,
-		//CifsId:          cifsId,
+		FileStorageName: fileStorageName,
 	})
-	if isNameInvalid.Result {
-		return diag.Errorf("Input storage name is invalid (maybe duplicated) : " + name)
+	if err != nil {
+		return diag.FromErr(err)
+	} else if isNameInvalid.Result == nil || *isNameInvalid.Result {
+		return diag.Errorf("File Storage Name is duplicated")
 	}
 
-	//snapshotRate := (int32)(data.Get("snapshot_capacity_rate").(int))
-	snapshotDayOfWeek := data.Get("snapshot_day_of_week").(string)
-	snapshotFreq := data.Get("snapshot_frequency").(string)
-	snapshotHour := (int32)(data.Get("snapshot_hour").(int))
+	cifsPassword := rd.Get("cifs_password").(string)
+	diskType := rd.Get("disk_type").(string)
+	fileStorageProtocol := rd.Get("file_storage_protocol").(string)
+	multiAvailabilityZone := rd.Get("multi_availability_zone").(bool)
+	productNames := convertToStringArray(rd.Get("product_names").([]interface{}))
 
-	/*
-		if snapshotRate > 0 {
-			if snapshotRate < 1 || snapshotRate > 50 {
-				return diag.Errorf("Snapshot capacity rate is out of bounds. (1 < rate < 50) ")
-			}
-		} else {
-			if len(snapshotDayOfWeek) > 0 {
-				return diag.Errorf("If snapshot capacity rate is 0, snapshot day of week accepts null only")
-			}
-			if len(snapshotFreq) > 0 {
-				return diag.Errorf("If snapshot capacity rate is 0, snapshot frequency accepts null only")
-			}
-			if snapshotHour != 0 {
-				return diag.Errorf("If snapshot capacity rate is 0, snapshot hour accepts null only")
-			}
-		}
-
-	*/
-
-	productIds, _ := client.FindProductIdByType(ctx, inst.Client, productGroupId, common.ProductTypeDisk)
-	if len(productIds) == 0 {
-		return diag.Errorf("matching available productIds not found")
-	}
-
-	var productId []string
-	productId = append(productId, productIds[0]) // 일단 무조건 첫 번째 인덱스만 넘기는 걸로.
+	//snapshotRetentionCount := (int32)(rd.Get("snapshot_retention_count").(int))
 
 	request := filestorage.CreateFileStorageRequest{
-		FileStorageName:     name,
-		DiskType:            data.Get("disk_type").(string),
-		FileStorageProtocol: protocol,
-		ProductGroupId:      productGroupId,
-		ProductIds:          productId,
-		ServiceZoneId:       serviceZoneId,
-		//SnapshotCapacityRate: snapshotRate,
-		RetentionCount: (int32)(data.Get("retention_count").(int)),
-		IsEncrypted:    data.Get("is_encrypted").(bool),
+		DiskType:              diskType,
+		FileStorageName:       fileStorageName,
+		FileStorageProtocol:   fileStorageProtocol,
+		MultiAvailabilityZone: &multiAvailabilityZone,
+		ProductNames:          productNames,
+		ServiceZoneId:         serviceZoneId,
+		//SnapshotRetentionCount: &snapshotRetentionCount,
+		Tags: getTagRequestArray(rd),
 	}
+
 	// 빈 값으로 데이터 넘기면 500 Error
-	if protocol == "CIFS" {
-		request.CifsPassword = cifsPw
+	if fileStorageProtocol == "CIFS" {
+		request.CifsPassword = cifsPassword
 	}
-	//if snapshotRate > 0 {
-	// snapshotRate > 0 이어도 schedule 설정안할 수 있음
-	if len(snapshotDayOfWeek) > 0 {
-		request.SnapshotSchedule = &filestorage.SnapshotSchedule{
-			DayOfWeek: snapshotDayOfWeek,
-			Frequency: snapshotFreq,
-			Hour:      snapshotHour,
-		}
-	}
-	//}
 
 	response, err := inst.Client.FileStorage.CreateFileStorage(ctx, request)
 	if err != nil {
@@ -235,69 +191,115 @@ func createFileStorage(ctx context.Context, data *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	data.SetId(response.ResourceId)
+	rd.SetId(response.ResourceId)
 
-	return readFileStorage(ctx, data, meta)
+	return readFileStorage(ctx, rd, meta)
 }
 
-func readFileStorage(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func readFileStorage(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
-	info, _, err := inst.Client.FileStorage.ReadFileStorage(ctx, data.Id())
-
+	info, _, err := inst.Client.FileStorage.ReadFileStorage(ctx, rd.Id())
 	if err != nil {
-		data.SetId("")
+		rd.SetId("")
+
+		//not show error message for deleted resource
+		if common.IsDeleted(err) {
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
-	data.Set("name", info.FileStorageName)
-	data.Set("protocol", info.FileStorageProtocol)
-	data.Set("is_encrypted", info.EncryptionEnabled)
-	data.Set("cifs_id", info.CifsId)
+	/*snapshot, _, err := inst.Client.FileStorage.ReadFileStorageSnapshotSchedule(ctx, rd.Id())
+	if err != nil {
+		rd.SetId("")
 
+		//not show error message for deleted resource
+		if common.IsDeleted(err) {
+			return nil
+		}
+		return diag.FromErr(err)
+	}*/
+
+	rd.Set("disk_type", info.DiskType)
+	rd.Set("file_storage_name", info.FileStorageName)
+	rd.Set("file_storage_protocol", info.FileStorageProtocol)
+	rd.Set("multi_availability_zone", info.MultiAvailabilityZone)
+	rd.Set("service_zone_id", info.ServiceZoneId)
+	rd.Set("cifs_id", info.CifsId)
+
+	/*if *snapshot.IsSnapshotPolicy {
+		rd.Set("snapshot_retention_count", *snapshot.SnapshotRetentionCount)
+		rd.Set("snapshotSchedule.day_of_week", snapshot.SnapshotSchedule.DayOfWeek)
+		rd.Set("snapshotSchedule.hour", *snapshot.SnapshotSchedule.Hour)
+
+		if snapshot.SnapshotSchedule.Frequency == "NONE" {
+			rd.Set("snapshot_frequency", "") // set "" to avoid omit-empty, need to resolve this issue later in SDK.
+		} else {
+			rd.Set("snapshotSchedule.frequency", snapshot.SnapshotSchedule.Frequency)
+		}
+	}*/
 	return nil
 }
 
-func updateFileStorage(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	/* capacityGb deleted in v3 Api
-	inst := meta.(*client.Instance)
+func updateFileStorage(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	/*inst := meta.(*client.Instance)
 
-		if data.HasChanges("storage_size_gb") {
-			info, _, err := inst.Client.FileStorage.ReadFileStorage(ctx, data.Id())
-			if err != nil {
+	if rd.HasChanges("snapshot_retention_count", "snapshot_day_of_week", "snapshot_frequency", "snapshot_hour") {
+		newDayOfWeek := rd.Get("snapshot_day_of_week").(string)
+		oldFrequencyTmp, newFrequencyTmp := rd.GetChange("snapshot_frequency")
+		newHour := (int32)(rd.Get("snapshot_hour").(int))
+		oldRetentionCountTmp, newRetentionCountTmp := rd.GetChange("snapshot_retention_count")
+
+		oldFrequency := oldFrequencyTmp.(string)
+		newFrequency := newFrequencyTmp.(string)
+		oldRetentionCount := (int32)(oldRetentionCountTmp.(int))
+		newRetentionCount := (int32)(newRetentionCountTmp.(int))
+
+		state := "UPDATE"
+
+		if len(oldFrequency) == 0 && len(newFrequency) > 0 && oldRetentionCount == 0 && newRetentionCount > 0 {
+			state = "CREATE"
+		} else if len(oldFrequency) > 0 && len(newFrequency) == 0 && oldRetentionCount > 0 && newRetentionCount == 0 {
+			state = "DELETE"
+		}
+
+		if state == "CREATE" {
+			if _, err := inst.Client.FileStorage.CreateFileStorageSnapshotSchedule(ctx, rd.Id(), newRetentionCount, &filestorage.SnapshotSchedule{
+				DayOfWeek: newDayOfWeek,
+				Frequency: newFrequency,
+				Hour:      &newHour,
+			}); err != nil {
 				return diag.FromErr(err)
 			}
-
-
-			if (int32)(data.Get("storage_size_gb").(int)) < info.FileStorageCapacityGb {
-				return diag.Errorf("Only capacity expansion is possible")
-			}
-
-			_, err = inst.Client.FileStorage.IncreaseFileStorage(ctx, filestorage.UpdateFileStorageRequest{
-				FileStorageId:         data.Id(),
-				FileStorageCapacityGb: (int32)(data.Get("storage_size_gb").(int)),
-			})
-			if err != nil {
+		} else if state == "DELETE" {
+			if _, err := inst.Client.FileStorage.DeleteFileStorageSnapshotSchedule(ctx, rd.Id()); err != nil {
 				return diag.FromErr(err)
 			}
-
-
-			err = waitForFileStorageStatus(ctx, inst.Client, data.Id(), []string{}, []string{"ACTIVE"}, true)
-			if err != nil {
+		} else {
+			if _, err := inst.Client.FileStorage.UpdateFileStorageSnapshotSchedule(ctx, rd.Id(), newRetentionCount, &filestorage.SnapshotSchedule{
+				DayOfWeek: newDayOfWeek,
+				Frequency: newFrequency,
+				Hour:      &newHour,
+			}); err != nil {
 				return diag.FromErr(err)
 			}
 		}
-	*/
-	return readFileStorage(ctx, data, meta)
+		err := waitForFileStorageStatus(ctx, inst.Client, rd.Id(), []string{}, []string{"ACTIVE"}, true)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}*/
+	return readFileStorage(ctx, rd, meta)
 }
 
-func deleteFileStorage(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func deleteFileStorage(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
-	_, err := inst.Client.FileStorage.DeleteFileStorage(ctx, data.Id())
-	if err != nil {
+	_, err := inst.Client.FileStorage.DeleteFileStorage(ctx, rd.Id())
+	if err != nil && !common.IsDeleted(err) {
 		return diag.FromErr(err)
 	}
 
-	err = waitForFileStorageStatus(ctx, inst.Client, data.Id(), []string{}, []string{"DELETED"}, false)
+	err = waitForFileStorageStatus(ctx, inst.Client, rd.Id(), []string{}, []string{"DELETED"}, false)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -322,4 +324,24 @@ func waitForFileStorageStatus(ctx context.Context, scpClient *client.SCPClient, 
 		}
 		return info, info.FileStorageState, nil
 	})
+}
+
+func getTagRequestArray(rd *schema.ResourceData) []filestorage.TagRequest {
+	tags := rd.Get("tags").(map[string]interface{})
+	tagsRequests := make([]filestorage.TagRequest, 0)
+	for key, value := range tags {
+		tagsRequests = append(tagsRequests, filestorage.TagRequest{
+			TagKey:   key,
+			TagValue: value.(string),
+		})
+	}
+	return tagsRequests
+}
+
+func convertToStringArray(interfaceArray []interface{}) []string {
+	stringArray := make([]string, 0)
+	for _, interfaceElem := range interfaceArray {
+		stringArray = append(stringArray, interfaceElem.(string))
+	}
+	return stringArray
 }

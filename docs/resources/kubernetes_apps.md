@@ -30,7 +30,7 @@ data "scp_kubernetes_apps_image" "apps_image" {
 
   filter {
     name   = "version"
-    values = ["3.12.12"]
+    values = ["3.13.12"]
   }
 }
 

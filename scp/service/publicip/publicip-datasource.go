@@ -2,14 +2,20 @@ package publicip
 
 import (
 	"context"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
+	publicip2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/public-ip2"
+	"github.com/antihax/optional"
 
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/publicip"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	uuid "github.com/satori/go.uuid"
 )
+
+func init() {
+	scp.RegisterDataSource("scp_public_ips", DatasourcePublicIps())
+}
 
 func DatasourcePublicIps() *schema.Resource {
 	return &schema.Resource{
@@ -36,31 +42,33 @@ func DatasourcePublicIps() *schema.Resource {
 }
 
 func dataSourcePublicIpList(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	serviceZoneId := rd.Get("service_zone_id").(string)
+
 	inst := meta.(*client.Instance)
 
-	requestParam := publicip.ListPublicIpRequest{
-		ServiceZoneId:   rd.Get(common.ToSnakeCase("ServiceZoneId")).(string),
-		IpAddress:       rd.Get(common.ToSnakeCase("IpAddress")).(string),
-		IsBillable:      rd.Get(common.ToSnakeCase("IsBillable")).(bool),
-		IsViewable:      rd.Get(common.ToSnakeCase("IsViewable")).(bool),
-		PublicIpPurpose: rd.Get(common.ToSnakeCase("PublicIpPurpose")).(string),
-		PublicIpState:   rd.Get(common.ToSnakeCase("PublicIpState")).(string),
-		UplinkType:      rd.Get(common.ToSnakeCase("UplinkType")).(string),
-		CreatedBy:       rd.Get(common.ToSnakeCase("CreatedBy")).(string),
-		Page:            (int32)(rd.Get(common.ToSnakeCase("Page")).(int)),
-		Size:            (int32)(rd.Get(common.ToSnakeCase("Size")).(int)),
-	}
-
-	responses, err := inst.Client.PublicIp.GetPublicIpListV2(ctx, requestParam)
+	publicIpList, err := inst.Client.PublicIp.GetPublicIpList(ctx, serviceZoneId, &publicip2.PublicIpOpenApiControllerApiListPublicIpsV2Opts{
+		ServiceZoneId:   optional.String{},
+		IpAddress:       optional.String{},
+		IsBillable:      optional.NewBool(true),
+		IsViewable:      optional.NewBool(true),
+		PublicIpPurpose: optional.NewString(common.VpcPublicIpPurpose),
+		PublicIpState:   optional.String{},
+		UplinkType:      optional.NewString(common.VpcPublicIpUplinkType),
+		CreatedBy:       optional.String{},
+		Page:            optional.NewInt32(0),
+		Size:            optional.NewInt32(10000),
+		Sort:            optional.NewInterface([]string{"createdDt:desc"}),
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	contents := common.ConvertStructToMaps(responses.Contents)
+	contents := common.ConvertStructToMaps(publicIpList.Contents)
 
 	rd.SetId(uuid.NewV4().String())
 	rd.Set("contents", contents)
-	rd.Set("total_count", responses.TotalCount)
+	rd.Set("total_count", publicIpList.TotalCount)
 
 	return nil
 }
@@ -70,20 +78,14 @@ func datasourcePublicIpElem() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			common.ToSnakeCase("ProjectId"):                  {Type: schema.TypeString, Computed: true, Description: "Project id"},
 			common.ToSnakeCase("AttachedObjectName"):         {Type: schema.TypeString, Computed: true, Description: "Name of object with public ip"},
-			common.ToSnakeCase("BlockId"):                    {Type: schema.TypeString, Computed: true, Description: "Block id of this region"},
 			common.ToSnakeCase("IpAddress"):                  {Type: schema.TypeString, Computed: true, Description: "Ip address"},
 			common.ToSnakeCase("IpAddressId"):                {Type: schema.TypeString, Computed: true, Description: "Id of ip address"},
-			common.ToSnakeCase("NetworkServiceType"):         {Type: schema.TypeString, Computed: true, Description: "Network service type"},
 			common.ToSnakeCase("ProductGroupId"):             {Type: schema.TypeString, Computed: true, Description: "Product group id"},
-			common.ToSnakeCase("ProjectName"):                {Type: schema.TypeString, Computed: true, Description: "Project name"},
 			common.ToSnakeCase("PublicIpAddressId"):          {Type: schema.TypeString, Computed: true, Description: "Id of Public ip address"},
 			common.ToSnakeCase("PublicIpPurpose"):            {Type: schema.TypeString, Computed: true, Description: "Purpose of public ip (NAT)"},
 			common.ToSnakeCase("PublicIpState"):              {Type: schema.TypeString, Computed: true, Description: "Public ip status"},
-			common.ToSnakeCase("Region"):                     {Type: schema.TypeString, Computed: true, Description: "The region name to create"},
 			common.ToSnakeCase("ServiceZoneId"):              {Type: schema.TypeString, Computed: true, Description: "Service zone id"},
 			common.ToSnakeCase("UplinkType"):                 {Type: schema.TypeString, Computed: true, Description: "Uplink type (INTERNET)"},
-			common.ToSnakeCase("UserName"):                   {Type: schema.TypeString, Computed: true, Description: "User name"},
-			common.ToSnakeCase("ZoneName"):                   {Type: schema.TypeString, Computed: true, Description: "Service zone name"},
 			common.ToSnakeCase("PublicIpAddressDescription"): {Type: schema.TypeString, Computed: true, Description: "Description of public ip address "},
 			common.ToSnakeCase("CreatedBy"):                  {Type: schema.TypeString, Computed: true, Description: "The person who created the resource"},
 			common.ToSnakeCase("CreatedDt"):                  {Type: schema.TypeString, Computed: true, Description: "Creation time"},

@@ -3,10 +3,16 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+func init() {
+	scp.RegisterResource("scp_kubernetes_apps", ResourceKubernetesApps())
+}
 
 func ResourceKubernetesApps() *schema.Resource {
 	return &schema.Resource{
@@ -82,6 +88,9 @@ func readApps(ctx context.Context, data *schema.ResourceData, meta interface{}) 
 
 	if err != nil {
 		data.SetId("")
+		if common.IsDeleted(err) {
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -99,7 +108,7 @@ func deleteApps(ctx context.Context, data *schema.ResourceData, meta interface{}
 	namespace := data.Get("namespace").(string)
 
 	_, err := inst.Client.KubernetesApps.DeleteApps(ctx, engineId, namespace, data.Id())
-	if err != nil {
+	if err != nil && !common.IsDeleted(err) {
 		return diag.FromErr(err)
 	}
 

@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	kubernetesengine2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/kubernetes-engine2"
@@ -10,6 +11,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	uuid "github.com/satori/go.uuid"
 )
+
+func init() {
+	scp.RegisterDataSource("scp_kubernetes_engine_versions", DatasourceEngineVersions())
+}
 
 func DatasourceEngineVersions() *schema.Resource {
 	return &schema.Resource{

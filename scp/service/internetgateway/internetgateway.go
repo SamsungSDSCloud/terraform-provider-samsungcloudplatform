@@ -2,12 +2,18 @@ package internetgateway
 
 import (
 	"context"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"time"
 )
+
+func init() {
+	scp.RegisterResource("scp_internet_gateway", ResourceInternetGateway())
+}
 
 func ResourceInternetGateway() *schema.Resource {
 	return &schema.Resource{
@@ -75,6 +81,10 @@ func resourceInternetGatewayRead(ctx context.Context, rd *schema.ResourceData, m
 	info, _, err := inst.Client.InternetGateway.GetInternetGateway(ctx, rd.Id())
 	if err != nil {
 		rd.SetId("")
+		if common.IsDeleted(err) {
+			return nil
+		}
+
 		return diag.FromErr(err)
 	}
 
@@ -109,6 +119,9 @@ func resourceInternetGatewayDelete(ctx context.Context, rd *schema.ResourceData,
 	inst := meta.(*client.Instance)
 
 	_, _, err := inst.Client.InternetGateway.DeleteInternetGateway(ctx, rd.Id())
+	if err != nil && !common.IsDeleted(err) {
+		return diag.FromErr(err)
+	}
 
 	time.Sleep(10 * time.Second)
 

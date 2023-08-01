@@ -3,6 +3,7 @@ package loadbalancer
 import (
 	"context"
 	"fmt"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/loadbalancer"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
@@ -11,6 +12,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+func init() {
+	scp.RegisterResource("scp_lb_service", ResourceLbService())
+}
 
 func ResourceLbService() *schema.Resource {
 	return &schema.Resource{
@@ -32,8 +37,8 @@ func ResourceLbService() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				ForceNew:         true,
-				ValidateDiagFunc: common.ValidateName3to20NoSpecials,
-				Description:      "Name of Load-Balancer Service. (3 to 20 characters without specials)",
+				ValidateDiagFunc: common.ValidateName3to20DashInMiddle,
+				Description:      "Name of Load-Balancer Service. (3 to 20 characters with dash in middle)",
 			},
 			"app_profile_id": {
 				Type:        schema.TypeString,
@@ -114,6 +119,7 @@ func ResourceLbService() *schema.Resource {
 			"lb_service_ip_id": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 			// NOTE: NOT YET
 			"client_certificate_id": {
@@ -129,6 +135,16 @@ func ResourceLbService() *schema.Resource {
 			"use_access_log": {
 				Type:     schema.TypeBool,
 				Optional: true,
+			},
+			"nat_active": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Wheter to use NAT IP (public IP) or not.",
+			},
+			"public_ip_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "NAT IP attached to LB service IP.",
 			},
 		},
 		Description: "Provides a Load Balancer Service resource.",
@@ -190,6 +206,15 @@ func resourceLbServiceCreate(ctx context.Context, rd *schema.ResourceData, meta 
 	}
 	if isNameInvalid {
 		return diag.Errorf("Input service name is invalid (maybe duplicated) : " + lbServiceName)
+	}
+
+	// check if ip-port pair is duplicated
+	responses, _, err := inst.Client.LoadBalancer.CheckLbServiceIpPortDuplicated(ctx, loadBalancerId, serviceIpAddr, servicePorts)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	if responses.TotalCount != 0 {
+		return diag.Errorf("Input service ip and ports pair is invalid (maybe duplicated) : " + serviceIpAddr + ", " + servicePorts)
 	}
 
 	// if layer type is L4, make 1 empty rule and set rule's server group id
@@ -272,6 +297,10 @@ func resourceLbServiceRead(ctx context.Context, rd *schema.ResourceData, meta in
 	info, _, err := inst.Client.LoadBalancer.GetLbService(ctx, rd.Id(), rd.Get("lb_id").(string))
 	if err != nil {
 		rd.SetId("")
+		if common.IsDeleted(err) {
+			return nil
+		}
+
 		return diag.FromErr(err)
 	}
 
@@ -295,7 +324,34 @@ func resourceLbServiceRead(ctx context.Context, rd *schema.ResourceData, meta in
 
 func resourceLbServiceUpdate(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
-	if rd.HasChanges("app_profile_id", "client_certificate_id", "forwarding_ports", "lb_rules",
+	inst := meta.(*client.Instance)
+
+	// lb rules cannot be changed with other fields in one api call
+	if rd.HasChanges("lb_rules") {
+		lbRules, err := expandRules(rd)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if len(lbRules) < 1 {
+			rule := loadbalancer.LbServiceRule{
+				LbRuleSeq:  0,
+				PatternUrl: "",
+				LbRuleId:   "",
+			}
+			lbRules = append(lbRules, rule)
+		}
+
+		_, err = inst.Client.LoadBalancer.UpdateLbRules(ctx, rd.Id(), rd.Get("lb_id").(string), lbRules)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		err = waitForLbServiceStatus(ctx, inst.Client, rd.Id(), rd.Get("lb_id").(string), common.NetworkProcessingStates(), []string{common.ActiveState}, true)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	if rd.HasChanges("app_profile_id", "client_certificate_id", "forwarding_ports",
 		"persistence", "persistence_profile_id", "server_certificate_id", "service_ports", "use_access_log") {
 
 		applicationProfileId := rd.Get("app_profile_id").(string)
@@ -307,25 +363,37 @@ func resourceLbServiceUpdate(ctx context.Context, rd *schema.ResourceData, meta 
 		servicePorts := rd.Get("service_ports").(string)
 		useAccessLog := rd.Get("use_access_log").(bool)
 
-		lbRules, err := expandRules(rd)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		inst := meta.(*client.Instance)
-		inst.Client.LoadBalancer.UpdateLbService(
+		_, err := inst.Client.LoadBalancer.UpdateLbService(
 			ctx,
 			rd.Id(), rd.Get("lb_id").(string),
 			applicationProfileId,
 			clientCertificateId,
 			defaultForwardingPorts,
-			lbRules,
 			persistence,
 			persistenceProfileId,
 			serverCertificateId,
 			servicePorts,
 			useAccessLog)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		err = waitForLbServiceStatus(ctx, inst.Client, rd.Id(), rd.Get("lb_id").(string), common.NetworkProcessingStates(), []string{common.ActiveState}, true)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	} else if rd.HasChanges("nat_active", "public_ip_id") {
+		lbServiceIpId := rd.Get("lb_service_ip_id").(string)
+		natActive := rd.Get("nat_active").(bool)
+		publicIpId := rd.Get("public_ip_id").(string)
+
+		_, _, err := inst.Client.LoadBalancer.AttachNatIpToLoadBalancerServiceIp(ctx, rd.Get("lb_id").(string), lbServiceIpId, natActive, publicIpId)
+
+		if err != nil {
+			diag.Errorf(err.Error())
+		}
 	}
+
 	return resourceLbServiceRead(ctx, rd, meta)
 }
 
@@ -334,7 +402,7 @@ func resourceLbServiceDelete(ctx context.Context, rd *schema.ResourceData, meta 
 
 	// First Delete all rules
 	info, _, err := inst.Client.LoadBalancer.GetLbService(ctx, rd.Id(), rd.Get("lb_id").(string))
-	if err != nil {
+	if err != nil && !common.IsDeleted(err) {
 		return diag.FromErr(err)
 	}
 
@@ -351,18 +419,19 @@ func resourceLbServiceDelete(ctx context.Context, rd *schema.ResourceData, meta 
 		}
 	}
 
+	inst.Client.LoadBalancer.UpdateLbRules(ctx, rd.Id(), rd.Get("lb_id").(string), rules)
+
 	inst.Client.LoadBalancer.UpdateLbService(
 		ctx,
 		rd.Id(), rd.Get("lb_id").(string),
 		"",
 		"",
 		"",
-		rules,
 		"",
 		"",
 		"",
 		"",
-		info.UseAccessLog)
+		*info.UseAccessLog)
 	err = waitForLbServiceStatus(ctx, inst.Client, rd.Id(), rd.Get("lb_id").(string), []string{}, []string{"ACTIVE"}, false)
 	if err != nil {
 		return diag.FromErr(err)

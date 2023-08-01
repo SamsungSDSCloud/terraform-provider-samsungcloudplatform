@@ -4,6 +4,7 @@ type ListSubnetRequest struct {
 	SubnetCidrBlock string
 	SubnetId        string
 	SubnetName      string
+	SubnetStates    string
 	SubnetTypes     string
 	VpcId           string
 	CreatedBy       string
@@ -19,4 +20,13 @@ type ListSubnetResourceRequest struct {
 	Page             int32
 	Size             int32
 	Sort             int32
+}
+
+type ListSubnetVirtualIpRequest struct {
+	SubnetIpAddress string
+	SubnetId        string
+	VipState        string
+	Page            int32
+	Size            int32
+	Sort            int32
 }

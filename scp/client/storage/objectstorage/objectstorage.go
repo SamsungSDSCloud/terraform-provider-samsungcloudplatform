@@ -18,8 +18,20 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) CreateObjectStorage(ctx context.Context, request CreateObjectStorageRequest) (objectstorage.S3BucketGetSyncResponse, error) {
+func (client *Client) ReadObjectStorageList(ctx context.Context, zoneId string, request objectstorage.ObjectStorageV3ControllerApiListObjectStorage3Opts) (objectstorage.PageResponseV2OfS3ObjectStoragesResponse, error) {
+	result, _, err := client.sdkClient.ObjectStorageV3ControllerApi.ListObjectStorage3(ctx, client.config.ProjectId, zoneId, &request)
+	return result, err
+}
 
+func (client *Client) CheckBucketName(ctx context.Context, obsId string, obsBucketName string) (bool, error) {
+	result, _, err := client.sdkClient.ObjectStorageBucketV3ControllerApi.IsBucketNameDuplicated2(ctx, client.config.ProjectId, obsBucketName, obsId)
+	if err != nil || result.IsObsBucketNameDuplicated == nil {
+		return true, err
+	}
+	return *result.IsObsBucketNameDuplicated, err
+}
+
+func (client *Client) CreateBucket(ctx context.Context, request CreateBucketRequest) (objectstorage.S3BucketGetSyncResponse, error) {
 	var accessIpAddressRanges []objectstorage.BucketIpsIpRange
 	for _, b := range request.ObsBucketAccessIpAddressRanges {
 		accessIpAddressRanges = append(accessIpAddressRanges, objectstorage.BucketIpsIpRange{
@@ -28,26 +40,34 @@ func (client *Client) CreateObjectStorage(ctx context.Context, request CreateObj
 		})
 	}
 
-	result, _, err := client.sdkClient.ObjectStorageBucketV2ControllerApi.CreateBucket(
+	option := objectstorage.S3BucketCreateRequest{
+		ObsId:                             request.ObsId,
+		ZoneId:                            request.ZoneId,
+		ObsBucketName:                     request.ObsBucketName,
+		IsObsBucketIpAddressFilterEnabled: &request.IsObsBucketIpAddressFilterEnabled,
+		ObsBucketFileEncryptionEnabled:    &request.ObsBucketFileEncryptionEnabled,
+		ObsBucketVersionEnabled:           &request.ObsBucketVersionEnabled,
+		ObsBucketAccessIpAddressRanges:    accessIpAddressRanges,
+		Tags:                              []objectstorage.TagRequest{},
+	}
+
+	if request.ObsBucketFileEncryptionType != "" {
+		option.ObsBucketFileEncryptionType = request.ObsBucketFileEncryptionType
+	}
+	if request.ObsBucketFileEncryptionAlgorithm != "" {
+		option.ObsBucketFileEncryptionAlgorithm = request.ObsBucketFileEncryptionAlgorithm
+	}
+
+	result, _, err := client.sdkClient.ObjectStorageBucketV3ControllerApi.CreateBucket3(
 		ctx,
 		client.config.ProjectId,
-		objectstorage.S3BucketCreateRequest{
-			IsObsBucketIpAddressFilterEnabled: request.IsObsBucketIpAddressFilterEnabled,
-			ObsBucketAccessIpAddressRanges:    accessIpAddressRanges,
-			ObsBucketFileEncryptionAlgorithm:  request.ObsBucketFileEncryptionAlgorithm,
-			ObsBucketFileEncryptionEnabled:    request.ObsBucketFileEncryptionEnabled,
-			ObsBucketFileEncryptionType:       request.ObsBucketFileEncryptionType,
-			ObsBucketName:                     request.ObsBucketName,
-			ObsBucketVersionEnabled:           request.ObsBucketVersionEnabled,
-			ObsId:                             request.ObsId,
-			ZoneId:                            request.ZoneId,
-		})
+		option)
 
 	return result, err
 }
 
-func (client *Client) ReadObjectStorage(ctx context.Context, obsBucketId string) (objectstorage.S3BucketGetResponse, int, error) {
-	result, c, err := client.sdkClient.ObjectStorageBucketV2ControllerApi.ReadBucketInfo(ctx, client.config.ProjectId, obsBucketId)
+func (client *Client) ReadBucket(ctx context.Context, obsBucketId string) (objectstorage.S3BucketGetResponse, int, error) {
+	result, c, err := client.sdkClient.ObjectStorageBucketV3ControllerApi.ReadBucketInfo2(ctx, client.config.ProjectId, obsBucketId)
 	var statusCode int
 	if c != nil {
 		statusCode = c.StatusCode
@@ -55,28 +75,41 @@ func (client *Client) ReadObjectStorage(ctx context.Context, obsBucketId string)
 	return result, statusCode, err
 }
 
-func (client *Client) DeleteObjectStorage(ctx context.Context, obsBucketId string) (objectstorage.S3AsyncResponse, error) {
-	result, _, err := client.sdkClient.ObjectStorageBucketV2ControllerApi.DeleteBucket(ctx, client.config.ProjectId, obsBucketId)
+func (client *Client) ReadBucketList(ctx context.Context, request objectstorage.ObjectStorageBucketV3ControllerApiListBucket3Opts) (objectstorage.PageResponseV2OfS3BucketSearchResponse, error) {
+	result, _, err := client.sdkClient.ObjectStorageBucketV3ControllerApi.ListBucket3(ctx, client.config.ProjectId, &request)
+	return result, err
+}
+
+func (client *Client) DeleteBucket(ctx context.Context, obsBucketId string) (objectstorage.S3AsyncResponse, error) {
+	result, _, err := client.sdkClient.ObjectStorageBucketV3ControllerApi.DeleteBucket3(ctx, client.config.ProjectId, obsBucketId)
 	return result, err
 }
 
 func (client *Client) UpdateVersioning(ctx context.Context, obsBucketId string, versionEnabled bool) (objectstorage.S3BucketGetSyncResponse, error) {
-	result, _, err := client.sdkClient.ObjectStorageBucketV2ControllerApi.UpdateVersioning(ctx, client.config.ProjectId, obsBucketId,
+	result, _, err := client.sdkClient.ObjectStorageBucketV3ControllerApi.UpdateVersioning2(ctx, client.config.ProjectId, obsBucketId,
 		objectstorage.S3BucketUpdateRequest{
-			ObsBucketVersionEnabled: versionEnabled,
+			ObsBucketVersionEnabled: &versionEnabled,
 		})
 	return result, err
 }
 
-func (client *Client) UpdateEncryption(ctx context.Context, obsBucketId string, request S3BucketUpdateRequest) (objectstorage.S3BucketGetSyncResponse, error) {
-	result, _, err := client.sdkClient.ObjectStorageBucketV2ControllerApi.UpdateBucketEncryption(ctx, client.config.ProjectId, obsBucketId,
+func (client *Client) UpdateBucketEncryption(ctx context.Context, obsBucketId string, request UpdateBucketRequest) (objectstorage.S3BucketGetSyncResponse, error) {
+	result, _, err := client.sdkClient.ObjectStorageBucketV3ControllerApi.UpdateBucketEncryption2(ctx, client.config.ProjectId, obsBucketId,
 		objectstorage.S3BucketUpdateRequest{
-			ObsBucketVersionEnabled:          request.ObsBucketVersionEnabled,
+			ObsBucketVersionEnabled:          &request.ObsBucketVersionEnabled,
 			ObsBucketFileEncryptionType:      request.ObsBucketFileEncryptionType,
-			ObsBucketFileEncryptionEnabled:   request.ObsBucketFileEncryptionEnabled,
+			ObsBucketFileEncryptionEnabled:   &request.ObsBucketFileEncryptionEnabled,
 			ObsBucketFileEncryptionAlgorithm: request.ObsBucketFileEncryptionAlgorithm,
 		})
 	return result, err
+}
+
+func (client *Client) UpdateBucketDr(ctx context.Context, obsId string, drEnabled bool, replicaBucketId string) error {
+	_, _, err := client.sdkClient.ObjectStorageDrV3ControllerApi.UpdateBucketDr1(ctx, client.config.ProjectId, obsId, objectstorage.S3BucketDrUpdateRequest{
+		IsObsBucketDrEnabled: &drEnabled,
+		ReplicaObsBucketId:   replicaBucketId,
+	})
+	return err
 }
 
 func (client *Client) CreateBucketIps(ctx context.Context, obsBucketId string, ipAddressFilterEnabled bool, request []ObsBucketAccessIpAddressInfo) (objectstorage.S3BucketGetSyncResponse, error) {
@@ -89,9 +122,9 @@ func (client *Client) CreateBucketIps(ctx context.Context, obsBucketId string, i
 		})
 	}
 
-	result, _, err := client.sdkClient.ObjectStorageIpsV2ControllerApi.CreateBucketIps(ctx, client.config.ProjectId, obsBucketId,
+	result, _, err := client.sdkClient.ObjectStorageIpsV3ControllerApi.CreateBucketIps1(ctx, client.config.ProjectId, obsBucketId,
 		objectstorage.S3BucketIpsRegisterUpdateRequest{
-			IsObsBucketIpAddressFilterEnabled: ipAddressFilterEnabled,
+			IsObsBucketIpAddressFilterEnabled: &ipAddressFilterEnabled,
 			ObsBucketAccessIpAddressRanges:    accessIpAddressRanges,
 		})
 	return result, err

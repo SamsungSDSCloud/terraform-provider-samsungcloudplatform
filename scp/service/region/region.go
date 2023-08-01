@@ -3,12 +3,17 @@ package region
 import (
 	"context"
 	"fmt"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/project"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+func init() {
+	scp.RegisterDataSource("scp_region", DatasourceRegion())
+}
 
 func DatasourceRegion() *schema.Resource {
 	return &schema.Resource{
@@ -38,7 +43,7 @@ func DatasourceRegion() *schema.Resource {
 	}
 }
 
-func convertRegionListToHclSet(regions []project.ProjectZoneV2) (common.HclSetObject, []string) {
+func convertRegionListToHclSet(regions []project.ZoneResponseV3) (common.HclSetObject, []string) {
 	var setRegions common.HclSetObject
 	var ids []string
 	// Convert to HclSet
