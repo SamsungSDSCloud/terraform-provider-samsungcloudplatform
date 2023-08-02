@@ -2,8 +2,8 @@ package filestorage
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
-	filestorage2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/file-storage2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
+	filestorage2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/file-storage2"
 )
 
 type Client struct {

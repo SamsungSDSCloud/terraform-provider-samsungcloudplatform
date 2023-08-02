@@ -2,10 +2,10 @@ package backup
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/backup2"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/backup2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"

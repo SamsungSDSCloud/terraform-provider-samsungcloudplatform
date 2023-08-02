@@ -3,8 +3,8 @@ package natgateway
 import (
 	"context"
 
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
-	natgateway2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/nat-gateway2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
+	natgateway2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/nat-gateway2"
 )
 
 type Client struct {
