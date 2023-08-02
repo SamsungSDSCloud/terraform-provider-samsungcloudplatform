@@ -2,8 +2,8 @@ package baremetal
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
-	baremetal "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/bare-metal-server"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
+	baremetal "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/bare-metal-server"
 	"github.com/antihax/optional"
 )
 

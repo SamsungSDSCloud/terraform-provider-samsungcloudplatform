@@ -2,8 +2,8 @@ package migrationimage
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/image2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/image2"
 )
 
 type Client struct {

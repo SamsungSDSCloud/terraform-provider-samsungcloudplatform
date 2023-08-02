@@ -2,11 +2,11 @@ package virtualserver
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/virtualserver"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
-	virtualserver2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/virtual-server2"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/virtualserver"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
+	virtualserver2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/virtual-server2"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	uuid "github.com/satori/go.uuid"

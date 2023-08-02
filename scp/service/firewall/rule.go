@@ -3,10 +3,10 @@ package firewall
 import (
 	"context"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/firewall2"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/firewall2"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -71,7 +71,7 @@ func ResourceFirewallRule() *schema.Resource {
 				Required:    true,
 				Description: "Source ip addresses list",
 				Elem: &schema.Schema{
-					Type:         schema.TypeString,
+					Type: schema.TypeString,
 				},
 			},
 			"destination_addresses_ipv4": {
@@ -79,7 +79,7 @@ func ResourceFirewallRule() *schema.Resource {
 				Required:    true,
 				Description: "Destination ip addresses list",
 				Elem: &schema.Schema{
-					Type:         schema.TypeString,
+					Type: schema.TypeString,
 				},
 			},
 			"service": {
@@ -607,9 +607,9 @@ func resourceFirewallBulkRuleCreate(ctx context.Context, rd *schema.ResourceData
 	inst := meta.(*client.Instance)
 
 	response, _, err := inst.Client.Firewall.CreateFirewallBulkRule(ctx, firewallId, firewall2.FirewallRuleCreateBulkRequest{
-		BulkRuleLocationType:   bulkRuleLocationType,
-		BulkRuleLocationId:     bulkRuleLocationId,
-		BulkRules:              bulkRules,
+		BulkRuleLocationType: bulkRuleLocationType,
+		BulkRuleLocationId:   bulkRuleLocationId,
+		BulkRules:            bulkRules,
 	})
 	if err != nil {
 		return diag.FromErr(err)

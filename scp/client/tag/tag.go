@@ -3,8 +3,8 @@ package tag
 import (
 	"context"
 	"errors"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/tag"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/tag"
 	"github.com/antihax/optional"
 )
 

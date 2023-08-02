@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/vpc2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/vpc2"
 	"github.com/antihax/optional"
 )
 

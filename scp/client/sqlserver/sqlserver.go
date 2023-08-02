@@ -2,8 +2,8 @@ package sqlserver
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/sqlserver2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/sqlserver2"
 )
 
 type Client struct {

@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
-	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/service"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
+	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/service"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 )
 
