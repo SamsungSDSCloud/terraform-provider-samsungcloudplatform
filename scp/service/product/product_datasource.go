@@ -2,12 +2,12 @@ package product
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/client/product"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/product"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	uuid "github.com/satori/go.uuid"

@@ -2,9 +2,9 @@ package loggingaudit
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/scp/common"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
-	loggingaudit "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/logging-audit"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
+	loggingaudit "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/logging-audit"
 	"github.com/antihax/optional"
 )
 

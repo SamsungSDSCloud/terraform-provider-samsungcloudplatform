@@ -1,4 +1,4 @@
-module github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform
+module github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2
 
 go 1.18
 

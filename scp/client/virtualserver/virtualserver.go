@@ -2,8 +2,8 @@ package virtualserver
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
-	virtualserver2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/virtual-server2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
+	virtualserver2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/virtual-server2"
 	"github.com/antihax/optional"
 )
 

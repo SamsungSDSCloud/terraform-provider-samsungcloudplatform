@@ -3,8 +3,8 @@ package securitygroup
 import (
 	"context"
 	"fmt"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
-	securitygroup2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/security-group2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
+	securitygroup2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/security-group2"
 	"github.com/antihax/optional"
 	"strings"
 )

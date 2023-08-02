@@ -2,8 +2,8 @@ package objectstorage
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/client"
-	objectstorage "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/library/object-storage"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
+	objectstorage "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/object-storage"
 )
 
 type Client struct {
