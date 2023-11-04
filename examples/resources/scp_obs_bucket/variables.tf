@@ -2,10 +2,10 @@ variable "name" {
   default = "terraformbucket"
 }
 
-variable "obs_bucket_access_ip_address_ranges" {
+variable "access_control_rules" {
   type = list(object({
-    obs_bucket_access_ip_address_range = string
-    type = string
+    rule_value = string
+    rule_type = string
   }))
   default = [
 

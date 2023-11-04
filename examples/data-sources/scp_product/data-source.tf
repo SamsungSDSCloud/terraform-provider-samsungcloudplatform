@@ -1,13 +1,7 @@
-data "scp_region" "my_region" {
+data "scp_product" "my_product" {
+  product_id = "PRODUCT-XXXXXXXX"
 }
 
-data "scp_product" "my_scp_product" {
-  language_code = "en_US"
+output "result_my_product" {
+  value = data.scp_product.my_product
 }
-
-output "output_my_scp_product" {
-  value = data.scp_product.my_scp_product
-}
-
-
-

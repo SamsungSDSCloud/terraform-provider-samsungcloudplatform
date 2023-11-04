@@ -3,10 +3,10 @@ package objectstorage
 import (
 	"context"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/storage/objectstorage"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/objectstorage"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -25,130 +25,145 @@ func ResourceObjectStorageBucket() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
-			"is_obs_bucket_ip_address_filter_enabled": {
+			"object_storage_bucket_access_control_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Ip Address Filter Is Enabled",
+				Description: "Object Storage Bucket Access Control Enabled",
 			},
-			"obs_bucket_access_ip_address_ranges": {
+			"access_control_rules": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "Object Storage Bucket Access IP Address Ranges",
+				Description: "Object Storage Bucket Access Control Rules",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"obs_bucket_access_ip_address_range": {
+						"rule_type": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "Object Storage Bucket Access IP Address Range",
+							Description: "Access Control Rule Type",
 						},
-						"type": {
+						"rule_value": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "Range Type",
+							Description: "Access Control Rule Value",
 						},
 					},
 				},
 			},
-			"obs_bucket_file_encryption_algorithm": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Object Storage Bucket File Encryption Algorithm (AES256)",
-			},
-			"obs_bucket_file_encryption_enabled": {
+			"object_storage_bucket_file_encryption_enabled": {
 				Type:        schema.TypeBool,
 				Required:    true,
-				Description: "Enable File Encryption for Object Storage Bucket",
+				Description: "Object Storage Bucket File Encryption Enabled",
 			},
-			"obs_bucket_file_encryption_type": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Object Storage Bucket File Encryption Type (SSE-S3)",
-			},
-			"obs_bucket_name": {
+			"object_storage_bucket_name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "Object Storage Bucket Name",
 				// name validation 필요
 			},
-			"obs_bucket_version_enabled": {
+			"object_storage_bucket_version_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Object Storage Bucket Version usage",
+				Description: "Object Storage Bucket Version Enabled",
 			},
-			"obs_id": {
+			"object_storage_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Object Storage Id",
+				Description: "Object Storage ID",
 			},
-			"is_obs_bucket_dr_enabled": {
+			"product_names": {
+				Type:     schema.TypeList,
+				Required: true,
+				ForceNew: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Description: "Product Names",
+			},
+			"object_storage_bucket_dr_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Enable Object Storage Bucket DR",
+				Description: "Object Storage Bucket DR Enabled",
 			},
-			"replica_obs_bucket_id": {
+			"object_storage_bucket_dr_type": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Replica Object Storage Bucket ID",
+				Description: "Object Storage Bucket DR Type",
 			},
-			"zone_id": {
+			"sync_object_storage_bucket_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Sync Object Storage Bucket ID",
+			},
+			"service_zone_id": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "Service Zone ID",
 			},
 			"tags": {
-				Type:        schema.TypeMap,
+				Type:        schema.TypeList,
 				Optional:    true,
 				Description: "Tags",
+				Elem: &schema.Schema{
+					Type: schema.TypeMap,
+				},
 			},
 		},
 		Description: "Provides an Object Storage resource.",
 	}
 }
 
-func convertAccessIpAddressRanges(list common.HclListObject) ([]objectstorage.ObsBucketAccessIpAddressInfo, error) {
-	var result []objectstorage.ObsBucketAccessIpAddressInfo
+func convertAccessIpAddressRanges(list common.HclListObject) ([]objectstorage.AccessControlRule, error) {
+	var result []objectstorage.AccessControlRule
 	for _, l := range list {
 		itemObject := l.(common.HclKeyValueObject)
-		info := objectstorage.ObsBucketAccessIpAddressInfo{}
-		if ipAddressRange, ok := itemObject["obs_bucket_access_ip_address_range"]; ok {
-			info.ObsBucketAccessIpAddressRange = ipAddressRange.(string)
+		info := objectstorage.AccessControlRule{}
+		if v, ok := itemObject["rule_value"]; ok {
+			info.RuleValue = v.(string)
 		}
-		if t, ok := itemObject["type"]; ok {
-			info.Type = t.(string)
+		if t, ok := itemObject["rule_type"]; ok {
+			info.RuleType = t.(string)
 		}
 		result = append(result, info)
 	}
 	return result, nil
 }
 
+func convertToStringArray(interfaceArray []interface{}) []string {
+	stringArray := make([]string, 0)
+	for _, interfaceElem := range interfaceArray {
+		stringArray = append(stringArray, interfaceElem.(string))
+	}
+	return stringArray
+}
+
 func createBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	isNameDuplicated, err := inst.Client.ObjectStorage.CheckBucketName(ctx, rd.Get("obs_id").(string), rd.Get("obs_bucket_name").(string))
+	isNameDuplicated, err := inst.Client.ObjectStorage.CheckBucketName(ctx, rd.Get("object_storage_id").(string), rd.Get("object_storage_bucket_name").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	} else if isNameDuplicated {
 		return diag.Errorf("Bucket Name is duplicated")
 	}
 
-	obsBucketAccessIpAddressInfos, err := convertAccessIpAddressRanges(rd.Get("obs_bucket_access_ip_address_ranges").(common.HclListObject))
+	accessControlRules, err := convertAccessIpAddressRanges(rd.Get("access_control_rules").(common.HclListObject))
 	if err != nil {
-		return diag.Errorf("Bucket Access IP Address Range is not valid")
+		return diag.Errorf("Access Control Rule is not valid")
 	}
+	productNames := convertToStringArray(rd.Get("product_names").([]interface{}))
 
 	response, err := inst.Client.ObjectStorage.CreateBucket(ctx, objectstorage.CreateBucketRequest{
-		IsObsBucketIpAddressFilterEnabled: rd.Get("is_obs_bucket_ip_address_filter_enabled").(bool),
-		ObsBucketAccessIpAddressRanges:    obsBucketAccessIpAddressInfos,
-		ObsBucketFileEncryptionAlgorithm:  rd.Get("obs_bucket_file_encryption_algorithm").(string),
-		ObsBucketFileEncryptionEnabled:    rd.Get("obs_bucket_file_encryption_enabled").(bool),
-		ObsBucketFileEncryptionType:       rd.Get("obs_bucket_file_encryption_type").(string),
-		ObsBucketName:                     rd.Get("obs_bucket_name").(string),
-		ObsBucketVersionEnabled:           rd.Get("obs_bucket_version_enabled").(bool),
-		ObsId:                             rd.Get("obs_id").(string),
-		ZoneId:                            rd.Get("zone_id").(string),
-		Tags:                              getTagRequestArray(rd),
+		ObjectStorageBucketAccessControlEnabled:  rd.Get("object_storage_bucket_access_control_enabled").(bool),
+		AccessControlRules:                       accessControlRules,
+		ObjectStorageBucketFileEncryptionEnabled: rd.Get("object_storage_bucket_file_encryption_enabled").(bool),
+		ObjectStorageBucketName:                  rd.Get("object_storage_bucket_name").(string),
+		ObjectStorageBucketVersionEnabled:        rd.Get("object_storage_bucket_version_enabled").(bool),
+		ObjectStorageId:                          rd.Get("object_storage_id").(string),
+		ServiceZoneId:                            rd.Get("service_zone_id").(string),
+		ProductNames:                             productNames,
+		Tags:                                     getTagRequestArray(rd),
 	})
 
 	if err != nil {
@@ -158,23 +173,23 @@ func createBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}
 		return diag.FromErr(err)
 	}
 
-	err = waitForObjectStorageStatus(ctx, inst.Client, response.ObsBucketId, []string{"CREATING"}, []string{"ACTIVE"}, true)
+	err = waitForObjectStorageStatus(ctx, inst.Client, response.ObjectStorageBucketId, []string{"CREATING"}, []string{"ACTIVE"}, true)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	rd.SetId(response.ObsBucketId)
+	rd.SetId(response.ObjectStorageBucketId)
 
 	// if dr == enabled //
-	if rd.Get("is_obs_bucket_dr_enabled").(bool) {
-		err := inst.Client.ObjectStorage.UpdateBucketDr(ctx, response.ObsBucketId, rd.Get("is_obs_bucket_dr_enabled").(bool), rd.Get("replica_obs_bucket_id").(string))
+	if rd.Get("object_storage_bucket_dr_enabled").(bool) {
+		err := inst.Client.ObjectStorage.UpdateBucketDr(ctx, response.ObjectStorageBucketId, rd.Get("object_storage_bucket_dr_enabled").(bool), rd.Get("sync_object_storage_bucket_id").(string))
 		if err != nil {
 			// if dr failed, rollback create action
 			return deleteBucket(ctx, rd, meta)
 		}
 	}
 
-	err = waitForObjectStorageStatus(ctx, inst.Client, response.ObsBucketId, []string{"UPDATING"}, []string{"ACTIVE"}, true)
+	err = waitForObjectStorageStatus(ctx, inst.Client, response.ObjectStorageBucketId, []string{"UPDATING"}, []string{"ACTIVE"}, true)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -187,11 +202,11 @@ func readBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}) 
 
 	info, _, err := inst.Client.ObjectStorage.ReadBucket(ctx, rd.Id())
 
-	obsBucketAccessIpAddressRanges := common.HclSetObject{}
-	for _, ipAddressRange := range info.ObsBucketAccessIpAddressRanges {
-		obsBucketAccessIpAddressRanges = append(obsBucketAccessIpAddressRanges, common.HclKeyValueObject{
-			"obs_bucket_access_ip_address_range": ipAddressRange.ObsBucketAccessIpAddressRange,
-			"type":                               ipAddressRange.Type_,
+	objectStorageBucketAccessControlRules := common.HclSetObject{}
+	for _, accessControlRules := range info.ObjectStorageBucketAccessControlRules {
+		objectStorageBucketAccessControlRules = append(objectStorageBucketAccessControlRules, common.HclKeyValueObject{
+			"rule_type":  accessControlRules.RuleType,
+			"rule_value": accessControlRules.RuleValue,
 		})
 	}
 
@@ -203,17 +218,16 @@ func readBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}) 
 		return diag.FromErr(err)
 	}
 
-	rd.Set("is_obs_bucket_ip_address_filter_enabled", info.IsObsBucketIpAddressFilterEnabled)
-	rd.Set("obs_bucket_access_ip_address_ranges", obsBucketAccessIpAddressRanges)
-	rd.Set("obs_bucket_file_encryption_algorithm", info.ObsBucketFileEncryptionAlgorithm)
-	rd.Set("obs_bucket_file_encryption_enabled", info.ObsBucketFileEncryptionEnabled)
-	rd.Set("obs_bucket_file_encryption_type", info.ObsBucketFileEncryptionType)
-	rd.Set("obs_bucket_name", info.ObsBucketName)
-	rd.Set("obs_bucket_version_enabled", info.ObsBucketVersionEnabled)
-	rd.Set("obs_id", info.ObsId)
-	rd.Set("zone_id", info.ZoneId)
-	rd.Set("dr_enable", info.IsObsBucketDrEnabled)
-	rd.Set("replica_obs_bucket_id", info.ObsSyncBucketId)
+	rd.Set("object_storage_bucket_access_control_enabled", info.ObjectStorageBucketAccessControlEnabled)
+	rd.Set("access_control_rules", objectStorageBucketAccessControlRules)
+	rd.Set("object_storage_bucket_file_encryption_enabled", info.ObjectStorageBucketFileEncryptionEnabled)
+	rd.Set("object_storage_bucket_name", info.ObjectStorageBucketName)
+	rd.Set("object_storage_bucket_version_enabled", info.ObjectStorageBucketVersionEnabled)
+	rd.Set("object_storage_id", info.ObjectStorageId)
+	rd.Set("service_zone_id", info.ServiceZoneId)
+	rd.Set("object_storage_bucket_dr_enabled", info.ObjectStorageBucketDrEnabled)
+	rd.Set("object_storage_bucket_dr_type", info.ObjectStorageBucketDrType)
+	rd.Set("sync_object_storage_bucket_id", info.SyncObjectStorageBucketId)
 
 	return nil
 }
@@ -221,42 +235,41 @@ func readBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}) 
 func updateBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	if rd.HasChanges("obs_bucket_version_enabled") {
-		_, err := inst.Client.ObjectStorage.UpdateVersioning(ctx, rd.Id(), rd.Get("obs_bucket_version_enabled").(bool))
+	if rd.HasChanges("object_storage_bucket_version_enabled") {
+		_, err := inst.Client.ObjectStorage.UpdateVersioning(ctx, rd.Id(), rd.Get("object_storage_bucket_version_enabled").(bool))
 		if err != nil {
 			return diag.FromErr(err)
 		}
 	}
 
-	if rd.HasChanges("obs_bucket_file_encryption_enabled") {
-		_, err := inst.Client.ObjectStorage.UpdateBucketEncryption(ctx, rd.Id(), objectstorage.UpdateBucketRequest{
-			ObsBucketFileEncryptionAlgorithm: rd.Get("obs_bucket_file_encryption_algorithm").(string),
-			ObsBucketFileEncryptionEnabled:   rd.Get("obs_bucket_file_encryption_enabled").(bool),
-			ObsBucketFileEncryptionType:      rd.Get("obs_bucket_file_encryption_type").(string),
-			ObsBucketVersionEnabled:          rd.Get("obs_bucket_version_enabled").(bool),
-		})
+	if rd.HasChanges("object_storage_bucket_file_encryption_enabled") {
+		_, err := inst.Client.ObjectStorage.UpdateBucketEncryption(ctx, rd.Id(), rd.Get("object_storage_bucket_file_encryption_enabled").(bool))
 		if err != nil {
 			return diag.FromErr(err)
 		}
 	}
 
-	if rd.HasChanges("is_obs_bucket_ip_address_filter_enabled") ||
-		(rd.Get("is_obs_bucket_ip_address_filter_enabled").(bool) && rd.HasChanges("obs_bucket_access_ip_address_ranges")) {
-		obsBucketAccessIpAddressInfos, err := convertAccessIpAddressRanges(rd.Get("obs_bucket_access_ip_address_ranges").(common.HclListObject))
-		inst.Client.ObjectStorage.CreateBucketIps(ctx, rd.Id(), rd.Get("is_obs_bucket_ip_address_filter_enabled").(bool), obsBucketAccessIpAddressInfos)
+	if rd.HasChanges("object_storage_bucket_access_control_enabled") ||
+		(rd.Get("object_storage_bucket_access_control_enabled").(bool) && rd.HasChanges("access_control_rules")) {
+		accessControlRules, err := convertAccessIpAddressRanges(rd.Get("access_control_rules").(common.HclListObject))
+		inst.Client.ObjectStorage.CreateBucketIps(ctx, rd.Id(), rd.Get("object_storage_bucket_access_control_enabled").(bool), accessControlRules)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 	}
 
-	if rd.HasChanges("is_obs_bucket_dr_enabled") {
-		err := inst.Client.ObjectStorage.UpdateBucketDr(ctx, rd.Id(), rd.Get("is_obs_bucket_dr_enabled").(bool), rd.Get("replica_obs_bucket_id").(string))
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		err = waitForObjectStorageStatus(ctx, inst.Client, rd.Id(), []string{"UPDATING"}, []string{"ACTIVE"}, true)
-		if err != nil {
-			return diag.FromErr(err)
+	if rd.HasChanges("object_storage_bucket_dr_enabled") {
+
+		syncObjectStorageBucketId, ok := rd.Get("sync_object_storage_bucket_id").(string)
+		if ok && rd.Get("sync_object_storage_bucket_id").(string) != "" {
+			err := inst.Client.ObjectStorage.UpdateBucketDr(ctx, rd.Id(), rd.Get("object_storage_bucket_dr_enabled").(bool), syncObjectStorageBucketId)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			err = waitForObjectStorageStatus(ctx, inst.Client, rd.Id(), []string{"UPDATING"}, []string{"ACTIVE"}, true)
+			if err != nil {
+				return diag.FromErr(err)
+			}
 		}
 	}
 
@@ -290,20 +303,21 @@ func waitForObjectStorageStatus(ctx context.Context, scpClient *client.SCPClient
 			}
 			return nil, "", err
 		}
-		if info.ObsBucketId != id {
+		if info.ObjectStorageBucketId != id {
 			return nil, "", fmt.Errorf("invalid resource status")
 		}
-		return info, info.ObsBucketState, nil
+		return info, info.ObjectStorageBucketState, nil
 	})
 }
 
 func getTagRequestArray(rd *schema.ResourceData) []objectstorage.TagRequest {
-	tags := rd.Get("tags").(map[string]interface{})
+	tags := rd.Get("tags").([]interface{})
 	tagsRequests := make([]objectstorage.TagRequest, 0)
-	for key, value := range tags {
+	for _, tag := range tags {
+		tagMap := tag.(map[string]interface{})
 		tagsRequests = append(tagsRequests, objectstorage.TagRequest{
-			TagKey:   key,
-			TagValue: value.(string),
+			TagKey:   tagMap["tag_key"].(string),
+			TagValue: tagMap["tag_value"].(string),
 		})
 	}
 	return tagsRequests

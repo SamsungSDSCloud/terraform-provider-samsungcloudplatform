@@ -2,8 +2,8 @@ package backup
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/backup2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/backup2"
 )
 
 type Client struct {
@@ -37,8 +37,8 @@ func (client *Client) CreateBackup(ctx context.Context, request CreateBackupRequ
 		})
 	}
 
-	result, _, err := client.sdkClient.BackupOpenApiV3Api.CreateBackup1(ctx, client.config.ProjectId,
-		backup2.BackupCreateV3Request{
+	result, _, err := client.sdkClient.BackupOpenApiV4Api.CreateBackup2(ctx, client.config.ProjectId,
+		backup2.BackupCreateV4Request{
 			AzCode:                     request.AzCode,
 			BackupDrZoneId:             request.BackupDrZoneId,
 			BackupName:                 request.BackupName,
@@ -59,13 +59,13 @@ func (client *Client) CreateBackup(ctx context.Context, request CreateBackupRequ
 	return result, err
 }
 
-func (client *Client) ReadBackup(ctx context.Context, backupId string) (backup2.DetailBackupResponse, int, error) {
-	result, c, err := client.sdkClient.BackupSearchOpenApiV3Api.DetailBackup1(ctx, client.config.ProjectId, backupId)
+func (client *Client) ReadBackup(ctx context.Context, backupId string) (backup2.DetailBackupV4Response, int, error) {
+	result, c, err := client.sdkClient.BackupSearchOpenApiV4Api.DetailBackup2(ctx, client.config.ProjectId, backupId)
 	return result, c.StatusCode, err
 }
 
-func (client *Client) ReadBackupList(ctx context.Context, request backup2.BackupSearchOpenApiV2ApiListBackupsOpts) (backup2.ListResponseOfBackupResponse, error) {
-	result, _, err := client.sdkClient.BackupSearchOpenApiV2Api.ListBackups(ctx, client.config.ProjectId, &request)
+func (client *Client) ReadBackupList(ctx context.Context, request backup2.BackupSearchOpenApiV3ApiListBackups1Opts) (backup2.ListResponseOfBackupV3Response, error) {
+	result, _, err := client.sdkClient.BackupSearchOpenApiV3Api.ListBackups1(ctx, client.config.ProjectId, &request)
 	return result, err
 }
 

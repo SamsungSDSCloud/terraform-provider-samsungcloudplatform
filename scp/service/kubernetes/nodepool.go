@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/kubernetesengine"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
-	kubernetesengine2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/kubernetes-engine2"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/kubernetesengine"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	kubernetesengine2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/kubernetes-engine2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -28,7 +28,11 @@ func ResourceKubernetesNodePool() *schema.Resource {
 		ReadContext:   readNodePool,
 		UpdateContext: updateNodePool,
 		DeleteContext: deleteNodePool,
-
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(40 * time.Minute),
+			Update: schema.DefaultTimeout(40 * time.Minute),
+			Delete: schema.DefaultTimeout(40 * time.Minute),
+		},
 		CustomizeDiff: customdiff.Sequence(
 			customdiff.ComputedIf("desired_node_count", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
 				return diff.Get("auto_scale").(bool)
@@ -273,7 +277,7 @@ func readNodePool(ctx context.Context, data *schema.ResourceData, meta interface
 	inst := meta.(*client.Instance)
 
 	//nodePool, _, err := inst.Client.KubernetesEngine.ReadNodePool(ctx, data.Get("engine_id").(string), data.Id())
-	nodePoolList, _, err := inst.Client.KubernetesEngine.GetNodePoolList(ctx, data.Get("engine_id").(string), &kubernetesengine2.NodePoolV2ControllerApiListNodePoolsV2Opts{
+	nodePoolList, _, err := inst.Client.KubernetesEngine.GetNodePoolList(ctx, data.Get("engine_id").(string), &kubernetesengine2.NodePoolV2ApiListNodePoolsV2Opts{
 		NodePoolName: optional.String{},
 		CreatedBy:    optional.String{},
 		Page:         optional.NewInt32(0),
@@ -290,11 +294,16 @@ func readNodePool(ctx context.Context, data *schema.ResourceData, meta interface
 		return diag.FromErr(err)
 	}
 
-	var nodePool kubernetesengine2.NodePoolsResponse
+	var nodePool kubernetesengine2.NodePoolsV2Response
 	for _, item := range nodePoolList.Contents {
 		if item.NodePoolId == data.Id() {
 			nodePool = item
 		}
+	}
+
+	if nodePool.NodePoolId == "" {
+		data.SetId("")
+		return nil
 	}
 
 	scale, err := client.FindProductById(ctx, inst.Client, nodePool.ProductGroupId, nodePool.ScaleId)
@@ -439,7 +448,7 @@ func refreshNodePool(ctx context.Context, meta interface{}, engineId string, nod
 	return func() (interface{}, string, error) {
 		//nodePool, httpStatus, err := inst.Client.KubernetesEngine.ReadNodePool(ctx, engineId, nodePoolId)
 
-		nodePool, httpStatus, err := inst.Client.KubernetesEngine.GetNodePoolList(ctx, engineId, &kubernetesengine2.NodePoolV2ControllerApiListNodePoolsV2Opts{
+		nodePool, httpStatus, err := inst.Client.KubernetesEngine.GetNodePoolList(ctx, engineId, &kubernetesengine2.NodePoolV2ApiListNodePoolsV2Opts{
 			NodePoolName: optional.String{},
 			CreatedBy:    optional.String{},
 			Page:         optional.NewInt32(0),

@@ -73,3 +73,7 @@ type TagRequest struct {
 	TagKey   string
 	TagValue string
 }
+
+type BMStartStopRequest struct {
+	BareMetalServerIds []string
+}

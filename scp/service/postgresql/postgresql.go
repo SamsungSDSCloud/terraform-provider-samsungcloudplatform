@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/service/image"
-	objectstorage "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/object-storage"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/postgresql2"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/image"
+	objectstorage "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/object-storage"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/postgresql2"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -177,6 +177,27 @@ func ResourcePostgresql() *schema.Resource {
 				ForceNew:    true,
 				Description: "Timezone setting of this database.",
 			},
+			"data_disk_type": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Data storage disk type. (SSD, HDD)",
+				ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
+					var diags diag.Diagnostics
+					val := v.(string)
+					if val == "SSD" {
+						return diags
+					} else if val == "HDD" {
+						return diags
+					}
+
+					diags = append(diags, diag.Diagnostic{
+						Severity:      diag.Error,
+						Summary:       fmt.Sprintf("Must be either SSD or HDD"),
+						AttributePath: path,
+					})
+					return diags
+				},
+			},
 			"data_storage_size_gb": {
 				Type:             schema.TypeInt,
 				Required:         true,
@@ -279,6 +300,25 @@ func resourcePostgresqlBackup() *schema.Resource {
 				Computed:    true,
 				Description: "Object storage ID where backup files will be stored",
 			},
+			"backup_method": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Backup Method (s3api|cdp) ",
+				ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
+					var diags diag.Diagnostics
+					val := v.(string)
+					if val == "s3api" || val == "cdp" {
+						return diags
+					}
+
+					diags = append(diags, diag.Diagnostic{
+						Severity:      diag.Error,
+						Summary:       fmt.Sprintf("Must be either s3api or cdp"),
+						AttributePath: path,
+					})
+					return diags
+				},
+			},
 			"retention_day": {
 				Type:        schema.TypeInt,
 				Required:    true,
@@ -350,6 +390,16 @@ func resourcePostgresqlHighAvailability() *schema.Resource {
 				Optional:    true,
 				Description: "Static IP to assign to the STANDBy server",
 			},
+			"active_availability_zone_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Active Availability Zone Name",
+			},
+			"standby_availability_zone_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Standby Availability Zone Name",
+			},
 		},
 	}
 }
@@ -387,6 +437,7 @@ func resourcePostgresqlCreate(ctx context.Context, rd *schema.ResourceData, meta
 
 	timezone := rd.Get("timezone").(string)
 
+	dataDiskType := rd.Get("data_disk_type").(string)
 	dataStorageSize := rd.Get("data_storage_size_gb").(int)
 	additionalStorageList := rd.Get("additional_storage").(common.HclListObject)
 
@@ -446,6 +497,7 @@ func resourcePostgresqlCreate(ctx context.Context, rd *schema.ResourceData, meta
 		blockStorages = append(blockStorages, postgresql2.DatabaseBlockStorage{
 			BlockStorageType: additionalStorageInfo.StorageUsage,
 			BlockStorageSize: int32(additionalStorageInfo.StorageSize),
+			DiskType:         additionalStorageInfo.ProductName,
 		})
 	}
 
@@ -459,9 +511,11 @@ func resourcePostgresqlCreate(ctx context.Context, rd *schema.ResourceData, meta
 		return
 	}
 	var blockId string
+	var isMultiAvailabilityZone *bool
 	for _, zoneInfo := range projectInfo.ServiceZones {
 		if zoneInfo.ServiceZoneId == vpcInfo.ServiceZoneId {
 			blockId = zoneInfo.BlockId
+			isMultiAvailabilityZone = zoneInfo.IsMultiAvailabilityZone
 			break
 		}
 	}
@@ -476,7 +530,7 @@ func resourcePostgresqlCreate(ctx context.Context, rd *schema.ResourceData, meta
 	}
 
 	// KJ HA Test
-	networks := expandNetworkSetting(serverNamePrefix, rd.Get("high_availability").(*schema.Set))
+	networks := expandNetworkSetting(serverNamePrefix, rd.Get("high_availability").(*schema.Set), isMultiAvailabilityZone)
 	ha := expandHASetting(rd.Get("high_availability").(*schema.Set))
 
 	// backup : 23.02.21 kj
@@ -504,6 +558,7 @@ func resourcePostgresqlCreate(ctx context.Context, rd *schema.ResourceData, meta
 			DataBlockStorageSize:      int32(dataStorageSize),
 			EncryptEnabled:            &falseVal,
 			AdditionalBlockStorages:   blockStorages,
+			DataDiskType:              dataDiskType,
 		},
 		HighAvailability: ha,
 		Replica:          nil,
@@ -525,7 +580,7 @@ func resourcePostgresqlCreate(ctx context.Context, rd *schema.ResourceData, meta
 		DbSoftwareOptions: pgSWOption,
 	})
 	if err != nil {
-		return
+		return diag.FromErr(err)
 	}
 
 	time.Sleep(50 * time.Second)
@@ -834,7 +889,7 @@ func resourcePostgresqlUpdate(ctx context.Context, rd *schema.ResourceData, meta
 			for i := len(oldList); i < len(newList); i++ {
 				as := newList[i]
 
-				_, _, err = inst.Client.Postgresql.AddPostgresqlBlock(ctx, rd.Id(), vsInfo.VirtualServerId, as.StorageUsage, as.StorageSize)
+				_, _, err = inst.Client.Postgresql.AddPostgresqlBlock(ctx, rd.Id(), vsInfo.VirtualServerId, as.StorageUsage, as.StorageSize, as.ProductName)
 				if err != nil {
 					return diag.FromErr(err)
 				}
@@ -1102,14 +1157,14 @@ func checkNameDuplication(ctx context.Context, meta interface{}, dbName string, 
 }
 
 func getObjectStorageId(ctx context.Context, scpClient *client.SCPClient, serviceZoneId string) (string, error) {
-	response, err := scpClient.ObjectStorage.ReadObjectStorageList(ctx, serviceZoneId, objectstorage.ObjectStorageV3ControllerApiListObjectStorage3Opts{})
+	response, err := scpClient.ObjectStorage.ReadObjectStorageList(ctx, serviceZoneId, objectstorage.ObjectStorageV4ControllerApiListObjectStorage6Opts{})
 	if err != nil {
 		return "", fmt.Errorf("failed while querying object storage list")
 	}
 	if response.TotalCount < 1 {
 		return "", fmt.Errorf("no object storage list")
 	}
-	objectStorageId := response.Contents[0].ObsId
+	objectStorageId := response.Contents[0].ObjectStorageId
 
 	tflog.Debug(ctx, fmt.Sprintf("Backup.objectStorageId : %s\n", objectStorageId))
 	return objectStorageId, nil
@@ -1132,6 +1187,9 @@ func createBackupSettings(ctx context.Context, scpClient *client.SCPClient, serv
 
 	backupSetting.ObjectStorageId = objectStorageId
 
+	if v, ok := backup["backup_method"].(string); ok {
+		backupSetting.BackupMethod = v
+	}
 	if v, ok := backup["retention_day"].(int); ok {
 		backupSetting.BackupRetentionDay = int32(v)
 	}
@@ -1153,6 +1211,10 @@ func expandBackupSettings(vAdvancedBackupSettings *schema.Set) []*postgresql2.Da
 			backupSetting.ObjectStorageId = v
 		}
 
+		if v, ok := mAdvancedBackupSetting["backup_method"].(string); ok && v != "" {
+			backupSetting.BackupMethod = v
+		}
+
 		if v, ok := mAdvancedBackupSetting["retention_day"].(int); ok {
 			backupSetting.BackupRetentionDay = int32(v)
 		}
@@ -1170,6 +1232,7 @@ func flattenBackupSettings(backupSetting *postgresql2.DatabaseBackup) *schema.Se
 
 	mAdvancedBackupSetting := map[string]interface{}{
 		"objectstorage_id": backupSetting.ObjectStorageId,
+		"backup_method":    backupSetting.BackupMethod,
 		"retention_day":    int(backupSetting.BackupRetentionDay),
 		"start_hour":       int(backupSetting.BackupStartHour),
 	}
@@ -1215,7 +1278,7 @@ func expandHASetting(haSchemaSet *schema.Set) *postgresql2.HaSingleRestart {
 	return ha
 }
 
-func expandNetworkSetting(serverNamePrefix string, haSchemaSet *schema.Set) []postgresql2.DatabaseServerNetwork {
+func expandNetworkSetting(serverNamePrefix string, haSchemaSet *schema.Set, isMultiAvailabilityZone *bool) []postgresql2.DatabaseServerNetwork {
 	networks := []postgresql2.DatabaseServerNetwork{}
 
 	haSettings := haSchemaSet.List()
@@ -1232,6 +1295,12 @@ func expandNetworkSetting(serverNamePrefix string, haSchemaSet *schema.Set) []po
 			network.ServiceIp = v
 		}
 
+		if *isMultiAvailabilityZone {
+			if v, ok := setting["active_availability_zone_name"].(string); ok && v != "" {
+				network.AvailabilityZoneName = v
+			}
+		}
+
 		networks = append(networks, network)
 
 		network = postgresql2.DatabaseServerNetwork{
@@ -1241,15 +1310,32 @@ func expandNetworkSetting(serverNamePrefix string, haSchemaSet *schema.Set) []po
 		if v, ok := setting["standby_server_ip"].(string); ok && v != "" {
 			network.ServiceIp = v
 		}
+
+		if *isMultiAvailabilityZone {
+			if v, ok := setting["standby_availability_zone_name"].(string); ok && v != "" {
+				network.AvailabilityZoneName = v
+			}
+		}
+
 		networks = append(networks, network)
 
 	} else {
-		networks = append(networks, postgresql2.DatabaseServerNetwork{
-			ServerName: serverNamePrefix + "01",
-			NodeType:   "ACTIVE",
-			ServiceIp:  "",
-			NatIpId:    "",
-		})
+		if *isMultiAvailabilityZone {
+			networks = append(networks, postgresql2.DatabaseServerNetwork{
+				ServerName:           serverNamePrefix + "01",
+				NodeType:             "ACTIVE",
+				ServiceIp:            "",
+				NatIpId:              "",
+				AvailabilityZoneName: "AZ1",
+			})
+		} else {
+			networks = append(networks, postgresql2.DatabaseServerNetwork{
+				ServerName: serverNamePrefix + "01",
+				NodeType:   "ACTIVE",
+				ServiceIp:  "",
+				NatIpId:    "",
+			})
+		}
 	}
 	return networks
 }

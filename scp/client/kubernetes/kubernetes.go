@@ -2,8 +2,8 @@ package kubernetes
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/kubernetes"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/kubernetes"
 )
 
 type Client struct {

@@ -2,10 +2,10 @@ package natgateway
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
-	publicip2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/public-ip2"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	publicip2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/public-ip2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -105,17 +105,15 @@ func resourceNATGatewayRead(ctx context.Context, rd *schema.ResourceData, meta i
 		return diag.FromErr(err)
 	}
 
-	publicIpInfos, err := inst.Client.PublicIp.GetPublicIpList(ctx, info.ServiceZoneId, &publicip2.PublicIpOpenApiControllerApiListPublicIpsV2Opts{
-		IpAddress:       optional.NewString(info.NatGatewayIpAddress),
-		IsBillable:      optional.Bool{},
-		IsViewable:      optional.Bool{},
-		PublicIpPurpose: optional.String{},
-		PublicIpState:   optional.String{},
-		UplinkType:      optional.String{},
-		CreatedBy:       optional.String{},
-		Page:            optional.NewInt32(0),
-		Size:            optional.NewInt32(10000),
-		Sort:            optional.Interface{},
+	publicIpInfos, err := inst.Client.PublicIp.GetPublicIps(ctx, &publicip2.PublicIpOpenApiV3ControllerApiListPublicIpsV3Opts{
+		IpAddress:     optional.NewString(info.NatGatewayIpAddress),
+		VpcId:         optional.NewString(info.VpcId),
+		PublicIpState: optional.String{},
+		UplinkType:    optional.String{},
+		CreatedBy:     optional.String{},
+		Page:          optional.NewInt32(0),
+		Size:          optional.NewInt32(10000),
+		Sort:          optional.Interface{},
 	})
 	if err != nil {
 		return

@@ -3,8 +3,8 @@ package product
 import (
 	"context"
 
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/product"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/product"
 	"github.com/antihax/optional"
 )
 
@@ -50,6 +50,38 @@ func (client *Client) GetProductGroupsByZone(ctx context.Context, serviceZoneId 
 	result, _, err := client.sdkClient.ProductV2ControllerApi.ListProductGroupsByZoneId(ctx, client.config.ProjectId, serviceZoneId, &product.ProductV2ControllerApiListProductGroupsByZoneIdOpts{
 		TargetProduct:      optional.NewString(targetProduct),
 		TargetProductGroup: optional.NewString(targetProductGroup),
+	})
+	return result, err
+}
+
+func (client *Client) GetProductsByZoneId(ctx context.Context, serviceZoneId string, productGroupId string, productType string) (product.ListResponseV2OfProductsResponse, error) {
+	result, _, err := client.sdkClient.ProductV2ControllerApi.ListProducsByZoneId(ctx, client.config.ProjectId, serviceZoneId, &product.ProductV2ControllerApiListProducsByZoneIdOpts{
+		ProductGroupId: optional.NewString(productGroupId),
+		ProductType:    optional.NewString(productType),
+	})
+	return result, err
+}
+
+func (client *Client) GetProductsByGroup(ctx context.Context, productGroupId string) (product.ProductGroupDetailResponse, error) {
+	result, _, err := client.sdkClient.ProductV2ControllerApi.DetailProductGroup(ctx, client.config.ProjectId, productGroupId, &product.ProductV2ControllerApiDetailProductGroupOpts{
+		ForCalculator: optional.NewString("false"),
+	})
+	return result, err
+}
+
+func (client *Client) GetProductGroupsList(ctx context.Context, targetProduct string, targetProductGroup string) (product.ListResponseV2OfProductGroupForCalculatorResponse, error) {
+	result, _, err := client.sdkClient.ProductV2ControllerApi.ListProductGroups(ctx, client.config.ProjectId, &product.ProductV2ControllerApiListProductGroupsOpts{
+		ForCalculator:      optional.NewString("false"),
+		ProductGroupType:   optional.NewString("SSC"),
+		TargetProduct:      optional.NewString(targetProduct),
+		TargetProductGroup: optional.NewString(targetProductGroup),
+	})
+	return result, err
+}
+
+func (client *Client) GetProductDetail(ctx context.Context, productId string, itemState string) (product.ProductResponse, error) {
+	result, _, err := client.sdkClient.ProductV2ControllerApi.DetailProduct(ctx, productId, &product.ProductV2ControllerApiDetailProductOpts{
+		ItemState: optional.NewString(itemState),
 	})
 	return result, err
 }

@@ -19,6 +19,7 @@ data "scp_region" "region" {
 resource "scp_public_ip" "ip01" {
   description = "Public IP generated from Terraform"
   region      = data.scp_region.region.location
+  uplink_type = "INTERNET"
 }
 ```
 
@@ -28,6 +29,7 @@ resource "scp_public_ip" "ip01" {
 ### Required
 
 - `region` (String) Region name
+- `uplink_type` (String) Public IP uplinkType ('INTERNET'|'DEDICATED_INTERNET'|'SHARED_GROUP')
 
 ### Optional
 

@@ -3,7 +3,7 @@ package profile_test
 import (
 	"testing"
 
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/internal/profile"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/internal/profile"
 )
 
 func TestProperties_Empty(t *testing.T) {

@@ -2,9 +2,10 @@ package publicip
 
 import (
 	"context"
+	_ "github.com/antihax/optional"
 
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	publicip2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/public-ip2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	publicip2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/public-ip2"
 )
 
 type Client struct {
@@ -19,15 +20,8 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-/*
-func (client *Client) GetAvailablePublicIpList(ctx context.Context, reservedIpPurpose string, uplinkType string, serviceZoneId string) (publicip2.ListResponseOfPublicIpAvailableResponse, error) {
-	result, _, err := client.sdkClient.PublicIpOpenApiControllerApi.ListAvailableIpsV2(ctx, client.config.ProjectId, reservedIpPurpose, serviceZoneId, uplinkType)
-	return result, err
-}
-*/
-
-func (client *Client) GetPublicIpList(ctx context.Context, serviceZoneId string, param *publicip2.PublicIpOpenApiControllerApiListPublicIpsV2Opts) (publicip2.ListResponseOfDetailPublicIpResponse, error) {
-	result, _, err := client.sdkClient.PublicIpOpenApiControllerApi.ListPublicIpsV2(ctx, client.config.ProjectId, param)
+func (client *Client) GetPublicIps(ctx context.Context, param *publicip2.PublicIpOpenApiV3ControllerApiListPublicIpsV3Opts) (publicip2.ListResponseOfDetailPublicIpResponse, error) {
+	result, _, err := client.sdkClient.PublicIpOpenApiV3ControllerApi.ListPublicIpsV3(ctx, client.config.ProjectId, param)
 	return result, err
 }
 
@@ -40,13 +34,11 @@ func (client *Client) GetPublicIp(ctx context.Context, publicIpAddressId string)
 	return result, statusCode, err
 }
 
-func (client *Client) CreatePublicIp(ctx context.Context, productGroupId string, publicIpPurpose string, serviceZoneId string, uplinkType string, publicIpDescription string) (publicip2.DetailPublicIpResponse, error) {
-	result, _, err := client.sdkClient.PublicIpOpenApiControllerApi.CreatePublicIpV2(ctx, client.config.ProjectId, publicip2.CreatePublicIpRequest{
-		ProductGroupId:             productGroupId,
-		PublicIpPurpose:            publicIpPurpose,
-		ServiceZoneId:              serviceZoneId,
-		UplinkType:                 uplinkType,
-		PublicIpAddressDescription: publicIpDescription,
+func (client *Client) CreatePublicIp(ctx context.Context, serviceZoneId string, uplinkType string, publicIpDescription string) (publicip2.DetailPublicIpResponse, error) {
+	result, _, err := client.sdkClient.PublicIpOpenApiV4ControllerApi.CreatePublicIpV4(ctx, client.config.ProjectId, publicip2.CreatePublicIpV4Request{
+		ServiceZoneId:       serviceZoneId,
+		UplinkType:          uplinkType,
+		PublicIpDescription: publicIpDescription,
 	})
 	return result, err
 }

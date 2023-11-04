@@ -2,8 +2,8 @@ package directconnect
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	directconnect2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/direct-connect2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	directconnect2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/direct-connect2"
 )
 
 type Client struct {

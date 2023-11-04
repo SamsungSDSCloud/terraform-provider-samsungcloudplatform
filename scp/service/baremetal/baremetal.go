@@ -3,17 +3,20 @@ package baremetal
 import (
 	"context"
 	"errors"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/baremetal"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/storage/bmblockstorage"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/service/image"
-	publicip2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/public-ip2"
+	"fmt"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/baremetal"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/bmblockstorage"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/image"
+	publicip2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/public-ip2"
 	"github.com/antihax/optional"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -42,7 +45,7 @@ func ResourceBareMetalServer() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				ForceNew:         true,
-				ValidateDiagFunc: common.ValidateName3to28AlphaDashStartsWithLowerCase,
+				ValidateDiagFunc: validateName3to24LowerAlphaDashStartsWithLowerCase,
 				Description:      "Bare-metal server name",
 			},
 			"delete_protection": {
@@ -179,9 +182,78 @@ func ResourceBareMetalServer() *schema.Resource {
 				Optional:    true,
 				Description: "Local IP address of this bare-metal server",
 			},
+			"state": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: validateBmState,
+				Description:      "Baremetal Server State(ex. RUNNING, STOPPED)",
+			},
 		},
 		Description: "Provides a Bare-metal Server resource.",
 	}
+}
+
+func checkStringLength(str string, min int, max int) error {
+	if len(str) < min {
+		return fmt.Errorf("input must be longer than %v characters", min)
+	} else if len(str) > max {
+		return fmt.Errorf("input must be shorter than %v characters", max)
+	} else {
+		return nil
+	}
+}
+
+func validateName3to24LowerAlphaDashStartsWithLowerCase(v interface{}, path cty.Path) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// Get attribute key
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	// Get value
+	value := v.(string)
+
+	// Check name length
+	err := checkStringLength(value, 3, 24)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q has errors : %s", attrKey, err.Error()),
+			AttributePath: path,
+		})
+	}
+
+	// Check characters
+	if !regexp.MustCompile("^[a-z][a-z0-9\\-]+[a-z0-9]$").MatchString(value) {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q must start with lower case character and contain only lower case, -, numerical characters and end with lower case, numerical character", attrKey),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
+func validateBmState(v interface{}, path cty.Path) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// Get attribute key
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	// Get value
+	value := v.(string)
+
+	if !regexp.MustCompile("^(RUNNING|STOPPED)$").MatchString(value) {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Only RUNNING or STOPPED value of Attribute %q is allowed ", attrKey),
+			AttributePath: path,
+		})
+	}
+
+	return diags
 }
 
 // ConvertBlockStorageList : this routine is based on common.ConvertExternalStorageList
@@ -236,6 +308,12 @@ func resourceBareMetalServerCreate(ctx context.Context, rd *schema.ResourceData,
 	adminAccount := rd.Get("admin_account").(string)
 	adminPassword := rd.Get("admin_password").(string)
 	initialScript := rd.Get("initial_script").(string)
+
+	state := rd.Get("state").(string)
+
+	if strings.Compare(state, common.StoppedState) == 0 {
+		return diag.Errorf("state value must be RUNNING")
+	}
 
 	vpcId := rd.Get("vpc_id").(string)
 	imageId := rd.Get("image_id").(string)
@@ -502,19 +580,16 @@ func resourceBareMetalServerRead(ctx context.Context, rd *schema.ResourceData, m
 	rd.Set("nat_enabled", natEnabled == "SUCCESS")
 
 	if natIpv4 != "" {
-		publicIpInfo, err := inst.Client.PublicIp.GetPublicIpList(ctx,
-			bmServerInfo.ServiceZoneId, &publicip2.PublicIpOpenApiControllerApiListPublicIpsV2Opts{
-				IpAddress:       optional.NewString(natIpv4),
-				IsBillable:      optional.Bool{},
-				IsViewable:      optional.Bool{},
-				PublicIpPurpose: optional.String{},
-				PublicIpState:   optional.String{},
-				UplinkType:      optional.String{},
-				CreatedBy:       optional.String{},
-				Page:            optional.Int32{},
-				Size:            optional.Int32{},
-				Sort:            optional.Interface{},
-			})
+		publicIpInfo, err := inst.Client.PublicIp.GetPublicIps(ctx, &publicip2.PublicIpOpenApiV3ControllerApiListPublicIpsV3Opts{
+			IpAddress:     optional.NewString(natIpv4),
+			VpcId:         optional.NewString(bmServerInfo.VpcId),
+			PublicIpState: optional.String{},
+			UplinkType:    optional.String{},
+			CreatedBy:     optional.String{},
+			Page:          optional.Int32{},
+			Size:          optional.Int32{},
+			Sort:          optional.Interface{},
+		})
 		if err != nil {
 			diagnostics = diag.FromErr(err)
 			return
@@ -540,7 +615,7 @@ func resourceBareMetalServerUpdate(ctx context.Context, rd *schema.ResourceData,
 
 	inst := meta.(*client.Instance)
 
-	if !rd.HasChanges("delete_protection") && !rd.HasChanges("contract_discount") && !rd.HasChanges("local_subnet_enabled") && !rd.HasChanges("nat_enabled") && !rd.HasChanges("block_storages") {
+	if !rd.HasChanges("delete_protection") && !rd.HasChanges("contract_discount") && !rd.HasChanges("local_subnet_enabled") && !rd.HasChanges("nat_enabled") && !rd.HasChanges("block_storages") && !rd.HasChanges("state") {
 		return diag.Errorf("nothing to update")
 	}
 
@@ -635,6 +710,40 @@ func resourceBareMetalServerUpdate(ctx context.Context, rd *schema.ResourceData,
 			}
 		}
 		err = WaitForBMServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if rd.HasChanges("state") {
+		state := rd.Get("state").(string)
+		baremetalServerIds := make([]string, 0)
+		baremetalServerIds = append(baremetalServerIds, rd.Id())
+
+		// 실행(RUNNING) -> 중지(STOPPED)
+		if strings.Compare(state, common.StoppedState) == 0 {
+			_, err := inst.Client.BareMetal.StopBareMetalServer(ctx, baremetal.BMStartStopRequest{
+				BareMetalServerIds: baremetalServerIds,
+			})
+
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+
+		// 중지(STOPPED) -> 시작(RUNNING)
+		if strings.Compare(state, common.RunningState) == 0 {
+			_, err := inst.Client.BareMetal.StartBareMetalServer(ctx, baremetal.BMStartStopRequest{
+				BareMetalServerIds: baremetalServerIds,
+			})
+
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+
+		// wait for server state change to editing //
+		err = WaitForBMServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{state}, true)
 		if err != nil {
 			return diag.FromErr(err)
 		}

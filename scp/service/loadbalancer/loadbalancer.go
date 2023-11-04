@@ -3,9 +3,9 @@ package loadbalancer
 import (
 	"context"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -95,6 +95,7 @@ func resourceLoadBalancerCreate(ctx context.Context, rd *schema.ResourceData, me
 	size := strings.ToUpper(rd.Get("size").(string))
 	firewallEnabled := false // rd.Get("firewall_enabled").(bool)
 	linkIpCidr := rd.Get("link_ip_cidr").(string)
+	isFirewallLoggable := false
 
 	inst := meta.(*client.Instance)
 
@@ -142,17 +143,7 @@ func resourceLoadBalancerCreate(ctx context.Context, rd *schema.ResourceData, me
 		return diag.Errorf("Failed to find target block")
 	}
 
-	targetProductGroupId, err := client.FindProductGroupIdFromServiceZone(ctx, inst.Client, vpcInfo.ServiceZoneId, "Load Balancer", "NETWORKING")
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	productId, err := client.FindProductId(ctx, inst.Client, targetProductGroupId, "SCALE", size)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	result, err := inst.Client.LoadBalancer.CreateLoadBalancer(ctx, targetBlockId, firewallEnabled, size, name, targetProductGroupId, productId, cidrIpv4, linkIpCidr, vpcInfo.ServiceZoneId, vpcId, description)
+	result, err := inst.Client.LoadBalancer.CreateLoadBalancer(ctx, targetBlockId, firewallEnabled, isFirewallLoggable, size, name, cidrIpv4, linkIpCidr, vpcInfo.ServiceZoneId, vpcId, description)
 	if err != nil {
 		return diag.FromErr(err)
 	}

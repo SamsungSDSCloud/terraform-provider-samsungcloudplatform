@@ -3,10 +3,10 @@ package loadbalancer
 import (
 	"context"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/loadbalancer"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/loadbalancer"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -124,13 +124,23 @@ func ResourceLbService() *schema.Resource {
 			// NOTE: NOT YET
 			"client_certificate_id": {
 				Type:        schema.TypeString,
-				Computed:    true,
+				Optional:    true,
 				Description: "SSL client certification id.",
+			},
+			"client_ssl_security_level": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "SSL client security level.",
 			},
 			"server_certificate_id": {
 				Type:        schema.TypeString,
-				Computed:    true,
+				Optional:    true,
 				Description: "SSL server certification id.",
+			},
+			"server_ssl_security_level": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "SSL server security level.",
 			},
 			"use_access_log": {
 				Type:     schema.TypeBool,
@@ -192,8 +202,10 @@ func resourceLbServiceCreate(ctx context.Context, rd *schema.ResourceData, meta 
 	servicePorts := rd.Get("service_ports").(string)
 	serviceIpId := rd.Get("lb_service_ip_id").(string)
 
-	clientCertificateId := "" //rd.Get("client_certificate_id").(string)
-	serverCertificateId := "" // rd.Get("server_certificate_id").(string)
+	serverCertificateId := rd.Get("server_certificate_id").(string)
+	serverSslSecurityLevel := rd.Get("server_ssl_security_level").(string)
+	clientCertificateId := rd.Get("client_certificate_id").(string)
+	clientSslSecurityLevel := rd.Get("client_ssl_security_level").(string)
 
 	useAccessLog := rd.Get("use_access_log").(bool)
 
@@ -278,7 +290,7 @@ func resourceLbServiceCreate(ctx context.Context, rd *schema.ResourceData, meta 
 
 	response, err := inst.Client.LoadBalancer.CreateLbService(ctx, loadBalancerId, appProfileId, defaultForwardingPorts, layerType,
 		lbServiceName, persistence, persistenceProfileId, protocol, rules, serviceIpAddr, servicePorts, serviceIpId,
-		serverCertificateId, clientCertificateId, useAccessLog)
+		serverCertificateId, serverSslSecurityLevel, clientCertificateId, clientSslSecurityLevel, useAccessLog)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -306,7 +318,10 @@ func resourceLbServiceRead(ctx context.Context, rd *schema.ResourceData, meta in
 
 	rd.Set("name", info.LbServiceName)
 	rd.Set("app_profile_id", info.ApplicationProfileId)
-	rd.Set("client_certificate_id", info.ClientCertificateName)
+	rd.Set("client_certificate_id", info.ClientCertificateId)
+	rd.Set("client_ssl_security_level", info.ClientSslSecurityLevel)
+	rd.Set("server_certificate_id", info.ServerCertificateId)
+	rd.Set("server_ssl_security_level", info.ServerSslSecurityLevel)
 	rd.Set("forwarding_ports", info.DefaultForwardingPorts)
 	rd.Set("layer_type", info.LayerType)
 	rd.Set("lb_rules", info.LbRules)
@@ -314,7 +329,6 @@ func resourceLbServiceRead(ctx context.Context, rd *schema.ResourceData, meta in
 	rd.Set("persistence", info.Persistence)
 	rd.Set("persistence_profile_id", info.PersistenceProfileId)
 	rd.Set("protocol", info.Protocol)
-	rd.Set("server_certificate_id", info.ServerCertificateName)
 	rd.Set("service_ipv4", info.ServiceIpAddress)
 	rd.Set("service_ports", info.ServicePorts)
 	rd.Set("use_access_log", info.UseAccessLog)
@@ -351,15 +365,17 @@ func resourceLbServiceUpdate(ctx context.Context, rd *schema.ResourceData, meta 
 			return diag.FromErr(err)
 		}
 	}
-	if rd.HasChanges("app_profile_id", "client_certificate_id", "forwarding_ports",
-		"persistence", "persistence_profile_id", "server_certificate_id", "service_ports", "use_access_log") {
+	if rd.HasChanges("app_profile_id", "client_certificate_id", "client_ssl_security_level", "forwarding_ports",
+		"persistence", "persistence_profile_id", "server_certificate_id", "server_ssl_security_level", "service_ports", "use_access_log") {
 
 		applicationProfileId := rd.Get("app_profile_id").(string)
-		clientCertificateId := "" //rd.Get("client_certificate_id").(string)
+		clientCertificateId := rd.Get("client_certificate_id").(string)
+		client_ssl_security_level := rd.Get("client_ssl_security_level").(string)
 		defaultForwardingPorts := rd.Get("forwarding_ports").(string)
 		persistence := rd.Get("persistence").(string)
 		persistenceProfileId := rd.Get("persistence_profile_id").(string)
-		serverCertificateId := "" // rd.Get("server_certificate_id").(string)
+		serverCertificateId := rd.Get("server_certificate_id").(string)
+		server_ssl_security_level := rd.Get("server_ssl_security_level").(string)
 		servicePorts := rd.Get("service_ports").(string)
 		useAccessLog := rd.Get("use_access_log").(bool)
 
@@ -368,10 +384,12 @@ func resourceLbServiceUpdate(ctx context.Context, rd *schema.ResourceData, meta 
 			rd.Id(), rd.Get("lb_id").(string),
 			applicationProfileId,
 			clientCertificateId,
+			client_ssl_security_level,
 			defaultForwardingPorts,
 			persistence,
 			persistenceProfileId,
 			serverCertificateId,
+			server_ssl_security_level,
 			servicePorts,
 			useAccessLog)
 		if err != nil {
@@ -424,6 +442,8 @@ func resourceLbServiceDelete(ctx context.Context, rd *schema.ResourceData, meta 
 	inst.Client.LoadBalancer.UpdateLbService(
 		ctx,
 		rd.Id(), rd.Get("lb_id").(string),
+		"",
+		"",
 		"",
 		"",
 		"",

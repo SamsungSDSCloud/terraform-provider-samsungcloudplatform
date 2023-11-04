@@ -2,9 +2,9 @@ package securitygroup
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -77,12 +77,7 @@ func resourceSecurityGroupCreate(ctx context.Context, rd *schema.ResourceData, m
 		return diag.Errorf("Input security group name is invalid (maybe duplicated) : " + name)
 	}
 
-	productGroupId, err := client.FindProductGroupId(ctx, inst.Client, vpcInfo.ServiceZoneId, common.NetworkProductGroup, common.SecurityGroupProductName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	response, err := inst.Client.SecurityGroup.CreateSecurityGroup(ctx, productGroupId, vpcInfo.ServiceZoneId, vpcId, name, description)
+	response, err := inst.Client.SecurityGroup.CreateSecurityGroup(ctx, vpcInfo.ServiceZoneId, vpcId, name, description, isLoggable)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -90,17 +85,6 @@ func resourceSecurityGroupCreate(ctx context.Context, rd *schema.ResourceData, m
 	err = waitForSecurityGroupStatus(ctx, inst.Client, response.ResourceId, []string{}, []string{"ACTIVE"}, true)
 	if err != nil {
 		return diag.FromErr(err)
-	}
-
-	if isLoggable {
-		_, err = inst.Client.SecurityGroup.UpdateSecurityGroupIsLoggable(ctx, response.ResourceId, isLoggable)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		err = waitForSecurityGroupStatus(ctx, inst.Client, response.ResourceId, []string{}, []string{"ACTIVE"}, true)
-		if err != nil {
-			return diag.FromErr(err)
-		}
 	}
 
 	rd.SetId(response.ResourceId)

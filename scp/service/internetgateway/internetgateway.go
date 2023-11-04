@@ -2,9 +2,9 @@ package internetgateway
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -31,6 +31,13 @@ func ResourceInternetGateway() *schema.Resource {
 				ForceNew:    true,
 				Description: "Target VPC id",
 			},
+			"igw_type": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Internet-Gateway Type. One of SHARED , DEDICATED, SHARED_GROUP",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"SHARED", "DEDICATED", "SHARED_GROUP"}, false)),
+			},
 			"description": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -51,15 +58,11 @@ func resourceInternetGatewayCreate(ctx context.Context, rd *schema.ResourceData,
 	}()
 	vpcId := rd.Get("vpc_id").(string)
 	description := rd.Get("description").(string)
+	igwType := rd.Get("igw_type").(string)
 
 	inst := meta.(*client.Instance)
 
-	vpcInfo, _, err := inst.Client.Vpc.GetVpcInfo(ctx, vpcId)
-	if err != nil {
-		return
-	}
-
-	result, _, err := inst.Client.InternetGateway.CreateInternetGateway(ctx, vpcId, vpcInfo.ServiceZoneId, description, false)
+	result, _, err := inst.Client.InternetGateway.CreateInternetGateway(ctx, vpcId, igwType, description, false, false)
 	if err != nil {
 		return
 	}

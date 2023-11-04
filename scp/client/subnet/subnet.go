@@ -3,8 +3,8 @@ package subnet
 import (
 	"context"
 
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/subnet2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/subnet2"
 )
 
 type Client struct {
@@ -75,15 +75,15 @@ func (client *Client) GetSubnetVip(ctx context.Context, subnetId string, vipId s
 	return result, statusCode, err
 }
 
-func (client *Client) UpdateSubnetDescription(ctx context.Context, subnetId string, description string) (subnet2.AsyncResponse, error) {
-	result, _, err := client.sdkClient.SubnetOpenApiControllerApi.UpdateSubnetDescriptionV2(ctx, client.config.ProjectId, subnetId, subnet2.UpdateSubnetDescriptionRequest{
+func (client *Client) UpdateSubnetDescription(ctx context.Context, subnetId string, description string) (subnet2.SubnetDetailResVo, error) {
+	result, _, err := client.sdkClient.SubnetOpenApiV3ControllerApi.UpdateSubnetDescriptionV3(ctx, client.config.ProjectId, subnetId, subnet2.UpdateSubnetDescriptionRequest{
 		SubnetDescription: description,
 	})
 	return result, err
 }
 
-func (client *Client) UpdateSubnetType(ctx context.Context, subnetId string, subnetType string) (subnet2.AsyncResponse, error) {
-	result, _, err := client.sdkClient.SubnetOpenApiControllerApi.UpdateSubnetTypeV2(ctx, client.config.ProjectId, subnetId, subnet2.UpdateSubnetTypeRequest{
+func (client *Client) UpdateSubnetType(ctx context.Context, subnetId string, subnetType string) (subnet2.SubnetDetailResVo, error) {
+	result, _, err := client.sdkClient.SubnetOpenApiV3ControllerApi.UpdateSubnetTypeV3(ctx, client.config.ProjectId, subnetId, subnet2.UpdateSubnetTypeRequest{
 		SubnetType: subnetType,
 	})
 	return result, err
@@ -133,5 +133,17 @@ func (client *Client) ReserveSubnetVipsV2(ctx context.Context, subnetId string, 
 
 func (client *Client) ReleaseSubnetVipsV2(ctx context.Context, subnetId string, subnetIpId string) (subnet2.AsyncResponse, error) {
 	result, _, err := client.sdkClient.SubnetVipOpenApiControllerApi.ReleaseSubnetVipsV2(ctx, client.config.ProjectId, subnetId, subnetIpId)
+	return result, err
+}
+
+func (client *Client) AttachSubnetPublicIp(ctx context.Context, subnetId string, vipId string, publicIpAddressId string) (subnet2.AsyncResponse, error) {
+	result, _, err := client.sdkClient.SubnetVipOpenApiControllerApi.AttachSubnetPublicIpV2(ctx, client.config.ProjectId, subnetId, vipId, subnet2.AttachSubnetPublicIpRequest{
+		PublicIpAddressId: publicIpAddressId,
+	})
+	return result, err
+}
+
+func (client *Client) DetachSubnetPublicIp(ctx context.Context, subnetId string, vipId string) (subnet2.AsyncResponse, error) {
+	result, _, err := client.sdkClient.SubnetVipOpenApiControllerApi.DetachSubnetPublicIpV2(ctx, client.config.ProjectId, subnetId, vipId)
 	return result, err
 }

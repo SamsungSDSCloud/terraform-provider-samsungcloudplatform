@@ -3,25 +3,22 @@
 page_title: "scp_product Data Source - scp"
 subcategory: ""
 description: |-
-  Provides list of products.
+  
 ---
 
 # scp_product (Data Source)
 
-Provides list of products.
+
 
 ## Example Usage
 
 ```terraform
-data "scp_region" "my_region" {
+data "scp_product" "my_product" {
+  product_id = "PRODUCT-XXXXXXXX"
 }
 
-data "scp_product" "my_scp_product" {
-  language_code = "en_US"
-}
-
-output "output_my_scp_product" {
-  value = data.scp_product.my_scp_product
+output "result_my_product" {
+  value = data.scp_product.my_product
 }
 ```
 
@@ -30,47 +27,47 @@ output "output_my_scp_product" {
 
 ### Required
 
-- `language_code` (String) Language code (ko_KR, en_US)
+- `product_id` (String) Product id
 
 ### Optional
 
-- `category_id` (String) Product category id
-- `category_state` (String) Product category status
-- `exposure_scope` (String) Exposure scope
-- `filter` (Block Set) (see [below for nested schema](#nestedblock--filter))
-- `product_id` (String) Product id
-- `product_state` (String) Product status
+- `item_state` (String) Product item state
 
 ### Read-Only
 
-- `contents` (Block List) Product list (see [below for nested schema](#nestedblock--contents))
-- `id` (String) The ID of this resource.
-- `total_count` (Number) Total list size
+- `created_by` (String) Creator's ID
+- `created_dt` (String) Created date
+- `description` (String) Product description
+- `id` (String) Product id
+- `items` (List of Object) Product item list (see [below for nested schema](#nestedatt--items))
+- `items_map` (List of Map of String) Product items map list
+- `items_string` (String) Product items string
+- `modified_by` (String) Modifier's ID
+- `modified_dt` (String) Modified date
+- `name` (String) Product name
+- `properties` (Map of String) Product properties
+- `rate_id` (String) Project sap year for billing
+- `seq` (String) Product display sequence
+- `state` (String) Product state
+- `type` (String) Product type
 
-<a id="nestedblock--filter"></a>
-### Nested Schema for `filter`
-
-Required:
-
-- `name` (String) Filtering target name
-- `values` (List of String) Filtering values. Each matching value is appended. (OR rule)
-
-Optional:
-
-- `use_regex` (Boolean) Enable regex match for values
-
-
-<a id="nestedblock--contents"></a>
-### Nested Schema for `contents`
+<a id="nestedatt--items"></a>
+### Nested Schema for `items`
 
 Read-Only:
 
-- `icon_file_name` (String) Icon file name
-- `product_category_description` (String) Description of product category
-- `product_category_id` (String) Product category id
-- `product_category_name` (String) Product category name
-- `product_category_path` (String) Product category path
-- `product_category_state` (String) Product category status
-- `product_set` (String) Product set type (SE, PAAS)
+- `code` (String)
+- `cost` (String)
+- `description` (String)
+- `name` (String)
+- `product_id` (String)
+- `product_id_list` (String)
+- `properties` (Map of String)
+- `serviced_for` (String)
+- `state` (String)
+- `type` (String)
+- `unit` (String)
+- `value` (String)
+- `version` (String)
 
 

@@ -13,7 +13,7 @@ The provider needs to be configured with the proper credentials before it can be
 terraform {
   required_providers {
     scp = {
-      version = "1.8.5"
+      version = "3.0.0"
       source  = "SamsungSDSCloud/samsungcloudplatform"
     }
   }
@@ -53,7 +53,7 @@ Insert following parameters in `.scp/config.json` file
 
 ```
 {
-    "target": "production",
+    "host": "https://openapi.samsungsdscloud.com",
     "user-id": "1234",
     "email" : "your.email@samsung.com",
     "project-id": "PROJECT-XXXXXXXXXXXXXXXX"

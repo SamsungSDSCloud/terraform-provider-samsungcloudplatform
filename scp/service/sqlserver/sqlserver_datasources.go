@@ -2,10 +2,10 @@ package sqlserver
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/sqlserver2"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/sqlserver2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -45,23 +45,15 @@ func DatasourceSqlServers() *schema.Resource {
 	}
 }
 
-func getKeyString(rd *schema.ResourceData, key string) optional.String {
-	if len(rd.Get(key).(string)) > 0 {
-		return optional.NewString(rd.Get(key).(string))
-	} else {
-		return optional.String{}
-	}
-}
-
 func dataSourceSqlServerList(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
 	responses, _, err := inst.Client.SqlServer.ListSqlServer(ctx, &sqlserver2.MsSqlConfigurationControllerApiListSqlserverOpts{
-		DbName:            getKeyString(rd, "db_name"),
-		Region:            getKeyString(rd, "region"),
-		ServerGroupName:   getKeyString(rd, "server_group_name"),
-		VirtualServerName: getKeyString(rd, "virtual_server_name"),
-		CreatedBy:         getKeyString(rd, "created_by"),
+		DbName:            common.GetKeyString(rd, "db_name"),
+		Region:            common.GetKeyString(rd, "region"),
+		ServerGroupName:   common.GetKeyString(rd, "server_group_name"),
+		VirtualServerName: common.GetKeyString(rd, "virtual_server_name"),
+		CreatedBy:         common.GetKeyString(rd, "created_by"),
 		Page:              optional.NewInt32(0),
 		Size:              optional.NewInt32(1000),
 		Sort:              optional.Interface{},

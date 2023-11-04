@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/vpc2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/vpc2"
 	"github.com/antihax/optional"
 )
 
@@ -39,7 +39,7 @@ func (client *Client) UpdateVpc(ctx context.Context, vpcId string, description s
 }
 
 func (client *Client) GetVpcList(ctx context.Context) (vpc2.ListResponseOfVpcResponse, error) {
-	result, _, err := client.sdkClient.VpcOpenApiControllerApi.ListVpcV21(ctx, client.config.ProjectId, &vpc2.VpcOpenApiControllerApiListVpcV21Opts{
+	result, _, err := client.sdkClient.VpcOpenApiControllerApi.ListVpcV2(ctx, client.config.ProjectId, &vpc2.VpcOpenApiControllerApiListVpcV2Opts{
 		Size: optional.NewInt32(20),
 		Page: optional.NewInt32(0),
 	})
@@ -47,7 +47,7 @@ func (client *Client) GetVpcList(ctx context.Context) (vpc2.ListResponseOfVpcRes
 }
 
 func (client *Client) GetVpcListV2(ctx context.Context, request ListVpcRequest) (vpc2.ListResponseOfVpcResponse, error) {
-	result, _, err := client.sdkClient.VpcOpenApiControllerApi.ListVpcV21(ctx, client.config.ProjectId, &vpc2.VpcOpenApiControllerApiListVpcV21Opts{
+	result, _, err := client.sdkClient.VpcOpenApiControllerApi.ListVpcV2(ctx, client.config.ProjectId, &vpc2.VpcOpenApiControllerApiListVpcV2Opts{
 		ServiceZoneId: optional.NewString(request.ServiceZoneId),
 		VpcId:         optional.NewString(request.VpcId),
 		VpcName:       optional.NewString(request.VpcName),
@@ -64,12 +64,11 @@ func (client *Client) CheckVpcName(ctx context.Context, vpcName string) (bool, e
 	return *result.Result, err
 }
 
-func (client *Client) CreateVpc(ctx context.Context, vpcName string, vpcDescription string, productGroupId string, serviceZoneId string) (vpc2.AsyncResponse, error) {
-	result, _, err := client.sdkClient.VpcOpenApiControllerApi.CreateVpcV2(ctx, client.config.ProjectId, vpc2.CreateVpcRequest{
+func (client *Client) CreateVpc(ctx context.Context, vpcName string, vpcDescription string, serviceZoneId string) (vpc2.AsyncResponse, error) {
+	result, _, err := client.sdkClient.VpcOpenApiV3ControllerApi.CreateVpcV3(ctx, client.config.ProjectId, vpc2.VpcCreateV3Request{
 		VpcName:        vpcName,
 		VpcDescription: vpcDescription,
 		ServiceZoneId:  serviceZoneId,
-		ProductGroupId: productGroupId,
 	})
 	return result, err
 }

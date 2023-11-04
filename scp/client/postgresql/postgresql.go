@@ -2,8 +2,8 @@ package postgresql
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/postgresql2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/postgresql2"
 	"github.com/antihax/optional"
 )
 
@@ -59,11 +59,12 @@ func (client *Client) GetPostgresql(ctx context.Context, dbServerGroupId string)
 	return result, statusCode, err
 }
 
-func (client *Client) AddPostgresqlBlock(ctx context.Context, dbServerGroupId string, virtualServerId string, blockStorageType string, blockStorageSize int) (postgresql2.AsyncResponse, int, error) {
+func (client *Client) AddPostgresqlBlock(ctx context.Context, dbServerGroupId string, virtualServerId string, blockStorageType string, blockStorageSize int, diskType string) (postgresql2.AsyncResponse, int, error) {
 	result, c, err := client.sdkClient.ConfigurationControllerApi.AddDatabaseStorage7(ctx, client.config.ProjectId, dbServerGroupId, postgresql2.AddStorageRequest{
 		VirtualServerId:  virtualServerId,
 		BlockStorageType: blockStorageType,
 		BlockStorageSize: int32(blockStorageSize),
+		DiskType:         diskType,
 	})
 	var statusCode int
 	if c != nil {

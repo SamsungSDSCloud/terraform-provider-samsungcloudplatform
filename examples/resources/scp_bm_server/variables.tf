@@ -46,3 +46,9 @@ variable "cpu" {
 variable "memory" {
   default = 32
 }
+
+// 서버 시작(RUNNING) / 중지(STOPPED)를 위한 변수
+// 생성 시에는 "RUNNING"으로 세팅해야한다.
+variable "state" {
+  default = "STOPPED"
+}

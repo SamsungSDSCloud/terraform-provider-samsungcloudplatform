@@ -18,6 +18,7 @@ resource "scp_bm_server" "server_001" {
   admin_password  = var.password
   cpu_count       = var.cpu
   memory_size_gb  = var.memory
+  state           = var.state
   image_id        = data.scp_standard_images.centos_image.standard_images[0].id
   vpc_id          = data.terraform_remote_state.vpc.outputs.id
   subnet_id       = data.terraform_remote_state.subnet.outputs.id
@@ -32,4 +33,10 @@ resource "scp_bm_server" "server_001" {
   nat_enabled = false
   local_subnet_enabled = false
   local_subnet_ipv4 = ""
+
+  timeouts {
+    create = "30m"
+    update = "30m"
+    delete = "30m"
+  }
 }

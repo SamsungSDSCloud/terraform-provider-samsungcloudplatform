@@ -37,6 +37,7 @@ output "contents" {
 - `page` (Number) Page start number from which to get the list
 - `size` (Number) Size to get list
 - `subnet_ip_address` (String) Subnet Virtual Ip address
+- `vip_state` (String) Subnet Virtual Ip State
 
 ### Read-Only
 

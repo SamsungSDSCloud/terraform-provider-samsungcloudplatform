@@ -1,6 +1,6 @@
 package client
 
-import scpsdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
+import scpsdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
 
 type Config struct {
 	ServiceHost     string

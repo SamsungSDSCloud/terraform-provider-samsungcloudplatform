@@ -13,8 +13,8 @@ data "scp_standard_image" "centos_image" {
 
 resource "scp_virtual_server" "server_001" {
   virtual_server_name = var.name
-  admin_account   = var.id
-  admin_password  = var.password
+  key_pair_id = data.terraform_remote_state.key_pair.outputs.id
+
   cpu_count       = var.cpu
   memory_size_gb  = var.memory
   image_id        = data.scp_standard_image.centos_image.id
@@ -35,6 +35,8 @@ resource "scp_virtual_server" "server_001" {
     data.terraform_remote_state.security_group.outputs.id
   ]
   use_dns = false
+
+  placement_group_id = data.terraform_remote_state.placement_group.outputs.id
 
   external_storage {
     name            = var.ext_name

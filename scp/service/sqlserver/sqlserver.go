@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/service/image"
-	objectstorage "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/object-storage"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/sqlserver2"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/image"
+	objectstorage "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/object-storage"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/sqlserver2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -111,6 +111,27 @@ func ResourceSqlServer() *schema.Resource {
 				ForceNew:    true,
 				Description: "Contract : None, 1-year, 3-year",
 			},
+			"data_disk_type": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Data storage disk type. (SSD, HDD)",
+				ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
+					var diags diag.Diagnostics
+					val := v.(string)
+					if val == "SSD" {
+						return diags
+					} else if val == "HDD" {
+						return diags
+					}
+
+					diags = append(diags, diag.Diagnostic{
+						Severity:      diag.Error,
+						Summary:       fmt.Sprintf("Must be either SSD or HDD"),
+						AttributePath: path,
+					})
+					return diags
+				},
+			},
 			"data_block_storage_size_gb": {
 				Type:             schema.TypeInt,
 				Required:         true,
@@ -127,6 +148,25 @@ func ResourceSqlServer() *schema.Resource {
 				Description: "Additional block storages.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"product_name": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Storage product name. (only SSD)",
+							ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
+								var diags diag.Diagnostics
+								val := v.(string)
+								if val == "SSD" {
+									return diags
+								}
+
+								diags = append(diags, diag.Diagnostic{
+									Severity:      diag.Error,
+									Summary:       fmt.Sprintf("Must be SSD"),
+									AttributePath: path,
+								})
+								return diags
+							},
+						},
 						"storage_usage": {
 							Type:        schema.TypeString,
 							Required:    true,
@@ -246,6 +286,25 @@ func resourceSqlServerBackup() *schema.Resource {
 				Computed:    true,
 				Description: "Object storage ID where backup files will be stored.",
 			},
+			"backup_method": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Backup Method (s3api|cdp) ",
+				ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
+					var diags diag.Diagnostics
+					val := v.(string)
+					if val == "s3api" || val == "cdp" {
+						return diags
+					}
+
+					diags = append(diags, diag.Diagnostic{
+						Severity:      diag.Error,
+						Summary:       fmt.Sprintf("Must be either s3api or cdp"),
+						AttributePath: path,
+					})
+					return diags
+				},
+			},
 			"backup_retention_day": {
 				Type:        schema.TypeInt,
 				Required:    true,
@@ -256,14 +315,13 @@ func resourceSqlServerBackup() *schema.Resource {
 					if value < 7 || value > 35 {
 						diags = append(diags, diag.Diagnostic{
 							Severity:      diag.Error,
-							Summary:       fmt.Sprintf("The backup file retention period can be set from 7 to 35 days."),
+							Summary:       fmt.Sprintf("Backup retion day's value must be between 7 and 35 days"),
 							AttributePath: path,
 						})
 					}
 					return diags
 				},
 			},
-			//"db_backup_archive_cycle": {},
 			"backup_start_hour": {
 				Type:        schema.TypeInt,
 				Required:    true,
@@ -316,6 +374,16 @@ func resourceSqlServerHighAvailability() *schema.Resource {
 				Description:      "Static IP to assign to the STANDBy server.",
 				ValidateDiagFunc: common.ValidateIpv4,
 			},
+			"active_availability_zone_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Active Availability Zone Name",
+			},
+			"standby_availability_zone_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Standby Availability Zone Name",
+			},
 		},
 	}
 }
@@ -345,8 +413,23 @@ func resourceSqlServerCreate(ctx context.Context, rd *schema.ResourceData, meta 
 
 	serviceZoneId := vpcInfo.ServiceZoneId
 
+	// block id, AZ
+	projectInfo, err := inst.Client.Project.GetProjectInfo(ctx)
+	if err != nil {
+		return
+	}
+	var blockId string
+	var isMultiAvailabilityZone *bool
+	for _, zoneInfo := range projectInfo.ServiceZones {
+		if zoneInfo.ServiceZoneId == serviceZoneId {
+			blockId = zoneInfo.BlockId
+			isMultiAvailabilityZone = zoneInfo.IsMultiAvailabilityZone
+			break
+		}
+	}
+
 	serverNamePrefix := rd.Get("virtual_server_name_prefix").(string)
-	networks := expandNetworkSetting(serverNamePrefix, rd.Get("high_availability").(*schema.Set))
+	networks := expandNetworkSetting(serverNamePrefix, rd.Get("high_availability").(*schema.Set), isMultiAvailabilityZone)
 	ha := expandHASetting(rd.Get("high_availability").(*schema.Set))
 
 	backup, err := createBackupSettings(ctx, inst.Client, serviceZoneId, rd.Get("backup").(*schema.Set))
@@ -361,18 +444,7 @@ func resourceSqlServerCreate(ctx context.Context, rd *schema.ResourceData, meta 
 
 	encryptEnabled := rd.Get("encrypt_enabled").(bool)
 
-	// block id
-	projectInfo, err := inst.Client.Project.GetProjectInfo(ctx)
-	if err != nil {
-		return
-	}
-	var blockId string
-	for _, zoneInfo := range projectInfo.ServiceZones {
-		if zoneInfo.ServiceZoneId == serviceZoneId {
-			blockId = zoneInfo.BlockId
-			break
-		}
-	}
+	dataDiskType := rd.Get("data_disk_type").(string)
 
 	// block storage
 	var blockStorages []sqlserver2.DatabaseBlockStorage
@@ -382,6 +454,7 @@ func resourceSqlServerCreate(ctx context.Context, rd *schema.ResourceData, meta 
 		blockStorages = append(blockStorages, sqlserver2.DatabaseBlockStorage{
 			BlockStorageType: additionalStorageInfo.StorageUsage,
 			BlockStorageSize: int32(additionalStorageInfo.StorageSize),
+			DiskType:         additionalStorageInfo.ProductName,
 		})
 	}
 	blockStorageSize := rd.Get("data_block_storage_size_gb").(int)
@@ -428,7 +501,7 @@ func resourceSqlServerCreate(ctx context.Context, rd *schema.ResourceData, meta 
 	dbName := rd.Get("db_name").(string)
 	serverGroupName := rd.Get("server_group_name").(string)
 
-	inst.Client.SqlServer.CreateSqlServer(ctx, sqlserver2.CreateSqlServerRequest{
+	_, _, err = inst.Client.SqlServer.CreateSqlServer(ctx, sqlserver2.CreateSqlServerRequest{
 		ServiceZoneId:           serviceZoneId,
 		BlockId:                 blockId,
 		ImageId:                 imageId,
@@ -447,6 +520,7 @@ func resourceSqlServerCreate(ctx context.Context, rd *schema.ResourceData, meta 
 			DataBlockStorageSize:      int32(blockStorageSize),
 			EncryptEnabled:            &encryptEnabled,
 			AdditionalBlockStorages:   blockStorages,
+			DataDiskType:              dataDiskType,
 		},
 		HighAvailability: ha,
 		Replica:          nil,
@@ -466,6 +540,9 @@ func resourceSqlServerCreate(ctx context.Context, rd *schema.ResourceData, meta 
 		DbSoftwareOptions: dbSWOption,
 		AdditionalDb:      additionalDbs,
 	})
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	time.Sleep(50 * time.Second)
 
@@ -632,6 +709,7 @@ func resourceSqlServerRead(ctx context.Context, rd *schema.ResourceData, meta in
 
 	if sqlServer.Backup != nil {
 		backup := map[string]interface{}{
+			"backup_method":        sqlServer.Backup.BackupMethod,
 			"object_storage_id":    sqlServer.Backup.ObjectStorageId,
 			"backup_retention_day": int(sqlServer.Backup.BackupRetentionDay),
 			"backup_start_hour":    int(sqlServer.Backup.BackupStartHour),
@@ -747,8 +825,11 @@ func updateBackup(param UpdateSqlServerParam) error {
 		useBackup = false
 		backup = oldBackups[0]
 	}
-
-	if _, _, err := param.Inst.Client.SqlServer.UpdateBackupSetting(param.Ctx, param.Rd.Id(), useBackup, backup.ObjectStorageId, int(backup.BackupRetentionDay), int(backup.DbBackupArchMin), int(backup.BackupStartHour)); err != nil {
+	updateBackupSettingRequest := sqlserver2.UpdateBackupSettingRequest{
+		UseBackup: &useBackup,
+		Backup:    backup,
+	}
+	if _, _, err := param.Inst.Client.SqlServer.UpdateBackupSetting(param.Ctx, param.Rd.Id(), updateBackupSettingRequest); err != nil {
 		return err
 	}
 	if err := waitForSqlServer(param.Ctx, param.Inst.Client, param.Rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true); err != nil {
@@ -775,6 +856,9 @@ func updateAdditionalStorage(param UpdateSqlServerParam) error {
 	for i := 0; i < len(oldList); i++ {
 		if oldList[i].StorageUsage != newList[i].StorageUsage {
 			return fmt.Errorf("changing storage usage is not allowed")
+		}
+		if oldList[i].ProductName != newList[i].ProductName {
+			return fmt.Errorf("changing product name is not allowed")
 		}
 		if oldList[i].StorageSize > newList[i].StorageSize {
 			return fmt.Errorf("decreasing size is not allowed")
@@ -889,10 +973,11 @@ func waitForSqlServer(ctx context.Context, scpClient *client.SCPClient, id strin
 				if c == 400 && !errorOnNotFound {
 					return "", common.DeletedState, nil
 				}
+
+				if c == 404 && !errorOnNotFound {
+					return "", common.DeletedState, nil
+				}
 				/*
-					if c == 404 && !errorOnNotFound {
-						return "", common.DeletedState, nil
-					}
 					if c == 403 && !errorOnNotFound {
 						return "", common.DeletedState, nil
 					}
@@ -938,7 +1023,7 @@ func getSecurityGroupIds(rd *schema.ResourceData) []string {
 	return sgIds
 }
 
-func expandNetworkSetting(serverNamePrefix string, haSchemaSet *schema.Set) []sqlserver2.DatabaseServerNetwork {
+func expandNetworkSetting(serverNamePrefix string, haSchemaSet *schema.Set, isMultiAvailabilityZone *bool) []sqlserver2.DatabaseServerNetwork {
 	var networks []sqlserver2.DatabaseServerNetwork
 
 	haSettings := haSchemaSet.List()
@@ -955,6 +1040,12 @@ func expandNetworkSetting(serverNamePrefix string, haSchemaSet *schema.Set) []sq
 			network.ServiceIp = v
 		}
 
+		if *isMultiAvailabilityZone {
+			if v, ok := setting["active_availability_zone_name"].(string); ok && v != "" {
+				network.AvailabilityZoneName = v
+			}
+		}
+
 		networks = append(networks, network)
 
 		network = sqlserver2.DatabaseServerNetwork{
@@ -964,16 +1055,33 @@ func expandNetworkSetting(serverNamePrefix string, haSchemaSet *schema.Set) []sq
 		if v, ok := setting["standby_server_ip"].(string); ok && v != "" {
 			network.ServiceIp = v
 		}
+
+		if *isMultiAvailabilityZone {
+			if v, ok := setting["standby_availability_zone_name"].(string); ok && v != "" {
+				network.AvailabilityZoneName = v
+			}
+		}
+
 		networks = append(networks, network)
 
 	} else {
-		networks = append(networks, sqlserver2.DatabaseServerNetwork{
-			ServerName:           serverNamePrefix + "01",
-			NodeType:             "ACTIVE",
-			ServiceIp:            "",
-			AvailabilityZoneName: "",
-			NatIpId:              "",
-		})
+		if *isMultiAvailabilityZone {
+			networks = append(networks, sqlserver2.DatabaseServerNetwork{
+				ServerName:           serverNamePrefix + "01",
+				NodeType:             "ACTIVE",
+				ServiceIp:            "",
+				AvailabilityZoneName: "AZ1",
+				NatIpId:              "",
+			})
+		} else {
+			networks = append(networks, sqlserver2.DatabaseServerNetwork{
+				ServerName:           serverNamePrefix + "01",
+				NodeType:             "ACTIVE",
+				ServiceIp:            "",
+				AvailabilityZoneName: "",
+				NatIpId:              "",
+			})
+		}
 	}
 
 	return networks
@@ -1024,11 +1132,15 @@ func expandBackupSettings(vAdvancedBackupSettings *schema.Set) []*sqlserver2.Dat
 			backupSetting.ObjectStorageId = v
 		}
 
-		if v, ok := mAdvancedBackupSetting["retention_day"].(int); ok {
+		if v, ok := mAdvancedBackupSetting["backup_method"].(string); ok && v != "" {
+			backupSetting.BackupMethod = v
+		}
+
+		if v, ok := mAdvancedBackupSetting["backup_retention_day"].(int); ok {
 			backupSetting.BackupRetentionDay = int32(v)
 		}
 
-		if v, ok := mAdvancedBackupSetting["start_hour"].(int); ok {
+		if v, ok := mAdvancedBackupSetting["backup_start_hour"].(int); ok {
 			backupSetting.BackupStartHour = int32(v)
 		}
 		backupSettings = append(backupSettings, backupSetting)
@@ -1039,14 +1151,14 @@ func expandBackupSettings(vAdvancedBackupSettings *schema.Set) []*sqlserver2.Dat
 
 func getObjectStorageId(ctx context.Context, scpClient *client.SCPClient, serviceZoneId string) (string, error) {
 
-	response, err := scpClient.ObjectStorage.ReadObjectStorageList(ctx, serviceZoneId, objectstorage.ObjectStorageV3ControllerApiListObjectStorage3Opts{})
+	response, err := scpClient.ObjectStorage.ReadObjectStorageList(ctx, serviceZoneId, objectstorage.ObjectStorageV4ControllerApiListObjectStorage6Opts{})
 	if err != nil {
 		return "", fmt.Errorf(err.Error())
 	}
 	if response.TotalCount < 1 {
 		return "", fmt.Errorf("No object storage list.")
 	}
-	objectStorageId := response.Contents[0].ObsId // idx 0 is OK?
+	objectStorageId := response.Contents[0].ObjectStorageId // idx 0 is OK?
 
 	return objectStorageId, nil
 }
@@ -1068,6 +1180,9 @@ func createBackupSettings(ctx context.Context, scpClient *client.SCPClient, serv
 
 	backupSetting.ObjectStorageId = objectStorageId
 
+	if v, ok := backup["backup_method"].(string); ok {
+		backupSetting.BackupMethod = v
+	}
 	if v, ok := backup["backup_retention_day"].(int); ok {
 		backupSetting.BackupRetentionDay = int32(v)
 	}

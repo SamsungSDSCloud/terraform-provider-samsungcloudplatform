@@ -27,22 +27,20 @@ output "output_my_scp_obs_buckets" {
 ### Optional
 
 - `created_by` (String) Created By
-- `is_obs_bucket_sync` (Boolean) Perform Object Storage Bucket sync (true | false)
-- `is_obs_system_bucket_enabled` (Boolean) Is Object Storage System Bucket enabled (true | false)
-- `obs_bucket_id_list` (List of String) Object Storage Bucket ID List
-- `obs_bucket_name` (String) Object Storage Bucket Name (Like)
-- `obs_bucket_name_exact` (String) Object Storage Bucket Name (Equal)
-- `obs_bucket_query_end_dt` (String) Object Storage Bucket Query End Date
-- `obs_bucket_query_start_dt` (String) Object Storage Bucket Query Start Date
-- `obs_bucket_state` (String) Object Storage Bucket State
-- `obs_bucket_state_in` (List of String) Object Storage Bucket State List
-- `obs_bucket_used_type` (List of String) Object Storage Bucket Used Type
-- `obs_quota_id` (String) Object Storage Quota ID
-- `obs_storage_id` (String) Object Storage Bucket Name
+- `end_modified_dt` (String) Object Storage Bucket Query End Date
+- `object_storage_bucket_ids` (List of String) Object Storage Bucket ID List
+- `object_storage_bucket_name` (String) Object Storage Bucket Name (Like)
+- `object_storage_bucket_purposes` (List of String) Object Storage Bucket Purpose Type List
+- `object_storage_bucket_state` (String) Object Storage Bucket State
+- `object_storage_bucket_states` (List of String) Object Storage Bucket State List
+- `object_storage_id` (String) Object Storage Bucket Name
+- `object_storage_quota_id` (String) Object Storage Quota ID
+- `object_storage_system_bucket_enabled` (Boolean) Is Object Storage System Bucket enabled (true | false)
 - `page` (Number) Page start number from which to get the list
-- `pool_region` (String) Region
+- `service_zone_id` (String) Service Zone ID
 - `size` (Number) Size to get list
 - `sort` (List of String) Sort
+- `start_modified_dt` (String) Object Storage Bucket Query Start Date
 
 ### Read-Only
 
@@ -57,26 +55,24 @@ Read-Only:
 
 - `created_by` (String)
 - `created_dt` (String)
-- `is_obs_bucket_dr_enabled` (Boolean)
-- `is_obs_bucket_ip_address_filter_enabled` (Boolean)
-- `is_obs_object_creation_enabled` (Boolean)
-- `is_obs_system_bucket_enabled` (Boolean)
 - `modified_by` (String)
 - `modified_dt` (String)
-- `obs_bucket_dr_type` (String)
-- `obs_bucket_id` (String)
-- `obs_bucket_name` (String)
-- `obs_bucket_state` (String)
-- `obs_bucket_used_type` (String)
-- `obs_id` (String)
-- `obs_name` (String)
-- `obs_quota_id` (String)
-- `obs_quota_name` (String)
-- `obs_tenant_name` (String)
-- `pool_region` (String)
+- `object_storage_bucket_access_control_enabled` (Boolean)
+- `object_storage_bucket_dr_enabled` (Boolean)
+- `object_storage_bucket_dr_type` (String)
+- `object_storage_bucket_id` (String)
+- `object_storage_bucket_name` (String)
+- `object_storage_bucket_purpose` (String)
+- `object_storage_bucket_state` (String)
+- `object_storage_bucket_user_purpose` (String)
+- `object_storage_bucket_version_enabled` (Boolean)
+- `object_storage_id` (String)
+- `object_storage_name` (String)
+- `object_storage_quota_id` (String)
+- `object_storage_quota_name` (String)
+- `object_storage_system_bucket_enabled` (Boolean)
+- `object_storage_tenant_name` (String)
 - `project_id` (String)
-- `system_id` (String)
-- `system_name` (String)
-- `zone_name` (String)
+- `service_zone_id` (String)
 
 

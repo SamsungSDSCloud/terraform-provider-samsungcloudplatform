@@ -39,17 +39,14 @@ resource "scp_sqlserver" "my_ms_sql" {
 
   db_collation = "Korean_Wansung_CS_AS"
 
+  data_disk_type = "HDD"
   data_block_storage_size_gb = 100
   encrypt_enabled = false
-
-  additional_block_storages {
-    storage_usage = "DATA"
-    storage_size_gb = 10
-  }
 
   additional_db = ["dbb"]
 
   backup {
+    backup_method = "s3api"
     backup_retention_day = 7
     backup_start_hour = 23
   }

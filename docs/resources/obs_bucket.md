@@ -14,23 +14,24 @@ Provides an Object Storage resource.
 
 ```terraform
 resource "scp_obs_bucket" "my_scp_obs_bucket" {
-  obs_bucket_name = var.name
-  obs_id = "S3OBJECTSTORAGE-XXXXX"
-  zone_id = "ZONE-XXXXX"
+  object_storage_bucket_name = var.name
+  object_storage_id = "S3OBJECTSTORAGE-XXXXXX"
+  service_zone_id = "ZONE-XXXXXXXX"
 
-  obs_bucket_file_encryption_enabled = true
-  obs_bucket_file_encryption_algorithm = "AES256"
-  obs_bucket_file_encryption_type      = "SSE-S3"
-  obs_bucket_version_enabled = true
+  object_storage_bucket_file_encryption_enabled = true
+  object_storage_bucket_version_enabled = true
 
-  is_obs_bucket_ip_address_filter_enabled = true
-  dynamic "obs_bucket_access_ip_address_ranges" {
-    for_each = var.obs_bucket_access_ip_address_ranges
+  object_storage_bucket_access_control_enabled = true
+  product_names = ["Object Storage"]
+  dynamic "access_control_rules" {
+    for_each = var.access_control_rules
     content {
-      obs_bucket_access_ip_address_range = obs_bucket_access_ip_address_ranges.value["obs_bucket_access_ip_address_range"]
-      type = obs_bucket_access_ip_address_ranges.value["type"]
+      rule_value = access_control_rules.value["rule_value"]
+      rule_type = access_control_rules.value["rule_type"]
     }
   }
+
+  object_storage_bucket_dr_enabled = false
 }
 ```
 
@@ -39,30 +40,30 @@ resource "scp_obs_bucket" "my_scp_obs_bucket" {
 
 ### Required
 
-- `obs_bucket_file_encryption_enabled` (Boolean) Enable File Encryption for Object Storage Bucket
-- `obs_bucket_name` (String) Object Storage Bucket Name
-- `obs_id` (String) Object Storage Id
-- `zone_id` (String) Service Zone ID
+- `object_storage_bucket_file_encryption_enabled` (Boolean) Object Storage Bucket File Encryption Enabled
+- `object_storage_bucket_name` (String) Object Storage Bucket Name
+- `object_storage_id` (String) Object Storage ID
+- `product_names` (List of String) Product Names
+- `service_zone_id` (String) Service Zone ID
 
 ### Optional
 
-- `is_obs_bucket_dr_enabled` (Boolean) Enable Object Storage Bucket DR
-- `is_obs_bucket_ip_address_filter_enabled` (Boolean) Ip Address Filter Is Enabled
-- `obs_bucket_access_ip_address_ranges` (Block List) Object Storage Bucket Access IP Address Ranges (see [below for nested schema](#nestedblock--obs_bucket_access_ip_address_ranges))
-- `obs_bucket_file_encryption_algorithm` (String) Object Storage Bucket File Encryption Algorithm (AES256)
-- `obs_bucket_file_encryption_type` (String) Object Storage Bucket File Encryption Type (SSE-S3)
-- `obs_bucket_version_enabled` (Boolean) Object Storage Bucket Version usage
-- `replica_obs_bucket_id` (String) Replica Object Storage Bucket ID
-- `tags` (Map of String) Tags
+- `access_control_rules` (Block List) Object Storage Bucket Access Control Rules (see [below for nested schema](#nestedblock--access_control_rules))
+- `object_storage_bucket_access_control_enabled` (Boolean) Object Storage Bucket Access Control Enabled
+- `object_storage_bucket_dr_enabled` (Boolean) Object Storage Bucket DR Enabled
+- `object_storage_bucket_dr_type` (String) Object Storage Bucket DR Type
+- `object_storage_bucket_version_enabled` (Boolean) Object Storage Bucket Version Enabled
+- `sync_object_storage_bucket_id` (String) Sync Object Storage Bucket ID
+- `tags` (List of Map of String) Tags
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 
-<a id="nestedblock--obs_bucket_access_ip_address_ranges"></a>
-### Nested Schema for `obs_bucket_access_ip_address_ranges`
+<a id="nestedblock--access_control_rules"></a>
+### Nested Schema for `access_control_rules`
 
 Optional:
 
-- `obs_bucket_access_ip_address_range` (String) Object Storage Bucket Access IP Address Range
-- `type` (String) Range Type
+- `rule_type` (String) Access Control Rule Type
+- `rule_value` (String) Access Control Rule Value

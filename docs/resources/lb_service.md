@@ -50,11 +50,39 @@ resource "scp_lb_service" "my_lb_service_l7" {
   nat_active    = false
 }
 
+resource "scp_lb_service" "my_lb_service_l7_https" {
+  lb_id            = data.terraform_remote_state.load_balancer.outputs.id
+  app_profile_id   = data.terraform_remote_state.load_balancer_profile.outputs.id
+  name             = var.namel7https
+  layer_type       = "L7"
+  protocol         = "HTTPS"
+  client_certificate_id = "CERT-XXXXXXXXXXXXXXXXXXXXXX"
+  client_ssl_security_level = "HIGH"
+  server_certificate_id = "CERT-XXXXXXXXXXXXXXXXXXXXXX"
+  server_ssl_security_level = "HIGH"
+  service_ports    = "8088"
+  forwarding_ports = "8089"
+  service_ipv4     = "192.168.102.13"
+  persistence      = "DISABLED"
+
+  lb_rules {
+    lb_rule_seq = 1
+    pattern_url = "/promise"
+  }
+  lb_rules {
+    lb_rule_seq = 2
+    pattern_url = "/devotion"
+  }
+  nat_active    = false
+}
+
+
 data "scp_region" "my_region" {
 }
 
 resource "scp_public_ip" "my_public_ip_id" {
   region = data.scp_region.my_region.location
+  uplink_type = "INTERNET"
 }
 ```
 
@@ -73,20 +101,22 @@ resource "scp_public_ip" "my_public_ip_id" {
 
 ### Optional
 
+- `client_certificate_id` (String) SSL client certification id.
+- `client_ssl_security_level` (String) SSL client security level.
 - `forwarding_ports` (String) Forwarding port numbers. Multiple ports can be inserted using comma and dash. (e.g. 8000-8100,8200)
 - `lb_rules` (Block List) Server-Group rules. (see [below for nested schema](#nestedblock--lb_rules))
 - `lb_service_ip_id` (String)
 - `nat_active` (Boolean) Wheter to use NAT IP (public IP) or not.
 - `persistence_profile_id` (String) Persistence target profile id.
 - `public_ip_id` (String) NAT IP attached to LB service IP.
+- `server_certificate_id` (String) SSL server certification id.
+- `server_ssl_security_level` (String) SSL server security level.
 - `service_ipv4` (String) Servicing IP address
 - `use_access_log` (Boolean)
 
 ### Read-Only
 
-- `client_certificate_id` (String) SSL client certification id.
 - `id` (String) The ID of this resource.
-- `server_certificate_id` (String) SSL server certification id.
 
 <a id="nestedblock--lb_rules"></a>
 ### Nested Schema for `lb_rules`

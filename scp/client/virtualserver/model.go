@@ -83,6 +83,8 @@ type CreateRequest struct {
 	VirtualServerName    string
 	AvailabilityZoneName string
 	Tags                 []TagRequest
+	KeyPairId            string
+	PlacementGroupId     string
 }
 
 type ListVirtualServersRequestParam struct {

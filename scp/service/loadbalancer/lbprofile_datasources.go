@@ -2,10 +2,10 @@ package loadbalancer
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/loadbalancer2"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/loadbalancer2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -32,7 +32,7 @@ func DatasourceLbProfiles() *schema.Resource {
 			"page":                {Type: schema.TypeInt, Optional: true, Default: 0, Description: "Page start number from which to get the list"},
 			"size":                {Type: schema.TypeInt, Optional: true, Default: 20, Description: "Size to get list"},
 			"sort":                {Type: schema.TypeString, Optional: true, Description: "Sort"},
-			"contents":            {Type: schema.TypeList, Optional: true, Description: "Load balancer profile list", Elem: datasourceLbProfileElem()},
+			"contents":            {Type: schema.TypeList, Computed: true, Description: "Load balancer profile list", Elem: datasourceLbProfileElem()},
 			"total_count":         {Type: schema.TypeInt, Computed: true},
 		},
 		Description: "Provides list of load balancer profiles",

@@ -21,3 +21,7 @@ variable "namel4" {
 variable "namel7" {
   default = "lbservicel7test"
 }
+
+variable "namel7https" {
+  default = "lbservicel7httpstest"
+}

@@ -3,39 +3,43 @@ package client
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/baremetal"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/directconnect"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/firewall"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/iam"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/image"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/image/customimage"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/image/migrationimage"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/internetgateway"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/kubernetes"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/kubernetesapps"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/kubernetesengine"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/loadbalancer"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/loggingaudit"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/natgateway"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/peering"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/postgresql"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/product"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/project"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/publicip"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/routing"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/securitygroup"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/servergroup"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/sqlserver"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/storage/backup"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/storage/blockstorage"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/storage/bmblockstorage"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/storage/filestorage"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/storage/objectstorage"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/subnet"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/tag"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/virtualserver"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/vpc"
-	scpsdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/baremetal"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/directconnect"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/firewall"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/iam"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/image"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/image/customimage"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/image/migrationimage"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/internetgateway"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/keypair"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/kubernetes"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/kubernetesapps"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/kubernetesengine"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/loadbalancer"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/loggingaudit"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/natgateway"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/peering"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/placementgroup"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/postgresql"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/product"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/project"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/publicip"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/resourcegroup"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/routing"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/securitygroup"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/servergroup"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/sqlserver"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/backup"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/blockstorage"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/bmblockstorage"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/filestorage"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/objectstorage"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/subnet"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/tag"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/transitgateway"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/virtualserver"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/vpc"
+	scpsdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -54,6 +58,7 @@ type SCPClient struct {
 	NatGateway      *natgateway.Client
 	Firewall        *firewall.Client
 	DirectConnect   *directconnect.Client
+	TransitGateway  *transitgateway.Client
 
 	// Kubernetes
 	Kubernetes       *kubernetes.Client
@@ -67,6 +72,8 @@ type SCPClient struct {
 	VirtualServer  *virtualserver.Client
 	ServerGroup    *servergroup.Client
 	BareMetal      *baremetal.Client
+	KeyPair        *keypair.Client
+	PlacementGroup *placementgroup.Client
 
 	// Storage
 	FileStorage           *filestorage.Client
@@ -80,10 +87,11 @@ type SCPClient struct {
 	SqlServer  *sqlserver.Client
 
 	// Misc.
-	Project  *project.Client
-	Product  *product.Client
-	Iam      *iam.Client
-	PublicIp *publicip.Client
+	Project       *project.Client
+	Product       *product.Client
+	Iam           *iam.Client
+	PublicIp      *publicip.Client
+	ResourceGroup *resourcegroup.Client
 
 	Loggingaudit *loggingaudit.Client
 	Tag          *tag.Client
@@ -167,6 +175,7 @@ func NewSCPClient(providerConfig *Config) (*SCPClient, error) {
 		NatGateway:      natgateway.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		Firewall:        firewall.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		DirectConnect:   directconnect.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		TransitGateway:  transitgateway.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 
 		// Kubernetes
 		Kubernetes:       kubernetes.NewClient(NewDefaultConfig(providerConfig, "kubernetes")),
@@ -180,6 +189,8 @@ func NewSCPClient(providerConfig *Config) (*SCPClient, error) {
 		VirtualServer:  virtualserver.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		ServerGroup:    servergroup.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		BareMetal:      baremetal.NewClient(NewDefaultConfig(providerConfig, "baremetal")),
+		KeyPair:        keypair.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		PlacementGroup: placementgroup.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 
 		// Storage
 		FileStorage:           filestorage.NewClient(NewDefaultConfig(providerConfig, "")),
@@ -193,10 +204,11 @@ func NewSCPClient(providerConfig *Config) (*SCPClient, error) {
 		SqlServer:  sqlserver.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 
 		// Common.
-		Project:  project.NewClient(NewDefaultConfig(providerConfig, "project")),
-		Product:  product.NewClient(NewDefaultConfig(providerConfig, "product")),
-		Iam:      iam.NewClient(NewDefaultConfig(providerConfig, "iam")),
-		PublicIp: publicip.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		Project:       project.NewClient(NewDefaultConfig(providerConfig, "project")),
+		Product:       product.NewClient(NewDefaultConfig(providerConfig, "product")),
+		Iam:           iam.NewClient(NewDefaultConfig(providerConfig, "iam")),
+		PublicIp:      publicip.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		ResourceGroup: resourcegroup.NewClient(NewDefaultConfig(providerConfig, "resource-group")),
 
 		Loggingaudit: loggingaudit.NewClient(NewDefaultConfig(providerConfig, "logging-audit")),
 		Tag:          tag.NewClient(NewDefaultConfig(providerConfig, "tag")),

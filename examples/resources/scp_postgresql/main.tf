@@ -34,6 +34,7 @@ resource "scp_postgresql" "my_pg_db" {
 
   timezone = "Asia/Seoul"
 
+  data_disk_type = "SSD"
   data_storage_size_gb = 10
 
   additional_storage {
@@ -42,11 +43,13 @@ resource "scp_postgresql" "my_pg_db" {
     storage_size_gb = 10
   }
 
-  high_availability {
-
-  }
+  #high_availability {
+  #  active_availability_zone_name  = "AZ1"
+  #  standby_availability_zone_name = "AZ2"
+  #}
 
   backup {
+    backup_method = "s3api"
     retention_day = 7
     start_hour = 23
   }

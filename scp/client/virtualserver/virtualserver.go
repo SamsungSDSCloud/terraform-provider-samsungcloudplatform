@@ -2,8 +2,8 @@ package virtualserver
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	virtualserver2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/virtual-server2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	virtualserver2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/virtual-server2"
 	"github.com/antihax/optional"
 )
 
@@ -102,6 +102,67 @@ func (client *Client) CreateVirtualServer(ctx context.Context, request CreateReq
 			OsUserId:       request.OsAdmin.OsUserId,
 			OsUserPassword: request.OsAdmin.OsUserPassword,
 		},
+		SecurityGroupIds: request.SecurityGroupIds,
+		ServerGroupId:    request.ServerGroupId,
+		ServerType:       request.ServerType,
+		//ServiceLevelId:    request.ServiceLevelId,	// deprecated
+		ServiceZoneId: request.ServiceZoneId,
+		//Timezone:          request.Timezone,			// deprecated
+		VirtualServerName:    request.VirtualServerName,
+		Tags:                 tags,
+		AvailabilityZoneName: request.AvailabilityZoneName,
+	})
+	return result, err
+}
+
+func (client *Client) CreateVirtualServerV4(ctx context.Context, request CreateRequest) (virtualserver2.AsyncResponse, error) {
+
+	var extraBlockStorages []virtualserver2.VirtualServerCreateBlockStorageV3Request
+	for _, b := range request.ExtraBlockStorages {
+		extraBlockStorages = append(extraBlockStorages, virtualserver2.VirtualServerCreateBlockStorageV3Request{
+			BlockStorageName: b.BlockStorageName,
+			DiskSize:         b.DiskSize,
+			EncryptEnabled:   &b.EncryptEnabled,
+			DiskType:         b.DiskType,
+		})
+	}
+
+	tags := make([]virtualserver2.TagRequest, 0)
+	for _, tag := range request.Tags {
+		tags = append(tags, virtualserver2.TagRequest{
+			TagKey:   tag.TagKey,
+			TagValue: tag.TagValue,
+		})
+	}
+	result, _, err := client.sdkClient.VirtualServerCreateV4Api.CreateVirtualServer2(ctx, client.config.ProjectId, virtualserver2.VirtualServerCreateV4Request{
+		BlockStorage: &virtualserver2.VirtualServerCreateBlockStorageV3Request{
+			BlockStorageName: request.BlockStorage.BlockStorageName,
+			DiskSize:         request.BlockStorage.DiskSize,
+			EncryptEnabled:   &request.BlockStorage.EncryptEnabled,
+			DiskType:         request.BlockStorage.DiskType,
+		},
+		ContractDiscount:          request.ContractDiscount,
+		DeletionProtectionEnabled: &request.DeletionProtectionEnabled,
+		ExtraBlockStorages:        extraBlockStorages,
+		ImageId:                   request.ImageId,
+		InitialScript: &virtualserver2.VirtualServerCreateInitialScriptRequest{
+			EncodingType:         request.InitialScript.EncodingType,
+			InitialScriptContent: request.InitialScript.InitialScriptContent,
+			InitialScriptShell:   request.InitialScript.InitialScriptShell,
+			InitialScriptType:    request.InitialScript.InitialScriptType,
+		},
+		LocalSubnet: &virtualserver2.VirtualServerCreateLocalSubnetNicRequest{
+			LocalSubnetIpAddress: request.LocalSubnet.LocalSubnetIpAddress,
+			SubnetId:             request.LocalSubnet.SubnetId,
+		},
+		Nic: &virtualserver2.VirtualServerCreateNicRequest{
+			InternalIpAddress: request.Nic.InternalIpAddress,
+			NatEnabled:        &request.Nic.NatEnabled,
+			PublicIpId:        request.Nic.PublicIpAddressId,
+			SubnetId:          request.Nic.SubnetId,
+		},
+		KeyPairId:        request.KeyPairId,
+		PlacementGroupId: request.PlacementGroupId,
 		SecurityGroupIds: request.SecurityGroupIds,
 		ServerGroupId:    request.ServerGroupId,
 		ServerType:       request.ServerType,

@@ -3,11 +3,11 @@ package backup
 import (
 	"context"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/storage/backup"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/backup2"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/backup"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/backup2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -157,9 +157,12 @@ func ResourceBackup() *schema.Resource {
 				Description: "Service Zone ID",
 			},
 			"tags": {
-				Type:        schema.TypeMap,
+				Type:        schema.TypeList,
 				Optional:    true,
 				Description: "Tags",
+				Elem: &schema.Schema{
+					Type: schema.TypeMap,
+				},
 			},
 		},
 		Description: "Provides a Backup resource.",
@@ -350,12 +353,13 @@ func waitForBackupStatus(ctx context.Context, scpClient *client.SCPClient, id st
 }
 
 func getTagRequestArray(rd *schema.ResourceData) []backup.TagRequest {
-	tags := rd.Get("tags").(map[string]interface{})
+	tags := rd.Get("tags").([]interface{})
 	tagsRequests := make([]backup.TagRequest, 0)
-	for key, value := range tags {
+	for _, tag := range tags {
+		tagMap := tag.(map[string]interface{})
 		tagsRequests = append(tagsRequests, backup.TagRequest{
-			TagKey:   key,
-			TagValue: value.(string),
+			TagKey:   tagMap["tag_key"].(string),
+			TagValue: tagMap["tag_value"].(string),
 		})
 	}
 	return tagsRequests

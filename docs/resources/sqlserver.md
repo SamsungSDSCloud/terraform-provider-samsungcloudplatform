@@ -54,17 +54,14 @@ resource "scp_sqlserver" "my_ms_sql" {
 
   db_collation = "Korean_Wansung_CS_AS"
 
+  data_disk_type = "HDD"
   data_block_storage_size_gb = 100
   encrypt_enabled = false
-
-  additional_block_storages {
-    storage_usage = "DATA"
-    storage_size_gb = 10
-  }
 
   additional_db = ["dbb"]
 
   backup {
+    backup_method = "s3api"
     backup_retention_day = 7
     backup_start_hour = 23
   }
@@ -80,6 +77,7 @@ resource "scp_sqlserver" "my_ms_sql" {
 - `contract_discount` (String) Contract : None, 1-year, 3-year
 - `cpu_count` (Number) CPU core count (2, 4, 8,..)
 - `data_block_storage_size_gb` (Number) Data Block Storage size in gigabytes.
+- `data_disk_type` (String) Data storage disk type. (SSD, HDD)
 - `db_name` (String) Name of database.
 - `db_port` (Number) Port number of database.
 - `db_service_name` (String) Name of SQL server database service. (Starts with a capital letter, 1 to 15 alphabet only)
@@ -116,6 +114,7 @@ resource "scp_sqlserver" "my_ms_sql" {
 
 Required:
 
+- `product_name` (String) Storage product name. (only SSD)
 - `storage_size_gb` (Number) Default data storage size in gigabytes. (10~7,168 GB)
 - `storage_usage` (String) Storage usage. (DATA, ARCHIVE)
 
@@ -128,6 +127,10 @@ Required:
 - `backup_retention_day` (Number) Backup File Retention Day.(7 <= day <= 35)
 - `backup_start_hour` (Number) The time at which the backup starts. (from 0 to 23)
 
+Optional:
+
+- `backup_method` (String) Backup Method (s3api|cdp)
+
 Read-Only:
 
 - `object_storage_id` (String) Object storage ID where backup files will be stored.
@@ -138,8 +141,10 @@ Read-Only:
 
 Optional:
 
+- `active_availability_zone_name` (String) Active Availability Zone Name
 - `active_server_ip` (String) Static IP to assign to the ACTIVE server.
 - `reserved_nat_ip_id` (String) ID of Reserved Virtual NAT IP.
+- `standby_availability_zone_name` (String) Standby Availability Zone Name
 - `standby_server_ip` (String) Static IP to assign to the STANDBy server.
 - `use_vip_nat` (Boolean) use Virtual IP NAT.
 - `virtual_ip` (String) Virtual IP for database cluster access.

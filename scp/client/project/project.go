@@ -3,8 +3,8 @@ package project
 import (
 	"context"
 
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/project"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/project"
 	"github.com/antihax/optional"
 )
 
@@ -43,5 +43,35 @@ func (client *Client) GetProjectList(ctx context.Context, request ListProjectReq
 
 func (client *Client) GetAccountList(ctx context.Context) (project.ListResponseV2OfAccountResponseV3, error) {
 	result, _, err := client.sdkClient.AccountV3ControllerApi.ListAccountsByMyProject(ctx)
+	return result, err
+}
+
+func (client *Client) GetProductResourceList(ctx context.Context, productCategoryId optional.String) (project.ProjectResponseOfProductCategoryResource, error) {
+	result, _, err := client.sdkClient.ProjectControllerV2Api.ListProductResources(ctx, &project.ProjectControllerV2ApiListProductResourcesOpts{
+		ProductCategoryId: productCategoryId,
+	})
+
+	return result, err
+}
+
+func (client *Client) GetProjectZoneList(ctx context.Context, projectId string) (project.ListResponseV2OfZoneResponseV3, error) {
+	result, _, err := client.sdkClient.ZoneV3ControllerApi.ListServiceZonesOfProject(ctx, client.config.ProjectId, projectId)
+
+	return result, err
+}
+
+func (client *Client) GetProjectProductsList(ctx context.Context, projectId string, code optional.String) (project.ProjectResponseOfProductCategoryV2, error) {
+	result, _, err := client.sdkClient.ProjectControllerV2Api.ListProjectProducts(ctx, client.config.ProjectId, projectId, &project.ProjectControllerV2ApiListProjectProductsOpts{
+		LanguageCode: code,
+	})
+
+	return result, err
+}
+
+func (client *Client) GetProjectProductResourcesList(ctx context.Context, projectId string, productCategoryId optional.String) (project.ProjectResponseOfProductCategoryResource, error) {
+	result, _, err := client.sdkClient.ProjectControllerV2Api.ListProjectProductResources(ctx, client.config.ProjectId, projectId, &project.ProjectControllerV2ApiListProjectProductResourcesOpts{
+		ProductCategoryId: productCategoryId,
+	})
+
 	return result, err
 }

@@ -33,6 +33,7 @@ resource "scp_bm_server" "server_001" {
   admin_password  = var.password
   cpu_count       = var.cpu
   memory_size_gb  = var.memory
+  state           = var.state
   image_id        = data.scp_standard_images.centos_image.standard_images[0].id
   vpc_id          = data.terraform_remote_state.vpc.outputs.id
   subnet_id       = data.terraform_remote_state.subnet.outputs.id
@@ -47,6 +48,12 @@ resource "scp_bm_server" "server_001" {
   nat_enabled = false
   local_subnet_enabled = false
   local_subnet_ipv4 = ""
+
+  timeouts {
+    create = "30m"
+    update = "30m"
+    delete = "30m"
+  }
 }
 ```
 
@@ -63,6 +70,7 @@ resource "scp_bm_server" "server_001" {
 - `ipv4` (String) IP address of this bare-metal server
 - `local_subnet_enabled` (Boolean) Enable local subnet for this bare-metal server
 - `memory_size_gb` (Number) Memory size in gigabytes(16, 32,..)
+- `state` (String) Baremetal Server State(ex. RUNNING, STOPPED)
 - `subnet_id` (String) Subnet id of this bare-metal server. Subnet must be a valid subnet resource which is attached to the VPC.
 - `vpc_id` (String) VPC id of this bare-metal server
 

@@ -27,15 +27,13 @@ output "output_my_scp_obs_storages" {
 
 ### Required
 
-- `zone_id` (String) Service Zone ID
+- `service_zone_id` (String) Service Zone ID
 
 ### Optional
 
-- `multi_az_yn` (String) Multi AZ Y/N
-- `obs_name` (String) Object Storage Name
-- `obs_rest_endpoint` (String) Object Storage REST Endpoint
+- `is_multi_availability_zone` (Boolean) Is Multi AZ
+- `object_storage_name` (String) Object Storage Name
 - `page` (Number) Page start number from which to get the list
-- `region` (String) Region
 - `size` (Number) Size to get list
 - `sort` (List of String) Sort
 
@@ -50,19 +48,16 @@ output "output_my_scp_obs_storages" {
 
 Read-Only:
 
+- `block_id` (String)
 - `created_by` (String)
 - `created_dt` (String)
-- `endpoint_ip` (String)
+- `is_multi_availability_zone` (Boolean)
 - `modified_by` (String)
 - `modified_dt` (String)
-- `multi_az_yn` (String)
-- `obs_description` (String)
-- `obs_id` (String)
-- `obs_internal_rest_endpoint` (String)
-- `obs_name` (String)
-- `obs_rest_endpoint` (String)
-- `obs_vendor` (String)
-- `region` (String)
-- `system_url` (String)
+- `object_storage_description` (String)
+- `object_storage_id` (String)
+- `object_storage_name` (String)
+- `project_id` (String)
+- `service_zone_id` (String)
 
 

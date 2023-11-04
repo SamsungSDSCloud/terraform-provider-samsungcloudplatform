@@ -2,8 +2,8 @@ package bmblockstorage
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	baremetalblockstorage "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/bare-metal-block-storage"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	baremetalblockstorage "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/bare-metal-block-storage"
 	"github.com/antihax/optional"
 )
 

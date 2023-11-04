@@ -2,10 +2,10 @@ package loggingaudit
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
-	loggingaudit2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/logging-audit"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	loggingaudit2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/logging-audit"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -200,7 +200,7 @@ func datasourceLoggingAuditsRead(ctx context.Context, rd *schema.ResourceData, m
 
 	rd.SetId(uuid.NewV4().String())
 	rd.Set("contents", contents)
-	rd.Set("total_count", len(contents))
+	rd.Set("total_count", response.TotalCount)
 
 	return nil
 }

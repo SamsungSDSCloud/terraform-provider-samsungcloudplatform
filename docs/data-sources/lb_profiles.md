@@ -41,26 +41,26 @@ output "output_my_scp_lb_profiles" {
 
 ### Read-Only
 
-- `contents` (Block List) Load balancer profile list (see [below for nested schema](#nestedblock--contents))
+- `contents` (List of Object) Load balancer profile list (see [below for nested schema](#nestedatt--contents))
 - `id` (String) The ID of this resource.
 - `total_count` (Number)
 
-<a id="nestedblock--contents"></a>
+<a id="nestedatt--contents"></a>
 ### Nested Schema for `contents`
 
 Read-Only:
 
-- `block_id` (String) Block id
-- `created_by` (String) The person who created the resource
-- `created_dt` (String) Creation date
-- `lb_profile_category` (String) Load balancer profile category
-- `lb_profile_name` (String) Load balancer profile name
-- `lb_profile_state` (String) Load balancer profile state
-- `lb_profile_type` (String) Load balancer profile type
-- `lb_service_names` (List of String) Load balancer services' names
-- `modified_by` (String) The person who modified the resource
-- `modified_dt` (String) Modification date
-- `project_id` (String) Project id
-- `service_zone_id` (String) Service zone id
+- `block_id` (String)
+- `created_by` (String)
+- `created_dt` (String)
+- `lb_profile_category` (String)
+- `lb_profile_name` (String)
+- `lb_profile_state` (String)
+- `lb_profile_type` (String)
+- `lb_service_names` (List of String)
+- `modified_by` (String)
+- `modified_dt` (String)
+- `project_id` (String)
+- `service_zone_id` (String)
 
 

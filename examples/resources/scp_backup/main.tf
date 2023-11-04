@@ -5,7 +5,7 @@ resource "scp_backup" "my_scp_backup" {
   is_backup_dr_enabled = "N"
   object_id = "INSTANCE-XXXXX"
   object_type = "INSTANCE"
-  policy_type = "Vmware"
+  policy_type = "VMsnapshot"
   product_names = [
     "VM Image"
   ]

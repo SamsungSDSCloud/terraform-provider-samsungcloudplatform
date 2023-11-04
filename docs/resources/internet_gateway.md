@@ -24,6 +24,7 @@ resource "scp_vpc" "vpc4igw" {
 
 resource "scp_internet_gateway" "my_igw" {
   vpc_id      = scp_vpc.vpc4igw.id
+  igw_type    = var.type
   description = "Internet GW generated from Terraform"
 }
 ```
@@ -33,6 +34,7 @@ resource "scp_internet_gateway" "my_igw" {
 
 ### Required
 
+- `igw_type` (String) Internet-Gateway Type. One of SHARED , DEDICATED, SHARED_GROUP
 - `vpc_id` (String) Target VPC id
 
 ### Optional

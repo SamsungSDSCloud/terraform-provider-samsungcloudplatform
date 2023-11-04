@@ -2,10 +2,10 @@ package kubernetes
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
-	kubernetesengine2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/kubernetes-engine2"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	kubernetesengine2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/kubernetes-engine2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -43,7 +43,7 @@ func dataSourceNodePoolList(ctx context.Context, rd *schema.ResourceData, meta i
 		return diag.Errorf("kubernetes engine id not found")
 	}
 
-	responses, _, err := inst.Client.KubernetesEngine.GetNodePoolList(ctx, engineId, &kubernetesengine2.NodePoolV2ControllerApiListNodePoolsV2Opts{
+	responses, _, err := inst.Client.KubernetesEngine.GetNodePoolList(ctx, engineId, &kubernetesengine2.NodePoolV2ApiListNodePoolsV2Opts{
 		NodePoolName: optional.NewString(rd.Get("node_pool_name").(string)),
 		CreatedBy:    optional.NewString(rd.Get("created_by").(string)),
 		Page:         optional.NewInt32((int32)(rd.Get("page").(int))),

@@ -2,10 +2,10 @@ package backup
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/backup2"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/backup2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -23,13 +23,14 @@ func DatasourceBackups() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
-			"backup_name": {Type: schema.TypeString, Optional: true, Description: "Backup Name"},
-			"created_by":  {Type: schema.TypeString, Optional: true, Description: "Created By"},
-			"page":        {Type: schema.TypeInt, Optional: true, Default: 0, Description: "Page start number from which to get the list"},
-			"size":        {Type: schema.TypeInt, Optional: true, Default: 20, Description: "Size to get list"},
-			"sort":        {Type: schema.TypeList, Optional: true, Elem: &schema.Schema{Type: schema.TypeString, Description: "Sort"}, Description: "Sort"},
-			"contents":    {Type: schema.TypeList, Computed: true, Description: "Backup List", Elem: datasourceElem()},
-			"total_count": {Type: schema.TypeInt, Computed: true, Description: "Total List Size"},
+			"backup_name":                 {Type: schema.TypeString, Optional: true, Description: "Backup Name"},
+			"created_by":                  {Type: schema.TypeString, Optional: true, Description: "Created By"},
+			"backup_policy_type_category": {Type: schema.TypeString, Optional: true, Description: "Backup Policy Type Category"},
+			"page":                        {Type: schema.TypeInt, Optional: true, Default: 0, Description: "Page start number from which to get the list"},
+			"size":                        {Type: schema.TypeInt, Optional: true, Default: 20, Description: "Size to get list"},
+			"sort":                        {Type: schema.TypeList, Optional: true, Elem: &schema.Schema{Type: schema.TypeString, Description: "Sort"}, Description: "Sort"},
+			"contents":                    {Type: schema.TypeList, Computed: true, Description: "Backup List", Elem: datasourceElem()},
+			"total_count":                 {Type: schema.TypeInt, Computed: true, Description: "Total List Size"},
 		},
 		Description: "Provides list of backups",
 	}
@@ -40,6 +41,7 @@ func dataSourceList(ctx context.Context, rd *schema.ResourceData, meta interface
 
 	var backupName optional.String
 	var createdBy optional.String
+	var backupPolicyTypeCategory optional.String
 	var page optional.Int32
 	var size optional.Int32
 	var sort optional.Interface
@@ -49,6 +51,9 @@ func dataSourceList(ctx context.Context, rd *schema.ResourceData, meta interface
 	}
 	if v, ok := rd.GetOk("created_by"); ok {
 		createdBy = optional.NewString(v.(string))
+	}
+	if v, ok := rd.GetOk("backup_policy_type_category"); ok {
+		backupPolicyTypeCategory = optional.NewString(v.(string))
 	}
 	if v, ok := rd.GetOk("page"); ok {
 		page = optional.NewInt32(int32(v.(int)))
@@ -60,12 +65,13 @@ func dataSourceList(ctx context.Context, rd *schema.ResourceData, meta interface
 		sort = optional.NewInterface(v.([]interface{}))
 	}
 
-	responses, err := inst.Client.Backup.ReadBackupList(ctx, backup2.BackupSearchOpenApiV2ApiListBackupsOpts{
-		BackupName: backupName,
-		CreatedBy:  createdBy,
-		Page:       page,
-		Size:       size,
-		Sort:       sort,
+	responses, err := inst.Client.Backup.ReadBackupList(ctx, backup2.BackupSearchOpenApiV3ApiListBackups1Opts{
+		BackupName:               backupName,
+		CreatedBy:                createdBy,
+		BackupPolicyTypeCategory: backupPolicyTypeCategory,
+		Page:                     page,
+		Size:                     size,
+		Sort:                     sort,
 	})
 
 	if err != nil {

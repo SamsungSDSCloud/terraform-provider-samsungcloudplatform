@@ -17,58 +17,52 @@ Provides Object Bucket Info.
 
 ### Required
 
-- `obs_bucket_id` (String) Obs Bucket Id
-
-### Optional
-
-- `obs_urls` (Map of String) Obs Urls
+- `object_storage_bucket_id` (String) Object Storage Bucket ID
 
 ### Read-Only
 
 - `created_by` (String) Created By
 - `created_dt` (String) Created Date
 - `id` (String) The ID of this resource.
-- `is_obs_bucket_dr_enabled` (Boolean) Dr Enabled
-- `is_obs_bucket_ip_address_filter_enabled` (Boolean) Ip Filter Enabled
-- `is_obs_object_creation_enabled` (Boolean) Object Creation Enabled
-- `is_obs_system_bucket_enabled` (Boolean) System Bucket Enabled
-- `is_replication_in_progress` (Boolean) Replication In Progress
+- `is_multi_availability_zone` (Boolean) Is Multi Availability Zone
+- `is_sync_in_progress` (Boolean) Is Sync In-progress
 - `modified_by` (String) Modified By
 - `modified_dt` (String) Modified Date
-- `multi_az_yn` (String) Multi Az Y/N
-- `obs_bucket_access_ip_address_ranges` (List of Object) Bucket Access Ip Ranges (see [below for nested schema](#nestedatt--obs_bucket_access_ip_address_ranges))
-- `obs_bucket_access_url` (String) Bucket Access Url
-- `obs_bucket_dr_type` (String) Dr Type
-- `obs_bucket_file_encryption_algorithm` (String) Bucket Encryption Algorithm
-- `obs_bucket_file_encryption_enabled` (Boolean) Is Encryption Enabled
-- `obs_bucket_file_encryption_type` (String) Bucket Encryption Type
-- `obs_bucket_name` (String) Bucket Name
-- `obs_bucket_state` (String) Bucket State
-- `obs_bucket_used_size` (Number) Bucket Used Size
-- `obs_bucket_used_type` (String) Bucket Used Type
-- `obs_bucket_version_enabled` (Boolean) Versioning Enabled
-- `obs_id` (String) Object Storage Id
-- `obs_name` (String) Object Storage Name
-- `obs_quota_id` (String) Obs Quota Id
-- `obs_sync_bucket_id` (String) Obs Quota Name
-- `obs_sync_bucket_name` (String) Obs Tenant Name
-- `obs_sync_bucket_obs_name` (String) Pool Region
-- `obs_sync_bucket_region` (String) System Id
-- `obs_sync_bucket_zone_name` (String) Obs Quota Name
+- `object_storage_bucket_access_control_enabled` (Boolean) Object Storage Bucket Access Control Enabled
+- `object_storage_bucket_access_control_rules` (List of Object) Object Storage Bucket Access Control Rules (see [below for nested schema](#nestedatt--object_storage_bucket_access_control_rules))
+- `object_storage_bucket_dr_enabled` (Boolean) Object Storage Bucket DR Enabled
+- `object_storage_bucket_dr_type` (String) Object Storage Bucket DR Type
+- `object_storage_bucket_file_encryption_algorithm` (String) Object Storage Bucket File Encryption Algorithm
+- `object_storage_bucket_file_encryption_enabled` (Boolean) Object Storage Bucket File Encryption Enabled
+- `object_storage_bucket_file_encryption_type` (String) Object Storage Bucket File Encryption Type
+- `object_storage_bucket_name` (String) Object Storage Bucket Name
+- `object_storage_bucket_object_upload_enabled` (Boolean) Object Storage Bucket Object Upload Enabled
+- `object_storage_bucket_private_endpoint_url` (String) Object Storage Bucket Private Endpoint URL
+- `object_storage_bucket_public_endpoint_url` (String) Object Storage Bucket Public Endpoint URL
+- `object_storage_bucket_purpose` (Number) Object Storage Bucket Purpose
+- `object_storage_bucket_state` (String) Object Storage Bucket State
+- `object_storage_bucket_usage` (String) Object Storage Bucket Usage
+- `object_storage_bucket_user_purpose` (String) Object Storage Bucket User Purpose
+- `object_storage_bucket_version_enabled` (Boolean) Object Storage Bucket Version Enabled
+- `object_storage_device_user_id` (String) Object Storage Device User ID
+- `object_storage_id` (String) Object Storage ID
+- `object_storage_name` (String) Object Storage Name
+- `object_storage_quota_id` (String) Object Storage Quota ID
+- `object_storage_quota_name` (String) Object Storage Quota Name
+- `object_storage_system_bucket_enabled` (Boolean) Object Storage System Bucket Enabled
+- `object_storage_tenant_name` (String) Object Storage Tenant Name
 - `project_id` (String) Project Id
-- `project_name` (String) Project Name
-- `region` (String) Region
-- `system_id` (String) System Id
-- `system_name` (String) System Name
-- `zone_id` (String) Zone Id
-- `zone_name` (String) Zone Name
+- `service_zone_id` (String) Service Zone Id
+- `sync_object_storage_bucket_id` (String) Sync Object Storage Bucket ID
+- `sync_object_storage_bucket_name` (String) Sync Object Storage Bucket Name
+- `sync_object_storage_bucket_service_zone_id` (String) Sync Object Storage Bucket Service Zone ID
 
-<a id="nestedatt--obs_bucket_access_ip_address_ranges"></a>
-### Nested Schema for `obs_bucket_access_ip_address_ranges`
+<a id="nestedatt--object_storage_bucket_access_control_rules"></a>
+### Nested Schema for `object_storage_bucket_access_control_rules`
 
 Read-Only:
 
-- `ip_address_range` (String)
-- `type` (String)
+- `rule_type` (String)
+- `rule_value` (String)
 
 

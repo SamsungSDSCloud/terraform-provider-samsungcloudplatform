@@ -22,6 +22,22 @@ data "terraform_remote_state" "security_group" {
   }
 }
 
+data "terraform_remote_state" "key_pair" {
+  backend = "local"
+
+  config = {
+    path = "../scp_key_pair/terraform.tfstate"
+  }
+}
+
+data "terraform_remote_state" "placement_group" {
+  backend = "local"
+
+  config = {
+    path = "../scp_placement_group/terraform.tfstate"
+  }
+}
+
 variable "id" {
   default = "root"
 }

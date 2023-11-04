@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/antihax/optional"
 	"hash/fnv"
 	"log"
 	"net"
@@ -12,7 +13,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/product"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/product"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -51,7 +52,6 @@ const (
 	UpgradingState   string = "UPGRADING"
 
 	VpcPublicIpPurpose            string = "NAT"
-	VpcPublicIpUplinkType         string = "INTERNET"
 	VpcPublicIpNetworkServiceType string = "VPC"
 
 	ServicedGroupCompute       string = "COMPUTE"
@@ -502,4 +502,12 @@ func GetAddRemoveItemsStringListFromSet(rd *schema.ResourceData, key string) ([]
 	newList := ToStringList(nRaw)
 
 	return getAddRemoveItemStringListFromStringList(oldList, newList)
+}
+
+func GetKeyString(rd *schema.ResourceData, key string) optional.String {
+	if len(rd.Get(key).(string)) > 0 {
+		return optional.NewString(rd.Get(key).(string))
+	} else {
+		return optional.String{}
+	}
 }

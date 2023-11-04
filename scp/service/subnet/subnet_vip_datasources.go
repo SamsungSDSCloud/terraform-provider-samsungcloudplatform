@@ -2,10 +2,10 @@ package subnet
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/subnet2"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/subnet2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -77,7 +77,7 @@ func dataSourceSubnetVip(ctx context.Context, rd *schema.ResourceData, meta inte
 	rd.Set("subnet_ip_address", vipInfo.SubnetIpAddress)
 	rd.Set("subnet_ip_id", vipInfo.SubnetIpId)
 	rd.Set("vip_state", vipInfo.VipState)
-	//rd.Set("vip_id", vipInfo.VipId)
+	rd.Set("vip_id", vipInfo.VipId)
 	rd.Set("vip_description", vipInfo.VipDescription)
 	rd.Set("vip_state", vipInfo.VipState)
 	rd.Set("created_by", vipInfo.CreatedBy)
@@ -98,11 +98,11 @@ func DatasourceSubnetVips() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"subnet_id":         {Type: schema.TypeString, Required: true, Description: "Subnet id"},
 			"subnet_ip_address": {Type: schema.TypeString, Optional: true, Description: "Subnet Virtual Ip address"},
-			//"vip_state":         {Type: schema.TypeString, Optional: true, Description: "Subnet Virtual Ip State"},
-			"page":        {Type: schema.TypeInt, Optional: true, Default: 0, Description: "Page start number from which to get the list"},
-			"size":        {Type: schema.TypeInt, Optional: true, Default: 20, Description: "Size to get list"},
-			"contents":    {Type: schema.TypeList, Optional: true, Description: "Subnet resource list size", Elem: datasourceSubnetVipsElem()},
-			"total_count": {Type: schema.TypeInt, Computed: true},
+			"vip_state":         {Type: schema.TypeString, Optional: true, Description: "Subnet Virtual Ip State"},
+			"page":              {Type: schema.TypeInt, Optional: true, Default: 0, Description: "Page start number from which to get the list"},
+			"size":              {Type: schema.TypeInt, Optional: true, Default: 20, Description: "Size to get list"},
+			"contents":          {Type: schema.TypeList, Optional: true, Description: "Subnet resource list size", Elem: datasourceSubnetVipsElem()},
+			"total_count":       {Type: schema.TypeInt, Computed: true},
 		},
 		Description: "Provides list of subnet Vip",
 	}
@@ -115,10 +115,10 @@ func dataSourceSubnetVipList(ctx context.Context, rd *schema.ResourceData, meta 
 
 	requestParam := &subnet2.SubnetVipOpenApiControllerApiListSubnetVipsV2Opts{
 		SubnetIpAddress: optional.NewString(rd.Get("subnet_ip_address").(string)),
-		//VipState:        optional.NewString(rd.Get("vip_state").(string)),  //TODO : VipState 처리
-		Page: optional.NewInt32((int32)(rd.Get("page").(int))),
-		Size: optional.NewInt32((int32)(rd.Get("size").(int))),
-		Sort: optional.Interface{},
+		VipState:        optional.NewString(rd.Get("vip_state").(string)),
+		Page:            optional.NewInt32((int32)(rd.Get("page").(int))),
+		Size:            optional.NewInt32((int32)(rd.Get("size").(int))),
+		Sort:            optional.Interface{},
 	}
 	responses, _, err := inst.Client.Subnet.GetSubnetVipV2List(ctx, subnetId, requestParam)
 	if err != nil {

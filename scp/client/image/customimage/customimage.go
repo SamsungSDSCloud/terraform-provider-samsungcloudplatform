@@ -1,8 +1,8 @@
 package customimage
 
 import (
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	image "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/image2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	image "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/image2"
 	"github.com/antihax/optional"
 	"golang.org/x/net/context"
 )

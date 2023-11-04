@@ -2,8 +2,8 @@ package filestorage
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	filestorage2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/file-storage2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	filestorage2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/file-storage2"
 )
 
 type Client struct {
@@ -23,7 +23,6 @@ func (client *Client) CheckFileStorage(ctx context.Context, request CheckFileSto
 	if err != nil {
 		return filestorage2.CheckResponse{}, err
 	}
-
 	return result, err
 }
 
@@ -36,19 +35,31 @@ func (client *Client) CreateFileStorage(ctx context.Context, request CreateFileS
 		})
 	}
 
-	result, _, err := client.sdkClient.FileStorageOpenApiV4Api.CreateFileStorageV4(ctx, client.config.ProjectId,
-		filestorage2.CreateFileStorageV4Request{
-			CifsPassword:          request.CifsPassword,
-			DiskType:              request.DiskType,
-			FileStorageName:       request.FileStorageName,
-			FileStorageProtocol:   request.FileStorageProtocol,
-			MultiAvailabilityZone: request.MultiAvailabilityZone,
-			ProductNames:          request.ProductNames,
-			ServiceZoneId:         request.ServiceZoneId,
-			//SnapshotRetentionCount: request.SnapshotRetentionCount,
-			//SnapshotSchedule:       (*filestorage2.SnapshotSchedule)(request.SnapshotSchedule),
-			Tags: tags,
-		})
+	requestToApi := filestorage2.CreateFileStorageV4Request{
+		CifsPassword:          request.CifsPassword,
+		DiskType:              request.DiskType,
+		FileStorageName:       request.FileStorageName,
+		FileStorageProtocol:   request.FileStorageProtocol,
+		MultiAvailabilityZone: request.MultiAvailabilityZone,
+		ProductNames:          request.ProductNames,
+		ServiceZoneId:         request.ServiceZoneId,
+		Tags:                  tags,
+	}
+
+	if request.SnapshotSchedule.Frequency != "" {
+		snapshotScheduleRequest := &filestorage2.SnapshotSchedule{
+			DayOfWeek: request.SnapshotSchedule.DayOfWeek,
+			Frequency: request.SnapshotSchedule.Frequency,
+			Hour:      request.SnapshotSchedule.Hour,
+		}
+		requestToApi.SnapshotSchedule = snapshotScheduleRequest
+	}
+
+	if *request.SnapshotRetentionCount > 0 {
+		requestToApi.SnapshotRetentionCount = request.SnapshotRetentionCount
+	}
+
+	result, _, err := client.sdkClient.FileStorageOpenApiV4Api.CreateFileStorageV4(ctx, client.config.ProjectId, requestToApi)
 	return result, err
 }
 
@@ -95,5 +106,46 @@ func (client *Client) UpdateFileStorageSnapshotSchedule(ctx context.Context, fil
 
 func (client *Client) DeleteFileStorageSnapshotSchedule(ctx context.Context, fileStorageId string) (filestorage2.AsyncResponse, error) {
 	result, _, err := client.sdkClient.FileStorageOpenApiV3Api.DeleteFileStorageSnapshotSchedule(ctx, client.config.ProjectId, fileStorageId)
+	return result, err
+}
+
+func (client *Client) UpdateFileStorageFileRecoveryEnabled(ctx context.Context, fileStorageId string, fileUnitRecoveryEnabled bool) (filestorage2.AsyncResponse, error) {
+	result, _, err := client.sdkClient.FileStorageOpenApiV3Api.UpdateFileStorageFileUnitRecovery(
+		ctx,
+		client.config.ProjectId,
+		fileStorageId,
+		filestorage2.FileStorageFileUnitRecoveryRequest{
+			FileUnitRecoveryEnabled: &fileUnitRecoveryEnabled,
+		})
+	return result, err
+}
+
+func (client *Client) UpdateFileStorageObjectsLink(ctx context.Context, fileStorageId string, reqeust LinkFileStorageObjectRequest) (filestorage2.AsyncResponse, error) {
+
+	linkObjects := make([]filestorage2.LinkObjectRequest, 0)
+	unlinkObjects := make([]filestorage2.LinkObjectRequest, 0)
+
+	for _, LinkObject := range reqeust.LinkObjects {
+		linkObjects = append(linkObjects, filestorage2.LinkObjectRequest{
+			LinkObjectId: LinkObject.LinkObjectId,
+			Type_:        LinkObject.Type,
+		})
+	}
+
+	for _, UnlinkObject := range reqeust.UnlinkObjects {
+		unlinkObjects = append(unlinkObjects, filestorage2.LinkObjectRequest{
+			LinkObjectId: UnlinkObject.LinkObjectId,
+			Type_:        UnlinkObject.Type,
+		})
+	}
+
+	result, _, err := client.sdkClient.FileStorageOpenApiV3Api.LinkObjectToFileStorage(
+		ctx,
+		client.config.ProjectId,
+		fileStorageId,
+		filestorage2.LinkFileStorageObjectRequest{
+			LinkObjects:   linkObjects,
+			UnlinkObjects: unlinkObjects,
+		})
 	return result, err
 }

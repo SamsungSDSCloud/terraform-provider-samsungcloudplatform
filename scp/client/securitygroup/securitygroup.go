@@ -3,8 +3,8 @@ package securitygroup
 import (
 	"context"
 	"fmt"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	securitygroup2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/security-group2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	securitygroup2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/security-group2"
 	"github.com/antihax/optional"
 	"strings"
 )
@@ -30,13 +30,13 @@ func (client *Client) GetSecurityGroup(ctx context.Context, securityGroupId stri
 	return result, statusCode, err
 }
 
-func (client *Client) CreateSecurityGroup(ctx context.Context, productGroupId string, serviceZoneId string, vpcId string, name string, description string) (securitygroup2.AsyncResponse, error) {
-	result, _, err := client.sdkClient.SecurityGroupOpenApiControllerV2Api.CreateSecurityGroupV2(ctx, client.config.ProjectId, securitygroup2.SecurityGroupCreateRequest{
-		ProductGroupId:           productGroupId,
+func (client *Client) CreateSecurityGroup(ctx context.Context, serviceZoneId string, vpcId string, name string, description string, loggable bool) (securitygroup2.AsyncResponse, error) {
+	result, _, err := client.sdkClient.SecurityGroupOpenApiControllerV3Api.CreateSecurityGroupV3(ctx, client.config.ProjectId, securitygroup2.SecurityGroupCreateV3Request{
 		SecurityGroupName:        name,
 		ServiceZoneId:            serviceZoneId,
 		VpcId:                    vpcId,
 		SecurityGroupDescription: description,
+		Loggable:                 &loggable,
 	})
 	return result, err
 }

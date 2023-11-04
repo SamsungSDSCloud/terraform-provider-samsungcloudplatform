@@ -3,17 +3,17 @@ package virtualserver
 import (
 	"context"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/storage/blockstorage"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client/virtualserver"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/service/image"
-	blockstorage2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/block-storage2"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/image2"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/product"
-	publicip2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/public-ip2"
-	virtualserver2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/virtual-server2"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/blockstorage"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/virtualserver"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/image"
+	blockstorage2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/block-storage2"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/image2"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/product"
+	publicip2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/public-ip2"
+	virtualserver2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/virtual-server2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -207,10 +207,20 @@ func ResourceVirtualServer() *schema.Resource {
 			},
 			"admin_password": {
 				Type:             schema.TypeString,
-				Required:         true,
+				Optional:         true,
 				Sensitive:        true,
 				ValidateDiagFunc: common.ValidatePassword8to20,
 				Description:      "Admin account password for this virtual server OS.",
+			},
+			"key_pair_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Key Pair Id",
+			},
+			"placement_group_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Placement Group Id",
 			},
 			"ipv4": {
 				Type:        schema.TypeString,
@@ -307,6 +317,13 @@ func resourceVirtualServerCreate(ctx context.Context, rd *schema.ResourceData, m
 
 	adminAccount := rd.Get("admin_account").(string)
 	adminPassword := rd.Get("admin_password").(string)
+
+	keyPairId := rd.Get("key_pair_id").(string)
+	placementGroupId := rd.Get("placement_group_id").(string)
+
+	if adminPassword == "" && keyPairId == "" {
+		return diag.Errorf("Either admin_password or key_pair_id must be specified.")
+	}
 
 	antiAffinity := rd.Get("anti_affinity").(bool)
 
@@ -515,8 +532,15 @@ func resourceVirtualServerCreate(ctx context.Context, rd *schema.ResourceData, m
 		VirtualServerName:    vsName,
 		AvailabilityZoneName: rd.Get("availability_zone_name").(string),
 		Tags:                 getTagRequestArray(rd),
+		KeyPairId:            keyPairId,
+		PlacementGroupId:     placementGroupId,
 	}
-	createResponse, err := inst.Client.VirtualServer.CreateVirtualServer(ctx, createRequest)
+	var createResponse virtualserver2.AsyncResponse
+	if keyPairId != "" {
+		createResponse, err = inst.Client.VirtualServer.CreateVirtualServerV4(ctx, createRequest)
+	} else {
+		createResponse, err = inst.Client.VirtualServer.CreateVirtualServer(ctx, createRequest)
+	}
 	if err != nil {
 		return
 	}
@@ -904,18 +928,16 @@ func resourceVirtualServerRead(ctx context.Context, rd *schema.ResourceData, met
 	rd.Set("nat_ipv4", natIpv4)
 
 	if natIpv4 != "" {
-		publicIpInfo, err := inst.Client.PublicIp.GetPublicIpList(ctx,
-			virtualServerInfo.ServiceZoneId, &publicip2.PublicIpOpenApiControllerApiListPublicIpsV2Opts{
-				IpAddress:       optional.NewString(natIpv4),
-				IsBillable:      optional.Bool{},
-				IsViewable:      optional.Bool{},
-				PublicIpPurpose: optional.String{},
-				PublicIpState:   optional.String{},
-				UplinkType:      optional.String{},
-				CreatedBy:       optional.String{},
-				Page:            optional.Int32{},
-				Size:            optional.Int32{},
-				Sort:            optional.Interface{},
+		publicIpInfo, err := inst.Client.PublicIp.GetPublicIps(ctx,
+			&publicip2.PublicIpOpenApiV3ControllerApiListPublicIpsV3Opts{
+				IpAddress:     optional.NewString(natIpv4),
+				PublicIpState: optional.String{},
+				UplinkType:    optional.String{},
+				VpcId:         optional.NewString(virtualServerInfo.VpcId),
+				CreatedBy:     optional.String{},
+				Page:          optional.Int32{},
+				Size:          optional.Int32{},
+				Sort:          optional.Interface{},
 			})
 		if err != nil {
 			diagnostics = diag.FromErr(err)
@@ -930,6 +952,8 @@ func resourceVirtualServerRead(ctx context.Context, rd *schema.ResourceData, met
 		rd.Set("public_ip_id", "")
 	}
 	rd.Set("state", virtualServerInfo.VirtualServerState)
+	rd.Set("key_pair_id", virtualServerInfo.KeyPairId)
+	rd.Set("placement_group_id", virtualServerInfo.PlacementGroupId)
 
 	return nil
 }
@@ -1472,7 +1496,7 @@ func getExternalStorageStructArray(mapExternalStorages []map[string]interface{})
 			//intStorageSizeGb = int32(storageSizeGb.(int))
 			externalStorage.StorageSizeGb = int32(storageSizeGb.(int))
 		}
-		if encryptEnabled, ok := mapOldExternalStorage["encrypt_enabled"]; ok {
+		if encryptEnabled, ok := mapOldExternalStorage["encrypted"]; ok {
 			//boolEncryptEnabled = encryptEnabled.(bool)
 			externalStorage.EncryptEnabled = encryptEnabled.(bool)
 		}
@@ -1532,7 +1556,7 @@ func getExternalStorageStructArray(mapExternalStorages []map[string]interface{})
 func resourceVirtualServerDelete(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	inst := meta.(*client.Instance)
-	error := WaitForVirtualServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState, common.StoppedState}, false)
+	error := WaitForVirtualServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState, common.StoppedState, common.ErrorState}, false)
 	if error != nil {
 		return diag.FromErr(error)
 	}

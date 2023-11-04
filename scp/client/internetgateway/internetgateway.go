@@ -2,8 +2,8 @@ package internetgateway
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	internetgateway2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/internet-gateway2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	internetgateway2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/internet-gateway2"
 )
 
 type Client struct {
@@ -17,12 +17,13 @@ func NewClient(config *sdk.Configuration) *Client {
 		sdkClient: internetgateway2.NewAPIClient(config),
 	}
 }
-func (client *Client) CreateInternetGateway(ctx context.Context, vpcId string, serviceZoneId string, description string, useFirewall bool) (internetgateway2.AsyncResponse, int, error) {
-	result, c, err := client.sdkClient.InternetGatewayV2ControllerV2Api.CreateInternetGateway(ctx, client.config.ProjectId, internetgateway2.InternetGatewayCreateRequest{
-		FirewallEnabled:            &useFirewall,
-		ServiceZoneId:              serviceZoneId,
+func (client *Client) CreateInternetGateway(ctx context.Context, vpcId string, igwType string, description string, useFirewall bool, useFirewallLog bool) (internetgateway2.AsyncResponse, int, error) {
+	result, c, err := client.sdkClient.InternetGatewayV4ControllerApi.CreateInternetGateway2(ctx, client.config.ProjectId, internetgateway2.InternetGatewayCreateV4Request{
 		VpcId:                      vpcId,
+		InternetGatewayType:        igwType,
 		InternetGatewayDescription: description,
+		FirewallEnabled:            &useFirewall,
+		FirewallLoggable:           &useFirewallLog,
 	})
 	var statusCode int
 	if c != nil {

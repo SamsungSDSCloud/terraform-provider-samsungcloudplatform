@@ -20,7 +20,7 @@ resource "scp_backup" "my_scp_backup" {
   is_backup_dr_enabled = "N"
   object_id = "INSTANCE-XXXXX"
   object_type = "INSTANCE"
-  policy_type = "Vmware"
+  policy_type = "VMsnapshot"
   product_names = [
     "VM Image"
   ]
@@ -61,7 +61,7 @@ resource "scp_backup" "my_scp_backup" {
 - `backup_dr_zone_id` (String) Backup(DR) Service Zone Id
 - `dr_az_code` (String) Multi AZ(DR) Code
 - `is_backup_dr_enabled` (String) Backup(DR) Activation (If 'Y', Backup(DR) will be activated)
-- `tags` (Map of String) Tags
+- `tags` (List of Map of String) Tags
 
 ### Read-Only
 

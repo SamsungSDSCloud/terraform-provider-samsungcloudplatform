@@ -39,10 +39,36 @@ resource "scp_file_storage" "my_scp_file_storage" {
 ### Optional
 
 - `cifs_password` (String) CIFS Password is only available for CIFS Protocol. (6 to 20 alphabet and numeric characters without following special characters ($, %, {, }, [, ], ", \)
+- `day_of_week` (String) Snapshot schedule dayOfWeek must be one of "SUN", "MON", "TUE", "WED", "THU", "FRI" or "SAT"
+- `file_unit_recovery_enabled` (Boolean) File Unit Recovery
+- `frequency` (String) Snapshot schedule frequency must be one of "DAILY" or "WEEKLY"
+- `hour` (Number) Snapshot schedule hour (0 to 23)
+- `link_objects` (Block List) Link Objects (see [below for nested schema](#nestedblock--link_objects))
 - `multi_availability_zone` (Boolean) Multi AZ (If null, default value is false)
-- `tags` (Map of String) Tags
+- `snapshot_retention_count` (Number) Snapshot retention count
+- `snapshot_schedule` (Map of String) Snapshot schedule
+- `tags` (List of Map of String) Tags
+- `unlink_objects` (Block List) Unlink Objects (see [below for nested schema](#nestedblock--unlink_objects))
 
 ### Read-Only
 
 - `cifs_id` (String) CIFS ID
+- `file_storage_name_uuid` (String) File Storage Name with UUID (10 to 28 lower alphabet and numeric characters with '_' symbol are available, but it must be started with lower alphabet)
 - `id` (String) The ID of this resource.
+
+<a id="nestedblock--link_objects"></a>
+### Nested Schema for `link_objects`
+
+Optional:
+
+- `link_object_id` (String) Link object ID
+- `type` (String) Type
+
+
+<a id="nestedblock--unlink_objects"></a>
+### Nested Schema for `unlink_objects`
+
+Optional:
+
+- `link_object_id` (String) Link object ID
+- `type` (String) Type

@@ -2,10 +2,10 @@ package kubernetes
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
-	kubernetesengine2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/kubernetes-engine2"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	kubernetesengine2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/kubernetes-engine2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -34,7 +34,7 @@ func DatasourceEngineVersions() *schema.Resource {
 func dataSourceVersionList(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	responses, _, err := inst.Client.KubernetesEngine.GetEngineVersionList(ctx, &kubernetesengine2.K8sTemplateV2ApiListKubernetesVersionV2Opts{
+	responses, _, err := inst.Client.KubernetesEngine.GetEngineVersionList(ctx, &kubernetesengine2.K8sTemplateV2ApiListKubernetesVersionV21Opts{
 		Page: optional.NewInt32((int32)(rd.Get("page").(int))),
 		Size: optional.NewInt32((int32)(rd.Get("size").(int))),
 	})

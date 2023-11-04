@@ -1,8 +1,8 @@
-module github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2
+module github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3
 
 go 1.18
 
-require github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2 v2.3.0
+require github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3 v3.0.0
 
 require (
 	github.com/antihax/optional v1.0.0
@@ -12,10 +12,7 @@ require (
 	github.com/satori/go.uuid v1.2.0
 )
 
-require (
-	github.com/stretchr/testify v1.8.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
-)
+require gopkg.in/yaml.v3 v3.0.1 // indirect
 
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
@@ -64,12 +61,12 @@ require (
 	github.com/vmihailenco/msgpack/v4 v4.3.12 // indirect
 	github.com/vmihailenco/tagparser v0.1.1 // indirect
 	github.com/zclconf/go-cty v1.10.0 // indirect
-	golang.org/x/crypto v0.1.0 // indirect
+	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
 	golang.org/x/oauth2 v0.0.0-20220630143837-2104d58473e0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/text v0.8.0 // indirect
-	google.golang.org/genproto v0.0.0-20220815135757-37a418bb8959 // indirect
-	google.golang.org/grpc v1.48.0 // indirect
+	google.golang.org/genproto v0.0.0-20200825200019-8632dd797987 // indirect
+	google.golang.org/grpc v1.45.0 // indirect
 )
 
 require (
@@ -78,5 +75,5 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.16.0
 	golang.org/x/net v0.8.0
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/protobuf v1.28.1 // indirect
+	google.golang.org/protobuf v1.28.0 // indirect
 )

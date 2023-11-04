@@ -1,19 +1,20 @@
 resource "scp_obs_bucket" "my_scp_obs_bucket" {
-  obs_bucket_name = var.name
-  obs_id = "S3OBJECTSTORAGE-XXXXX"
-  zone_id = "ZONE-XXXXX"
+  object_storage_bucket_name = var.name
+  object_storage_id = "S3OBJECTSTORAGE-XXXXXX"
+  service_zone_id = "ZONE-XXXXXXXX"
 
-  obs_bucket_file_encryption_enabled = true
-  obs_bucket_file_encryption_algorithm = "AES256"
-  obs_bucket_file_encryption_type      = "SSE-S3"
-  obs_bucket_version_enabled = true
+  object_storage_bucket_file_encryption_enabled = true
+  object_storage_bucket_version_enabled = true
 
-  is_obs_bucket_ip_address_filter_enabled = true
-  dynamic "obs_bucket_access_ip_address_ranges" {
-    for_each = var.obs_bucket_access_ip_address_ranges
+  object_storage_bucket_access_control_enabled = true
+  product_names = ["Object Storage"]
+  dynamic "access_control_rules" {
+    for_each = var.access_control_rules
     content {
-      obs_bucket_access_ip_address_range = obs_bucket_access_ip_address_ranges.value["obs_bucket_access_ip_address_range"]
-      type = obs_bucket_access_ip_address_ranges.value["type"]
+      rule_value = access_control_rules.value["rule_value"]
+      rule_type = access_control_rules.value["rule_type"]
     }
   }
+
+  object_storage_bucket_dr_enabled = false
 }

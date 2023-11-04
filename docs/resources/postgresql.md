@@ -49,6 +49,7 @@ resource "scp_postgresql" "my_pg_db" {
 
   timezone = "Asia/Seoul"
 
+  data_disk_type = "SSD"
   data_storage_size_gb = 10
 
   additional_storage {
@@ -57,11 +58,13 @@ resource "scp_postgresql" "my_pg_db" {
     storage_size_gb = 10
   }
 
-  high_availability {
-
-  }
+  #high_availability {
+  #  active_availability_zone_name  = "AZ1"
+  #  standby_availability_zone_name = "AZ2"
+  #}
 
   backup {
+    backup_method = "s3api"
     retention_day = 7
     start_hour = 23
   }
@@ -76,6 +79,7 @@ resource "scp_postgresql" "my_pg_db" {
 - `cluster_name` (String) Name of database cluster. (3 to 20 characters only)
 - `contract_discount` (String) Contract : None, 1-year, 3-year
 - `cpu_count` (Number) CPU core count (2, 4, 8,..)
+- `data_disk_type` (String) Data storage disk type. (SSD, HDD)
 - `data_storage_size_gb` (Number) Default data storage size in gigabytes. (At least 10 GB required)
 - `db_name` (String) Name of database. (3 to 20 lowercase alphabets)
 - `db_port` (Number) Port number of this database.
@@ -122,6 +126,10 @@ Required:
 - `retention_day` (Number) Backup File Retention Day.(7 <= day <= 35)
 - `start_hour` (Number) The time at which the backup starts. (must be between 0 and 23)
 
+Optional:
+
+- `backup_method` (String) Backup Method (s3api|cdp)
+
 Read-Only:
 
 - `objectstorage_id` (String) Object storage ID where backup files will be stored
@@ -132,9 +140,11 @@ Read-Only:
 
 Optional:
 
+- `active_availability_zone_name` (String) Active Availability Zone Name
 - `active_server_ip` (String) Static IP to assign to the ACTIVE server
 - `reserved_natip_id` (String) ID of Reserved Virtual NAT IP
 - `single_auto_restart` (Boolean) Storage product name. (only SSD)
+- `standby_availability_zone_name` (String) Standby Availability Zone Name
 - `standby_server_ip` (String) Static IP to assign to the STANDBy server
 - `use_vip_nat` (Boolean) use Virtual IP NAT
 - `virtual_ip` (String) Virtual IP for database cluster access

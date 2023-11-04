@@ -478,8 +478,8 @@ func ValidateName1to15AlphaOnlyStartsWithCapitalLetter(v interface{}, path cty.P
 	// Check characters
 	if !regexp.MustCompile("[A-Z][a-zA-Z]+$").MatchString(value) {
 		diags = append(diags, diag.Diagnostic{
-			Severity:      diag.Error,
-			Summary:       fmt.Sprintf("Attribute %q has errors : %s", attrKey, err.Error()),
+			Severity: diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q must contain only the alphabet and begin with a capital letter", attrKey),
 			AttributePath: path,
 		})
 	}

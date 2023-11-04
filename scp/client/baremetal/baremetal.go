@@ -2,8 +2,8 @@ package baremetal
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	baremetal "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/bare-metal-server"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	baremetal "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/bare-metal-server"
 	"github.com/antihax/optional"
 )
 
@@ -143,6 +143,22 @@ func (client *Client) EnableBMNat(ctx context.Context, serverId string, natIpAdd
 
 func (client *Client) DisableBMNat(ctx context.Context, serverId string) (baremetal.BareMetalServerPublicNatResponse, error) {
 	result, _, err := client.sdkClient.BareMetalServerStaticNatOpenApiControllerApi.DeletePublicNat(ctx, client.config.ProjectId, serverId)
+
+	return result, err
+}
+
+func (client *Client) StopBareMetalServer(ctx context.Context, request BMStartStopRequest) (baremetal.AsyncResponse, error) {
+	result, _, err := client.sdkClient.BareMetalServerLongRunningTaskOpenApiV2ControllerApi.StopBareMetalServer1(ctx, client.config.ProjectId, baremetal.BareMetalServerStartStopRequest{
+		BareMetalServerIds: request.BareMetalServerIds,
+	})
+
+	return result, err
+}
+
+func (client *Client) StartBareMetalServer(ctx context.Context, request BMStartStopRequest) (baremetal.AsyncResponse, error) {
+	result, _, err := client.sdkClient.BareMetalServerLongRunningTaskOpenApiV2ControllerApi.StartBareMetalServer1(ctx, client.config.ProjectId, baremetal.BareMetalServerStartStopRequest{
+		BareMetalServerIds: request.BareMetalServerIds,
+	})
 
 	return result, err
 }

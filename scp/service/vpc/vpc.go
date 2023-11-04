@@ -2,9 +2,9 @@ package vpc
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/client"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v2/scp/common"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -71,14 +71,14 @@ func resourceVpcCreate(ctx context.Context, rd *schema.ResourceData, meta interf
 		return diag.Errorf("Input vpc name is invalid (maybe duplicated) : " + vpcName)
 	}
 
-	serviceZoneId, productGroupId, err := client.FindServiceZoneIdAndProductGroupId(ctx, inst.Client, vpcLocation, common.NetworkProductGroup, common.VpcProductName)
+	serviceZoneId, err := client.FindServiceZoneId(ctx, inst.Client, vpcLocation)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	tflog.Debug(ctx, "Try create vpc : "+vpcName+", "+vpcDescription+", "+serviceZoneId+", "+productGroupId)
+	tflog.Debug(ctx, "Try create vpc : "+vpcName+", "+vpcDescription+", "+serviceZoneId)
 
-	response, err := inst.Client.Vpc.CreateVpc(ctx, vpcName, vpcDescription, productGroupId, serviceZoneId)
+	response, err := inst.Client.Vpc.CreateVpc(ctx, vpcName, vpcDescription, serviceZoneId)
 
 	if err != nil {
 		return diag.FromErr(err)

@@ -2,8 +2,8 @@ package loadbalancer
 
 import (
 	"context"
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/loadbalancer2"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/loadbalancer2"
 )
 
 type Client struct {
@@ -21,21 +21,21 @@ func NewClient(config *sdk.Configuration) *Client {
 /*
  Load Balancer
 */
-func (client *Client) CreateLoadBalancer(ctx context.Context, blockId string, firewallEnabled bool, loadBalancerSize string, loadBalancerName string, productGroupId string, productId string, seviceIpCidr string, linkIpCidr string, serviceZoneId string, vpcId string, description string) (loadbalancer2.AsyncResponse, error) {
-	req := loadbalancer2.LbRequest{
+func (client *Client) CreateLoadBalancer(ctx context.Context, blockId string, firewallEnabled bool, loggable bool, loadBalancerSize string, loadBalancerName string, seviceIpCidr string, linkIpCidr string, serviceZoneId string, vpcId string, description string) (loadbalancer2.AsyncResponse, error) {
+	req := loadbalancer2.LbCreateV3Request{
 		BlockId:                 blockId,
 		FirewallEnabled:         &firewallEnabled,
+		IsLoggable:              &loggable,
 		LinkIpCidr:              linkIpCidr,
 		LoadBalancerName:        loadBalancerName,
 		LoadBalancerSize:        loadBalancerSize,
-		ProductGroupId:          productGroupId,
-		ProductId:               productId,
 		ServiceIpCidr:           seviceIpCidr,
 		ServiceZoneId:           serviceZoneId,
 		VpcId:                   vpcId,
 		LoadBalancerDescription: description,
 	}
-	result, _, err := client.sdkClient.LoadBalancerOpenApiControllerApi.CreateLoadBalancer(ctx, client.config.ProjectId, req)
+
+	result, _, err := client.sdkClient.LoadBalancerOpenApiV3ControllerApi.CreateLoadBalancerV3(ctx, client.config.ProjectId, req)
 
 	return result, err
 }
@@ -281,7 +281,9 @@ func (client *Client) CreateLbService(
 	servicePorts string,
 	lbServiceIpId string,
 	serverCertificateId string,
+	serverSslSecurityLevel string,
 	clientCertificateId string,
+	clientSslSecurityLevel string,
 	useAccessLog bool) (loadbalancer2.AsyncResponse, error) {
 
 	result, _, err := client.sdkClient.LbServiceOpenApiControllerApi.CreateLoadBalancerService(ctx, client.config.ProjectId, loadBalancerId, loadbalancer2.LbServiceRequest{
@@ -296,10 +298,12 @@ func (client *Client) CreateLbService(
 		ServiceIpAddress:       serviceIpAddr,
 		ServicePorts:           servicePorts,
 		// the belows are not in use for now
-		LbServiceIpId:       lbServiceIpId,
-		ServerCertificateId: serverCertificateId,
-		ClientCertificateId: clientCertificateId,
-		UseAccessLog:        &useAccessLog,
+		LbServiceIpId:          lbServiceIpId,
+		ServerCertificateId:    serverCertificateId,
+		ServerSslSecurityLevel: serverSslSecurityLevel,
+		ClientCertificateId:    clientCertificateId,
+		ClientSslSecurityLevel: clientSslSecurityLevel,
+		UseAccessLog:           &useAccessLog,
 	})
 
 	return result, err
@@ -320,14 +324,16 @@ func (client *Client) DeleteLbService(ctx context.Context, lbServiceId string, l
 }
 
 func (client *Client) UpdateLbService(ctx context.Context, lbServiceId string, loadBalancerId string,
-	appProfileId string, clientCertId string, defaultForwardingPorts string, persistence string, persistenceProfileId string, serverCertId string, servicePorts string, useAccessLog bool) (loadbalancer2.AsyncResponse, error) {
+	appProfileId string, clientCertId string, clientSslSecurityLevel string, defaultForwardingPorts string, persistence string, persistenceProfileId string, serverCertId string, serverSslSecurityLevel string, servicePorts string, useAccessLog bool) (loadbalancer2.AsyncResponse, error) {
 	result, _, err := client.sdkClient.LbServiceOpenApiControllerApi.UpdateLoadBalancerService(ctx, client.config.ProjectId, lbServiceId, loadBalancerId, loadbalancer2.LbServiceChangeRequest{
 		ApplicationProfileId:   appProfileId,
 		ClientCertificateId:    clientCertId,
+		ClientSslSecurityLevel: clientSslSecurityLevel,
 		DefaultForwardingPorts: defaultForwardingPorts,
 		Persistence:            persistence,
 		PersistenceProfileId:   persistenceProfileId,
 		ServerCertificateId:    serverCertId,
+		ServerSslSecurityLevel: serverSslSecurityLevel,
 		ServicePorts:           servicePorts,
 		UseAccessLog:           &useAccessLog,
 	})

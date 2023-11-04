@@ -3,8 +3,8 @@ package kubernetesapps
 import (
 	"context"
 
-	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/client"
-	kubernetesapps "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v2/library/kubernetes-apps"
+	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
+	kubernetesapps "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/kubernetes-apps"
 	"github.com/antihax/optional"
 )
 

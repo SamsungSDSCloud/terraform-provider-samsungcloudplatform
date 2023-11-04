@@ -66,7 +66,17 @@ resource "scp_kubernetes_node_pool" "pool" {
 - `min_node_count` (Number) Minimum node count
 - `storage_size_gb` (String) Storage size in GB (default 100)
 - `storage_type` (String) Storage type (Currently only SSD is supported)
+- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+<a id="nestedblock--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String)
+- `delete` (String)
+- `update` (String)

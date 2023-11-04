@@ -28,8 +28,8 @@ data "scp_standard_image" "centos_image" {
 
 resource "scp_virtual_server" "server_001" {
   virtual_server_name = var.name
-  admin_account   = var.id
-  admin_password  = var.password
+  key_pair_id = data.terraform_remote_state.key_pair.outputs.id
+
   cpu_count       = var.cpu
   memory_size_gb  = var.memory
   image_id        = data.scp_standard_image.centos_image.id
@@ -51,6 +51,8 @@ resource "scp_virtual_server" "server_001" {
   ]
   use_dns = false
 
+  placement_group_id = data.terraform_remote_state.placement_group.outputs.id
+
   external_storage {
     name            = var.ext_name
     product_name    = "SSD"
@@ -65,7 +67,6 @@ resource "scp_virtual_server" "server_001" {
 
 ### Required
 
-- `admin_password` (String, Sensitive) Admin account password for this virtual server OS.
 - `contract_discount` (String) Contract : None, 1 Year, 3 Year
 - `cpu_count` (Number) CPU core count(2, 4, 8,..)
 - `image_id` (String) Image id of this virtual server
@@ -81,16 +82,19 @@ resource "scp_virtual_server" "server_001" {
 ### Optional
 
 - `admin_account` (String) Admin account for this virtual server OS. For linux, this must be 'root'. For Windows, this must not be 'administrator'.
+- `admin_password` (String, Sensitive) Admin account password for this virtual server OS.
 - `anti_affinity` (Boolean) Enable anti-affinity feature for this virtual server
 - `availability_zone_name` (String) Availability Zone Name
 - `delete_protection` (Boolean) Enable delete protection for this virtual server
 - `external_storage` (Block List) External block storage. (see [below for nested schema](#nestedblock--external_storage))
 - `initial_script_content` (String) Initialization script
 - `internal_ip_address` (String) IP address for internal IP assignment.
+- `key_pair_id` (String) Key Pair Id
 - `local_subnet` (Block List) Local subnet id of this virtual server. Local subnet must be a valid local subnet resource which is attached to the Subnet. (see [below for nested schema](#nestedblock--local_subnet))
 - `nat_enabled` (Boolean) Enable NAT IP feature.
 - `next_contract_discount` (String) Next Contract : None, 1 Year, 3 Year
 - `os_storage_encrypted` (Boolean) Enable encryption feature in OS(Boot) storage. (WARNING) This option can not be changed after creation.
+- `placement_group_id` (String) Placement Group Id
 - `public_ip_id` (String) Public IP id of this virtual server. Public-IP must be a valid public-ip resource which is attached to the VPC.
 - `tags` (Map of String) Tags
 - `use_dns` (Boolean) Enable DNS feature for this virtual server.

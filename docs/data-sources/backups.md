@@ -14,6 +14,10 @@ Provides list of backups
 
 ```terraform
 data "scp_backups" "my_scp_backups" {
+  filter {
+    name   = "backup_policy_type_category"
+    values = ["VM"]
+  }
 }
 
 output "output_my_scp_backups" {
@@ -27,6 +31,7 @@ output "output_my_scp_backups" {
 ### Optional
 
 - `backup_name` (String) Backup Name
+- `backup_policy_type_category` (String) Backup Policy Type Category
 - `created_by` (String) Created By
 - `page` (Number) Page start number from which to get the list
 - `size` (Number) Size to get list
