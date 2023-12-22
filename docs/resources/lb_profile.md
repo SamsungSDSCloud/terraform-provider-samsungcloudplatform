@@ -14,8 +14,8 @@ Provides a Load Balancer Profile resource.
 
 ```terraform
 resource "scp_lb_profile" "my_lb_profile_persistence" {
-  lb_id           = data.terraform_remote_state.load_balancer.outputs.id
-  name            = var.name_persistence
+  lb_id            = data.terraform_remote_state.load_balancer.outputs.id
+  name             = var.name_persistence
   category         = "PERSISTENCE"
   persistence_type = "SOURCE_IP"
 }
@@ -33,6 +33,7 @@ resource "scp_lb_profile" "my_lb_profile_app_l7" {
   name                 = var.name_l7
   category             = "APPLICATION"
   layer_type           = "L7"
+  redirect_type        = "HTTP_TO_HTTPS_REDIRECT"
   request_header_size  = 1
   response_header_size = 1
   response_timeout     = 1
@@ -54,10 +55,12 @@ resource "scp_lb_profile" "my_lb_profile_app_l7" {
 
 - `layer_type` (String) Protocol layer type (Only application category). (L4, L7)
 - `persistence_type` (String) Persistence type. (SOURCE_IP, COOKIE) (Only persistence category)
+- `redirect_type` (String) HTTP redirection option.
 - `request_header_size` (Number) Request header size (Only application category with L7 layer. Recommend: 1024). (1 to 65536)
 - `response_header_size` (Number) Response header size (Only application category with L7 layer. Recommend: 4096). (1 to 65536)
 - `response_timeout` (Number) Request header size (Only application category with L7 layer. Recommend: 60). (1 to 2147483647)
 - `session_timeout` (Number) Session timeout value (Only application category. Recommend: 300). (30 to 5400)
+- `tags` (Map of String)
 - `x_forwarded_for` (String) Forwarded for value (Only application category with L7 layer). (None, INSERT, REPLACE)
 
 ### Read-Only

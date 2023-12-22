@@ -6,6 +6,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/peering"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -54,6 +55,7 @@ func ResourceVpcPeering() *schema.Resource {
 				ValidateFunc: validation.StringLenBetween(1, 255),
 			},
 			common.ToSnakeCase("VpcPeeringState"): {Type: schema.TypeString, Computed: true, Description: "Vpc Peering State"},
+			"tags":                                tfTags.TagsSchema(),
 		},
 		Description: "Provides a VPC Peering Rule.",
 	}
@@ -84,6 +86,7 @@ func resourceVpcPeeringCreate(ctx context.Context, rd *schema.ResourceData, meta
 		RequesterProjectId:    requesterVpcInfo.ProjectId,
 		RequesterVpcId:        requesterVpcId,
 		VpcPeeringDescription: vpcPeeringDescription,
+		Tags:                  rd.Get("tags").(map[string]interface{}),
 	}
 
 	tflog.Debug(ctx, "Try create vpc peering : "+approverVpcId+", "+requesterVpcId)
@@ -119,6 +122,8 @@ func resourceVpcPeeringRead(ctx context.Context, rd *schema.ResourceData, meta i
 	rd.Set("vpc_peering_description", ruleInfo.VpcPeeringDescription)
 	rd.Set("vpc_peering_state", ruleInfo.VpcPeeringState)
 
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
+
 	return nil
 }
 
@@ -132,6 +137,11 @@ func resourceVpcPeeringUpdate(ctx context.Context, rd *schema.ResourceData, meta
 		if err != nil {
 			return diag.FromErr(err)
 		}
+	}
+
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	return resourceVpcPeeringRead(ctx, rd, meta)

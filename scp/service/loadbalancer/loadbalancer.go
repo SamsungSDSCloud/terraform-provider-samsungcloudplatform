@@ -6,6 +6,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -75,6 +76,7 @@ func ResourceLoadBalancer() *schema.Resource {
 				Computed:    true,
 				Description: "Link ip address",
 			},
+			"tags": tfTags.TagsSchema(),
 			//"firewall_enabled": {
 			//	Type:        schema.TypeBool,
 			//	Required:    true,
@@ -143,7 +145,8 @@ func resourceLoadBalancerCreate(ctx context.Context, rd *schema.ResourceData, me
 		return diag.Errorf("Failed to find target block")
 	}
 
-	result, err := inst.Client.LoadBalancer.CreateLoadBalancer(ctx, targetBlockId, firewallEnabled, isFirewallLoggable, size, name, cidrIpv4, linkIpCidr, vpcInfo.ServiceZoneId, vpcId, description)
+	tags := rd.Get("tags").(map[string]interface{})
+	result, err := inst.Client.LoadBalancer.CreateLoadBalancer(ctx, targetBlockId, firewallEnabled, isFirewallLoggable, size, name, cidrIpv4, linkIpCidr, vpcInfo.ServiceZoneId, vpcId, description, tags)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -180,6 +183,7 @@ func resourceLoadBalancerRead(ctx context.Context, rd *schema.ResourceData, meta
 	rd.Set("name", info.LoadBalancerName)
 	rd.Set("description", info.LoadBalancerDescription)
 	rd.Set("size", info.LoadBalancerSize)
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
 	return nil
 }
@@ -192,6 +196,11 @@ func resourceLoadBalancerUpdate(ctx context.Context, rd *schema.ResourceData, me
 		if err != nil {
 			return diag.FromErr(err)
 		}
+	}
+
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	return resourceLoadBalancerRead(ctx, rd, meta)

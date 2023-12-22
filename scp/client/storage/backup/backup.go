@@ -4,6 +4,7 @@ import (
 	"context"
 	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/backup2"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 type Client struct {
@@ -29,16 +30,8 @@ func (client *Client) CreateBackup(ctx context.Context, request CreateBackupRequ
 		})
 	}
 
-	tags := make([]backup2.TagRequest, 0)
-	for _, tag := range request.Tags {
-		tags = append(tags, backup2.TagRequest{
-			TagKey:   tag.TagKey,
-			TagValue: tag.TagValue,
-		})
-	}
-
-	result, _, err := client.sdkClient.BackupOpenApiV4Api.CreateBackup2(ctx, client.config.ProjectId,
-		backup2.BackupCreateV4Request{
+	result, _, err := client.sdkClient.BackupOpenApiV5Api.CreateBackup2(ctx, client.config.ProjectId,
+		backup2.BackupCreateV5Request{
 			AzCode:                     request.AzCode,
 			BackupDrZoneId:             request.BackupDrZoneId,
 			BackupName:                 request.BackupName,
@@ -52,18 +45,23 @@ func (client *Client) CreateBackup(ctx context.Context, request CreateBackupRequ
 			PolicyType:                 request.PolicyType,
 			ProductNames:               request.ProductNames,
 			RetentionPeriod:            request.RetentionPeriod,
+			IncrementalRetentionPeriod: request.IncrementalRetentionPeriod,
 			Schedules:                  backupSchedules,
 			ServiceZoneId:              request.ServiceZoneId,
-			Tags:                       tags,
+			Tags:                       client.sdkClient.ToTagRequestList(request.Tags),
 		})
 	return result, err
 }
 
 func (client *Client) ReadBackup(ctx context.Context, backupId string) (backup2.DetailBackupV4Response, int, error) {
-	result, c, err := client.sdkClient.BackupSearchOpenApiV4Api.DetailBackup2(ctx, client.config.ProjectId, backupId)
+	result, c, err := client.sdkClient.BackupSearchOpenApiV4Api.DetailBackup1(ctx, client.config.ProjectId, backupId)
 	return result, c.StatusCode, err
 }
 
+func (client *Client) UpdateBackupDr(ctx context.Context, rd *schema.ResourceData, backupDrId string) (backup2.AsyncResponse, error) {
+	result, _, err := client.sdkClient.BackupDrOpenApiV2Api.CancelBackupDrRelationship(ctx, client.config.ProjectId, rd.Get("backup_dr_id").(string))
+	return result, err
+}
 func (client *Client) ReadBackupList(ctx context.Context, request backup2.BackupSearchOpenApiV3ApiListBackups1Opts) (backup2.ListResponseOfBackupV3Response, error) {
 	result, _, err := client.sdkClient.BackupSearchOpenApiV3Api.ListBackups1(ctx, client.config.ProjectId, &request)
 	return result, err
@@ -90,12 +88,19 @@ func (client *Client) UpdateBackupSchedule(ctx context.Context, backupId string,
 		})
 	}
 
-	result, _, err := client.sdkClient.BackupOpenApiV2Api.UpdateBackupSchedule(
+	result, _, err := client.sdkClient.BackupOpenApiV3Api.UpdateBackupSchedule1(
 		ctx,
 		client.config.ProjectId,
 		backupId,
-		backup2.BackupScheduleUpdateRequest{
-			Schedules: backupSchedules,
+		backup2.BackupScheduleUpdateV3Request{
+			RetentionPeriod:            request.RetentionPeriod,
+			IncrementalRetentionPeriod: request.IncrementalRetentionPeriod,
+			Schedules:                  backupSchedules,
 		})
+	return result, err
+}
+
+func (client *Client) DeleteBackupDr(ctx context.Context, backupDrId string) (backup2.AsyncResponse, error) {
+	result, _, err := client.sdkClient.BackupDrOpenApiV2Api.DeleteBackupDr(ctx, client.config.ProjectId, backupDrId)
 	return result, err
 }

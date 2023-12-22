@@ -7,6 +7,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/placementgroup"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/virtualserver"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -66,11 +67,7 @@ func ResourcePlacementGroup() *schema.Resource {
 				Optional:    true,
 				Description: "Description",
 			},
-			"tags": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Description: "Tags",
-			},
+			"tags": tfTags.TagsSchema(),
 		},
 	}
 }
@@ -108,7 +105,7 @@ func resourcePlacementGroupCreate(ctx context.Context, rd *schema.ResourceData, 
 		AvailabilityZoneName:      availabilityZoneName,
 		PlacementGroupName:        placementGroupName,
 		ServiceZoneId:             serviceZoneId,
-		Tags:                      tagsRequests,
+		Tags:                      rd.Get("tags").(map[string]interface{}),
 		VirtualServerType:         virtualServerType,
 		PlacementGroupDescription: description,
 	})
@@ -149,6 +146,7 @@ func resourcePlacementGroupRead(ctx context.Context, rd *schema.ResourceData, me
 	rd.Set("virtual_server_type", placementGroupInfo.VirtualServerType)
 	rd.Set("service_zone_id", placementGroupInfo.ServiceZoneId)
 	rd.Set("virtual_server_ids", placementGroupInfo.VirtualServerIdList)
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
 	return nil
 }
@@ -194,6 +192,11 @@ func resourcePlacementGroupUpdate(ctx context.Context, rd *schema.ResourceData, 
 		if err != nil {
 			return diag.FromErr(err)
 		}
+	}
+
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil

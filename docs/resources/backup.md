@@ -51,7 +51,6 @@ resource "scp_backup" "my_scp_backup" {
 - `object_type` (String) Backup Object Type
 - `policy_type` (String) Backup Policy Type
 - `product_names` (List of String) Product Names
-- `retention_period` (String) Backup Retention Period
 - `schedules` (Block List, Min: 1) Backup Schedules (see [below for nested schema](#nestedblock--schedules))
 - `service_zone_id` (String) Service Zone ID
 
@@ -60,12 +59,17 @@ resource "scp_backup" "my_scp_backup" {
 - `az_code` (String) Multi AZ Code
 - `backup_dr_zone_id` (String) Backup(DR) Service Zone Id
 - `dr_az_code` (String) Multi AZ(DR) Code
+- `incremental_retention_period` (String) Incremental Backup Retention Period
+- `is_backup_dr_destroy_enabled` (Boolean) IF 'Y', Destroy DR replica together.
 - `is_backup_dr_enabled` (String) Backup(DR) Activation (If 'Y', Backup(DR) will be activated)
-- `tags` (List of Map of String) Tags
+- `retention_period` (String) Full Backup Retention Period
+- `tags` (Map of String)
 
 ### Read-Only
 
+- `backup_dr_id` (String) Backup DR ID
 - `id` (String) The ID of this resource.
+- `is_backup_dr_deleted` (String) Is Backup DR Deleted.
 
 <a id="nestedblock--schedules"></a>
 ### Nested Schema for `schedules`

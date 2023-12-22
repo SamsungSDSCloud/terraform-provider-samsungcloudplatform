@@ -3,9 +3,15 @@ package client
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/autoscaling"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/baremetal"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/database/postgresql"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/database/sqlserver"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/directconnect"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/dns"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/endpoint"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/firewall"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/gslb"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/iam"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/image"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/image/customimage"
@@ -20,7 +26,6 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/natgateway"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/peering"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/placementgroup"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/postgresql"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/product"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/project"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/publicip"
@@ -28,7 +33,6 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/routing"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/securitygroup"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/servergroup"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/sqlserver"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/backup"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/blockstorage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/bmblockstorage"
@@ -59,6 +63,9 @@ type SCPClient struct {
 	Firewall        *firewall.Client
 	DirectConnect   *directconnect.Client
 	TransitGateway  *transitgateway.Client
+	Endpoint        *endpoint.Client
+	Dns             *dns.Client
+	Gslb            *gslb.Client
 
 	// Kubernetes
 	Kubernetes       *kubernetes.Client
@@ -74,6 +81,7 @@ type SCPClient struct {
 	BareMetal      *baremetal.Client
 	KeyPair        *keypair.Client
 	PlacementGroup *placementgroup.Client
+	AutoScaling    *autoscaling.Client
 
 	// Storage
 	FileStorage           *filestorage.Client
@@ -176,6 +184,9 @@ func NewSCPClient(providerConfig *Config) (*SCPClient, error) {
 		Firewall:        firewall.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		DirectConnect:   directconnect.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		TransitGateway:  transitgateway.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		Endpoint:        endpoint.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		Dns:             dns.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		Gslb:            gslb.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 
 		// Kubernetes
 		Kubernetes:       kubernetes.NewClient(NewDefaultConfig(providerConfig, "kubernetes")),
@@ -191,6 +202,7 @@ func NewSCPClient(providerConfig *Config) (*SCPClient, error) {
 		BareMetal:      baremetal.NewClient(NewDefaultConfig(providerConfig, "baremetal")),
 		KeyPair:        keypair.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		PlacementGroup: placementgroup.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		AutoScaling:    autoscaling.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 
 		// Storage
 		FileStorage:           filestorage.NewClient(NewDefaultConfig(providerConfig, "")),

@@ -49,6 +49,7 @@ resource "scp_dcon_vpc_connection" "dconvpc01" {
 ### Optional
 
 - `description` (String) Dcon-Vpc connection description. (0 to 100 characters)
+- `tags` (Map of String)
 
 ### Read-Only
 

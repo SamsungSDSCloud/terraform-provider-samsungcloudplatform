@@ -68,9 +68,7 @@ resource "scp_virtual_server" "server_001" {
 ### Required
 
 - `contract_discount` (String) Contract : None, 1 Year, 3 Year
-- `cpu_count` (Number) CPU core count(2, 4, 8,..)
 - `image_id` (String) Image id of this virtual server
-- `memory_size_gb` (Number) Memory size in gigabytes(4, 8, 16,..)
 - `os_storage_name` (String) OS(Boot) storage name. 3 to 28 alpha-numeric characters with space and dash starting with alphabet
 - `os_storage_size_gb` (Number) OS(Boot) storage size in gigabytes. (At least 100 GB required and size must be multiple of 10)
 - `security_group_ids` (List of String) Security-Group ids of this virtual server. Each security-group must be a valid security-group resource which is attached to the VPC.
@@ -85,18 +83,22 @@ resource "scp_virtual_server" "server_001" {
 - `admin_password` (String, Sensitive) Admin account password for this virtual server OS.
 - `anti_affinity` (Boolean) Enable anti-affinity feature for this virtual server
 - `availability_zone_name` (String) Availability Zone Name
+- `cpu_count` (Number) CPU core count(2, 4, 8,..)
 - `delete_protection` (Boolean) Enable delete protection for this virtual server
 - `external_storage` (Block List) External block storage. (see [below for nested schema](#nestedblock--external_storage))
 - `initial_script_content` (String) Initialization script
 - `internal_ip_address` (String) IP address for internal IP assignment.
 - `key_pair_id` (String) Key Pair Id
 - `local_subnet` (Block List) Local subnet id of this virtual server. Local subnet must be a valid local subnet resource which is attached to the Subnet. (see [below for nested schema](#nestedblock--local_subnet))
+- `memory_size_gb` (Number) Memory size in gigabytes(4, 8, 16,..)
 - `nat_enabled` (Boolean) Enable NAT IP feature.
 - `next_contract_discount` (String) Next Contract : None, 1 Year, 3 Year
 - `os_storage_encrypted` (Boolean) Enable encryption feature in OS(Boot) storage. (WARNING) This option can not be changed after creation.
 - `placement_group_id` (String) Placement Group Id
 - `public_ip_id` (String) Public IP id of this virtual server. Public-IP must be a valid public-ip resource which is attached to the VPC.
-- `tags` (Map of String) Tags
+- `server_group_id` (String) Server Group Id for Anti-affinity
+- `server_type` (String) Server Type (s1v1m2,..)
+- `tags` (Map of String)
 - `use_dns` (Boolean) Enable DNS feature for this virtual server.
 
 ### Read-Only

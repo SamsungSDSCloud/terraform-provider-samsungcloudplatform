@@ -14,6 +14,15 @@ Provides a PostgreSQL Database resource.
 
 ```terraform
 data "scp_region" "region" {
+  filter {
+    name = "location"
+    values = ["KR-EAST-1"]
+  }
+}
+
+data "scp_obs_storages" "obs_storage" {
+  service_zone_id     = data.scp_region.region.id
+  object_storage_name = "demo_object_storage_name"
 }
 
 data "scp_standard_image" "postgres_13_6_image" {
@@ -27,46 +36,47 @@ data "scp_standard_image" "postgres_13_6_image" {
   }
 }
 
-resource "scp_postgresql" "my_pg_db" {
-  image_id = data.scp_standard_image.postgres_13_6_image.id
+resource "scp_postgresql" "demo_db" {
+  subnet_id = "SUBNET-123456789"
+  security_group_ids = ["FIREWALL_SECURITY_GROUP-123456789", "FIREWALL_SECURITY_GROUP-987654321"]
+  service_zone_id = data.scp_region.region.id
 
-  server_name_prefix = "pg-prefix"
-  cluster_name       = "pgclusterxx"
-
-  cpu_count          = var.cpu
-  memory_size_gb     = var.memory
-
-  contract_discount = "None"
-
-  vpc_id             = data.terraform_remote_state.vpc.outputs.id
-  subnet_id          = data.terraform_remote_state.subnet.outputs.id
-  security_group_ids = [data.terraform_remote_state.security-group.outputs.id]
-
-  db_name            = var.server_name
-  db_user_id         = var.id
-  db_user_password   = var.password
-  db_port            = 2866
-
-  timezone = "Asia/Seoul"
-
-  data_disk_type = "SSD"
-  data_storage_size_gb = 10
-
-  additional_storage {
-    product_name    = "SSD"
-    storage_usage   = "DATA"
-    storage_size_gb = 10
+  postgresql_servers {
+    postgresql_server_name = "demoserver-01"
+    server_role_type = "ACTIVE"
   }
 
-  #high_availability {
-  #  active_availability_zone_name  = "AZ1"
-  #  standby_availability_zone_name = "AZ2"
-  #}
+  image_id = data.scp_standard_image.postgres_13_6_image.id
+  audit_enabled = true
+  contract_period = "1 Year"
+  next_contract_period = "None"
+  nat_enabled = false
+  nat_public_ip_id = null
+  postgresql_cluster_name = "democluster"
+  postgresql_cluster_state = "RUNNING"
 
-  backup {
-    backup_method = "s3api"
-    retention_day = 7
-    start_hour = 23
+  database_encoding = "UTF8"
+  database_locale = "C"
+  database_name = "demodb"
+  database_port = 2866
+  database_user_name = "demouser"
+  database_user_password = ""
+
+  encryption_enabled = true
+  server_type = "db1v2m4"
+  timezone = "Asia/Seoul"
+
+  block_storages {
+    block_storage_type = "SSD"
+    block_storage_role_type = "DATA"
+    block_storage_size = 10
+  }
+
+  backup  {
+    object_storage_id = data.scp_obs_storages.obs_storage.contents[0].object_storage_id
+    archive_backup_schedule_frequency = "30M"
+    backup_retention_period = "15D"
+    backup_start_hour = 7
   }
 }
 ```
@@ -76,46 +86,60 @@ resource "scp_postgresql" "my_pg_db" {
 
 ### Required
 
-- `cluster_name` (String) Name of database cluster. (3 to 20 characters only)
-- `contract_discount` (String) Contract : None, 1-year, 3-year
-- `cpu_count` (Number) CPU core count (2, 4, 8,..)
-- `data_disk_type` (String) Data storage disk type. (SSD, HDD)
-- `data_storage_size_gb` (Number) Default data storage size in gigabytes. (At least 10 GB required)
-- `db_name` (String) Name of database. (3 to 20 lowercase alphabets)
-- `db_port` (Number) Port number of this database.
-- `db_user_id` (String) User account id of database. (2 to 20 lowercase alphabets)
-- `db_user_password` (String, Sensitive) User account password of database.
+- `audit_enabled` (Boolean) Whether to use database audit logging.
+- `block_storages` (Block List, Min: 1) block storage. (see [below for nested schema](#nestedblock--block_storages))
+- `contract_period` (String) Contract (None|1-year|3-year)
+- `database_encoding` (String) Postgresql encoding. (Only 'UTF8' for now)
+- `database_locale` (String) Postgresql locale. (Only 'C' for now)
+- `database_name` (String) Name of database. (only English alphabets or numbers between 3 and 20 characters)
+- `database_port` (Number) Port number of database. (1024 to 65535)
+- `database_user_name` (String) User account id of database. (2 to 20 lowercase alphabets)
+- `database_user_password` (String, Sensitive) User account password of database.
+- `encryption_enabled` (Boolean) Whether to use storage encryption.
 - `image_id` (String) Postgresql virtual server image id.
-- `memory_size_gb` (Number) Memory size in gigabytes(4, 8, 16,..)
+- `postgresql_cluster_name` (String) Name of database cluster. (3 to 20 characters only)
+- `postgresql_cluster_state` (String) postgresql cluster state (RUNNING|STOPPED)
+- `postgresql_servers` (Block List, Min: 1) postgresql servers (HA configuration when entering two server specifications) (see [below for nested schema](#nestedblock--postgresql_servers))
 - `security_group_ids` (List of String) Security-Group ids of this postgresql DB. Each security-group must be a valid security-group resource which is attached to the VPC.
-- `server_name_prefix` (String) Prefix of database server names. (3 to 13 alpha-numerics with dash)
+- `server_type` (String) Server type
+- `service_zone_id` (String) Service Zone Id
 - `subnet_id` (String) Subnet id of this database server. Subnet must be a valid subnet resource which is attached to the VPC.
 - `timezone` (String) Timezone setting of this database.
-- `vpc_id` (String) VPC id of this database server.
 
 ### Optional
 
-- `additional_storage` (Block List) External block storage. (Only adding is allowed) (see [below for nested schema](#nestedblock--additional_storage))
 - `backup` (Block Set, Max: 1) (see [below for nested schema](#nestedblock--backup))
-- `high_availability` (Block Set, Max: 1) (see [below for nested schema](#nestedblock--high_availability))
-- `pg_encoding` (String) Postgresql encoding. (Only 'UTF8' for now)
-- `pg_locale` (String) Postgresql locale. (Only 'C' for now)
+- `nat_enabled` (Boolean) Whether to use nat.
+- `nat_public_ip_id` (String) Public IP for NAT. If it is null, it is automatically allocated.
+- `next_contract_period` (String) Next contract (None|1-year|3-year)
+- `tags` (Map of String)
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
-- `external_vip` (String) public database endpoint
 - `id` (String) The ID of this resource.
-- `vip` (String) private database endpoint
 
-<a id="nestedblock--additional_storage"></a>
-### Nested Schema for `additional_storage`
+<a id="nestedblock--block_storages"></a>
+### Nested Schema for `block_storages`
 
 Required:
 
-- `product_name` (String) Storage product name. (only SSD)
-- `storage_size_gb` (Number) Default data storage size in gigabytes. (At least 10 GB required)
-- `storage_usage` (String) Storage usage. (DATA, ARCHIVE)
+- `block_storage_role_type` (String) Storage usage. (DATA|ARCHIVE|TEMP|BACKUP)
+- `block_storage_size` (Number) Block Storage Size (10 to 5120)
+- `block_storage_type` (String) Storage product name. (SSD|HDD)
+
+
+<a id="nestedblock--postgresql_servers"></a>
+### Nested Schema for `postgresql_servers`
+
+Required:
+
+- `postgresql_server_name` (String) Postgresql database server names. (3 to 20 lowercase and number with dash and the first character should be an lowercase letter.)
+- `server_role_type` (String) Server role type Enter 'ACTIVE' for a single server configuration. (ACTIVE | STANDBY)
+
+Optional:
+
+- `availability_zone_name` (String) Availability Zone Name. The single server does not input anything. (AZ1|AZ2)
 
 
 <a id="nestedblock--backup"></a>
@@ -123,31 +147,13 @@ Required:
 
 Required:
 
-- `retention_day` (Number) Backup File Retention Day.(7 <= day <= 35)
-- `start_hour` (Number) The time at which the backup starts. (must be between 0 and 23)
+- `archive_backup_schedule_frequency` (String) Backup File Schedule Frequency.(5M|10M|30M|1H)
+- `backup_retention_period` (String) Backup File Retention Day.(7D <= day <= 35D)
+- `backup_start_hour` (Number) The time at which the backup starts. (from 0 to 23)
 
 Optional:
 
-- `backup_method` (String) Backup Method (s3api|cdp)
-
-Read-Only:
-
-- `objectstorage_id` (String) Object storage ID where backup files will be stored
-
-
-<a id="nestedblock--high_availability"></a>
-### Nested Schema for `high_availability`
-
-Optional:
-
-- `active_availability_zone_name` (String) Active Availability Zone Name
-- `active_server_ip` (String) Static IP to assign to the ACTIVE server
-- `reserved_natip_id` (String) ID of Reserved Virtual NAT IP
-- `single_auto_restart` (Boolean) Storage product name. (only SSD)
-- `standby_availability_zone_name` (String) Standby Availability Zone Name
-- `standby_server_ip` (String) Static IP to assign to the STANDBy server
-- `use_vip_nat` (Boolean) use Virtual IP NAT
-- `virtual_ip` (String) Virtual IP for database cluster access
+- `object_storage_id` (String) Object storage ID where backup files will be stored.
 
 
 <a id="nestedblock--timeouts"></a>

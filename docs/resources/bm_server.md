@@ -28,26 +28,27 @@ data "scp_standard_images" "centos_image" {
 }
 
 resource "scp_bm_server" "server_001" {
-  bm_server_name = var.name
   admin_account   = var.id
   admin_password  = var.password
   cpu_count       = var.cpu
   memory_size_gb  = var.memory
   state           = var.state
   image_id        = data.scp_standard_images.centos_image.standard_images[0].id
-  vpc_id          = data.terraform_remote_state.vpc.outputs.id
-  subnet_id       = data.terraform_remote_state.subnet.outputs.id
-  ipv4 = "192.169.4.3"
-
+    vpc_id          = data.terraform_remote_state.vpc.outputs.id
+    subnet_id       = data.terraform_remote_state.subnet.outputs.id
   delete_protection = false
   contract_discount = "None"
   initial_script = ""
-  use_dns = false
-  public_ip_id = ""
-  use_hyper_threading = "N"
-  nat_enabled = false
-  local_subnet_enabled = false
-  local_subnet_ipv4 = ""
+
+  bm_server_name = var.name
+  ipv4 = var.ipv4
+  use_dns = var.use_dns
+  use_hyper_threading = var.hyper_threading
+  nat_enabled = var.nat_enabled
+  public_ip_id = var.public_ip_id
+  local_subnet_enabled = var.local_subnet_enabled
+  local_subnet_id = var.local_subnet_id
+  local_subnet_ipv4 = var.local_subnet_ipv4
 
   timeouts {
     create = "30m"
@@ -63,15 +64,21 @@ resource "scp_bm_server" "server_001" {
 ### Required
 
 - `admin_password` (String, Sensitive) Admin account password for this bare-metal server OS. (CAUTION) The actual plain-text password will be sent to your email.
-- `bm_server_name` (String) Bare-metal server name
+- `bm_server_name` (List of String) Bare-metal server name
 - `contract_discount` (String) Contract : None, 1-year, 3-year
 - `cpu_count` (Number) CPU core count(8, 16, ..)
 - `image_id` (String) Image id of this bare-metal server
-- `ipv4` (String) IP address of this bare-metal server
-- `local_subnet_enabled` (Boolean) Enable local subnet for this bare-metal server
+- `ipv4` (List of String) IP address of this bare-metal server
+- `local_subnet_enabled` (List of Boolean) Enable local subnet for this bare-metal server
+- `local_subnet_id` (List of String) Local Subnet id of this bare-metal server. Subnet must be a valid subnet resource which is attached to the VPC.
+- `local_subnet_ipv4` (List of String) Local IP address of this bare-metal server
 - `memory_size_gb` (Number) Memory size in gigabytes(16, 32,..)
-- `state` (String) Baremetal Server State(ex. RUNNING, STOPPED)
+- `nat_enabled` (List of Boolean) Enable NAT feature for this bare-metal server.
+- `public_ip_id` (List of String) Public IP id of this bare-metal server. Public-IP must be a valid public-ip resource which is attached to the VPC.
+- `state` (List of String) Baremetal Server State(ex. RUNNING, STOPPED)
 - `subnet_id` (String) Subnet id of this bare-metal server. Subnet must be a valid subnet resource which is attached to the VPC.
+- `use_dns` (List of Boolean) Enable DNS feature for this bare-metal server.
+- `use_hyper_threading` (List of String) Enable hyper-threading feature for this bare-metal server.
 - `vpc_id` (String) VPC id of this bare-metal server
 
 ### Optional
@@ -80,13 +87,8 @@ resource "scp_bm_server" "server_001" {
 - `block_storages` (Block List) block storages (see [below for nested schema](#nestedblock--block_storages))
 - `delete_protection` (Boolean) Enable delete protection for this bare-metal server
 - `initial_script` (String) Initialization script
-- `local_subnet_id` (String) Local Subnet id of this bare-metal server. Subnet must be a valid subnet resource which is attached to the VPC.
-- `local_subnet_ipv4` (String) Local IP address of this bare-metal server
-- `nat_enabled` (Boolean) Enable NAT feature for this bare-metal server.
-- `public_ip_id` (String) Public IP id of this bare-metal server. Public-IP must be a valid public-ip resource which is attached to the VPC.
+- `tags` (Map of String)
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `use_dns` (Boolean) Enable DNS feature for this bare-metal server.
-- `use_hyper_threading` (String) Enable hyper-threading feature for this bare-metal server.
 
 ### Read-Only
 

@@ -5,6 +5,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -49,6 +50,7 @@ func ResourceSecurityGroup() *schema.Resource {
 				Default:     false,
 				Description: "",
 			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a Security Group resource.",
 	}
@@ -61,6 +63,7 @@ func resourceSecurityGroupCreate(ctx context.Context, rd *schema.ResourceData, m
 	name := rd.Get("name").(string)
 	description := rd.Get("description").(string)
 	isLoggable := rd.Get("is_loggable").(bool)
+	tags := rd.Get("tags").(map[string]interface{})
 
 	inst := meta.(*client.Instance)
 
@@ -77,7 +80,7 @@ func resourceSecurityGroupCreate(ctx context.Context, rd *schema.ResourceData, m
 		return diag.Errorf("Input security group name is invalid (maybe duplicated) : " + name)
 	}
 
-	response, err := inst.Client.SecurityGroup.CreateSecurityGroup(ctx, vpcInfo.ServiceZoneId, vpcId, name, description, isLoggable)
+	response, err := inst.Client.SecurityGroup.CreateSecurityGroup(ctx, vpcInfo.ServiceZoneId, vpcId, name, description, isLoggable, tags)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -110,6 +113,8 @@ func resourceSecurityGroupRead(ctx context.Context, rd *schema.ResourceData, met
 	rd.Set("description", info.SecurityGroupDescription)
 	rd.Set("is_loggable", info.IsLoggable)
 
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
+
 	return nil
 }
 
@@ -131,6 +136,11 @@ func resourceSecurityGroupUpdate(ctx context.Context, rd *schema.ResourceData, m
 		if err != nil {
 			return diag.FromErr(err)
 		}
+	}
+
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 	return resourceSecurityGroupRead(ctx, rd, meta)
 }

@@ -261,9 +261,9 @@ func WaitForStatus(ctx context.Context, client *SCPClient, pendingStates []strin
 	return nil
 }
 
-func UpdateResourceTag(ctx context.Context, client *SCPClient, resourceId string, oldTagsInterface []interface{}, newTagsInterface []interface{}) error {
-	oldTags := toTagRequestList(oldTagsInterface)
-	newTags := toTagRequestList(newTagsInterface)
+func UpdateResourceTag(ctx context.Context, client *SCPClient, resourceId string, oldTagsMap map[string]interface{}, newTagsMap map[string]interface{}) error {
+	oldTags := toTagRequestList(oldTagsMap)
+	newTags := toTagRequestList(newTagsMap)
 
 	oldSet := make(map[tag.TagRequest]struct{})
 	newSet := make(map[tag.TagRequest]struct{})
@@ -312,17 +312,16 @@ func UpdateResourceTag(ctx context.Context, client *SCPClient, resourceId string
 	return nil
 }
 
-func toTagRequestList(list []interface{}) []tag.TagRequest {
-	if len(list) == 0 {
+func toTagRequestList(mapTags map[string]interface{}) []tag.TagRequest {
+	if len(mapTags) == 0 {
 		return nil
 	}
 	var result []tag.TagRequest
 
-	for _, val := range list {
-		kv := val.(common.HclKeyValueObject)
+	for key, value := range mapTags {
 		result = append(result, tag.TagRequest{
-			TagKey:   kv["tag_key"].(string),
-			TagValue: kv["tag_value"].(string),
+			TagKey:   key,
+			TagValue: value.(string),
 		})
 	}
 	return result

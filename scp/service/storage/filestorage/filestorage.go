@@ -7,6 +7,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/filestorage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"log"
@@ -111,14 +112,7 @@ func ResourceFileStorage() *schema.Resource {
 				Optional:    true,
 				Description: "Snapshot schedule hour (0 to 23)",
 			},
-			"tags": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: "Tags",
-				Elem: &schema.Schema{
-					Type: schema.TypeMap,
-				},
-			},
+			"tags": tfTags.TagsSchema(),
 			"file_unit_recovery_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -199,7 +193,7 @@ func createFileStorage(ctx context.Context, rd *schema.ResourceData, meta interf
 		ServiceZoneId:          serviceZoneId,
 		SnapshotRetentionCount: &snapshotRetentionCount,
 		SnapshotSchedule:       getSnapshotSchedule(rd),
-		Tags:                   getTagRequestArray(rd),
+		Tags:                   rd.Get("tags").(map[string]interface{}),
 	}
 
 	// 빈 값으로 데이터 넘기면 500 Error
@@ -304,6 +298,9 @@ func readFileStorage(ctx context.Context, rd *schema.ResourceData, meta interfac
 			rd.Set("snapshot_schedule.frequency", snapshot.SnapshotSchedule.Frequency)
 		}
 	}
+
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
+
 	return nil
 }
 
@@ -390,6 +387,12 @@ func updateFileStorage(ctx context.Context, rd *schema.ResourceData, meta interf
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	err = tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	return readFileStorage(ctx, rd, meta)
 }
 
@@ -425,19 +428,6 @@ func waitForFileStorageStatus(ctx context.Context, scpClient *client.SCPClient, 
 		}
 		return info, info.FileStorageState, nil
 	})
-}
-
-func getTagRequestArray(rd *schema.ResourceData) []filestorage.TagRequest {
-	tags := rd.Get("tags").([]interface{})
-	tagsRequests := make([]filestorage.TagRequest, 0)
-	for _, tag := range tags {
-		tagMap := tag.(map[string]interface{})
-		tagsRequests = append(tagsRequests, filestorage.TagRequest{
-			TagKey:   tagMap["tag_key"].(string),
-			TagValue: tagMap["tag_value"].(string),
-		})
-	}
-	return tagsRequests
 }
 
 func getLinkObjectsArray(rd *schema.ResourceData) []filestorage.LinkObjectRequest {

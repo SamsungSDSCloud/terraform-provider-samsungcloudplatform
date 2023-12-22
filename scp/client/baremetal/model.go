@@ -23,7 +23,6 @@ type BMServerCreateRequest struct {
 	ServiceZoneId string
 	// Subnet ID Subnet ID is obtained through @[Get List of Subnet(V2)]
 	SubnetId string
-	Tags     []TagRequest
 	// Time Zone
 	TimeZone string
 	// VPC ID VPC ID is obtained through @[Get List of VPCs]

@@ -82,17 +82,18 @@ type CreateRequest struct {
 	// Virtual Server name
 	VirtualServerName    string
 	AvailabilityZoneName string
-	Tags                 []TagRequest
+	Tags                 map[string]interface{}
 	KeyPairId            string
 	PlacementGroupId     string
 }
 
 type ListVirtualServersRequestParam struct {
-	AutoscalingEnabled   bool
+	AutoscalingEnabled   *bool
 	ServerGroupId        string
 	ServicedForList      []string
 	ServicedGroupForList []string
 	VirtualServerName    string
+	AutoScalingGroupId   string
 	Page                 int32
 	Size                 int32
 	Sort                 string

@@ -34,11 +34,12 @@ func (client *Client) GetPublicIp(ctx context.Context, publicIpAddressId string)
 	return result, statusCode, err
 }
 
-func (client *Client) CreatePublicIp(ctx context.Context, serviceZoneId string, uplinkType string, publicIpDescription string) (publicip2.DetailPublicIpResponse, error) {
+func (client *Client) CreatePublicIp(ctx context.Context, serviceZoneId string, uplinkType string, publicIpDescription string, tags map[string]interface{}) (publicip2.DetailPublicIpResponse, error) {
 	result, _, err := client.sdkClient.PublicIpOpenApiV4ControllerApi.CreatePublicIpV4(ctx, client.config.ProjectId, publicip2.CreatePublicIpV4Request{
 		ServiceZoneId:       serviceZoneId,
 		UplinkType:          uplinkType,
 		PublicIpDescription: publicIpDescription,
+		Tags:                client.sdkClient.ToTagRequestList(tags),
 	})
 	return result, err
 }

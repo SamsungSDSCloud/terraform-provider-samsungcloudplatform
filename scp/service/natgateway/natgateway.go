@@ -5,6 +5,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	publicip2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/public-ip2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -50,6 +51,7 @@ func ResourceNATGateway() *schema.Resource {
 				Description:  "NAT-Gateway description. (Up to 50 characters)",
 				ValidateFunc: validation.StringLenBetween(0, 50),
 			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a NAT Gateway resource.",
 	}
@@ -66,10 +68,11 @@ func resourceNATGatewayCreate(ctx context.Context, rd *schema.ResourceData, meta
 	subnetId := rd.Get("subnet_id").(string)
 	publicIpId := rd.Get("public_ip_id").(string)
 	description := rd.Get("description").(string)
+	tags := rd.Get("tags").(map[string]interface{})
 
 	inst := meta.(*client.Instance)
 
-	result, _, err := inst.Client.NatGateway.CreateNatGateway(ctx, publicIpId, subnetId, description)
+	result, _, err := inst.Client.NatGateway.CreateNatGateway(ctx, publicIpId, subnetId, description, tags)
 	if err != nil {
 		return
 	}
@@ -135,6 +138,8 @@ func resourceNATGatewayRead(ctx context.Context, rd *schema.ResourceData, meta i
 	rd.Set("public_ipv4", info.NatGatewayIpAddress)
 	rd.Set("description", info.NatGatewayDescription)
 
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
+
 	return nil
 }
 
@@ -152,6 +157,11 @@ func resourceNATGatewayUpdate(ctx context.Context, rd *schema.ResourceData, meta
 		if err != nil {
 			return diag.FromErr(err)
 		}
+	}
+
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	return resourceNATGatewayRead(ctx, rd, meta)

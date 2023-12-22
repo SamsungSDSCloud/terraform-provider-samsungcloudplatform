@@ -1,4 +1,13 @@
 data "scp_region" "region" {
+  filter {
+    name = "location"
+    values = ["KR-EAST-1"]
+  }
+}
+
+data "scp_obs_storages" "obs_storage" {
+  service_zone_id     = data.scp_region.region.id
+  object_storage_name = "demo_object_storage_name"
 }
 
 data "scp_standard_image" "postgres_13_6_image" {
@@ -12,45 +21,46 @@ data "scp_standard_image" "postgres_13_6_image" {
   }
 }
 
-resource "scp_postgresql" "my_pg_db" {
-  image_id = data.scp_standard_image.postgres_13_6_image.id
+resource "scp_postgresql" "demo_db" {
+  subnet_id = "SUBNET-123456789"
+  security_group_ids = ["FIREWALL_SECURITY_GROUP-123456789", "FIREWALL_SECURITY_GROUP-987654321"]
+  service_zone_id = data.scp_region.region.id
 
-  server_name_prefix = "pg-prefix"
-  cluster_name       = "pgclusterxx"
-
-  cpu_count          = var.cpu
-  memory_size_gb     = var.memory
-
-  contract_discount = "None"
-
-  vpc_id             = data.terraform_remote_state.vpc.outputs.id
-  subnet_id          = data.terraform_remote_state.subnet.outputs.id
-  security_group_ids = [data.terraform_remote_state.security-group.outputs.id]
-
-  db_name            = var.server_name
-  db_user_id         = var.id
-  db_user_password   = var.password
-  db_port            = 2866
-
-  timezone = "Asia/Seoul"
-
-  data_disk_type = "SSD"
-  data_storage_size_gb = 10
-
-  additional_storage {
-    product_name    = "SSD"
-    storage_usage   = "DATA"
-    storage_size_gb = 10
+  postgresql_servers {
+    postgresql_server_name = "demoserver-01"
+    server_role_type = "ACTIVE"
   }
 
-  #high_availability {
-  #  active_availability_zone_name  = "AZ1"
-  #  standby_availability_zone_name = "AZ2"
-  #}
+  image_id = data.scp_standard_image.postgres_13_6_image.id
+  audit_enabled = true
+  contract_period = "1 Year"
+  next_contract_period = "None"
+  nat_enabled = false
+  nat_public_ip_id = null
+  postgresql_cluster_name = "democluster"
+  postgresql_cluster_state = "RUNNING"
 
-  backup {
-    backup_method = "s3api"
-    retention_day = 7
-    start_hour = 23
+  database_encoding = "UTF8"
+  database_locale = "C"
+  database_name = "demodb"
+  database_port = 2866
+  database_user_name = "demouser"
+  database_user_password = ""
+
+  encryption_enabled = true
+  server_type = "db1v2m4"
+  timezone = "Asia/Seoul"
+
+  block_storages {
+    block_storage_type = "SSD"
+    block_storage_role_type = "DATA"
+    block_storage_size = 10
+  }
+
+  backup  {
+    object_storage_id = data.scp_obs_storages.obs_storage.contents[0].object_storage_id
+    archive_backup_schedule_frequency = "30M"
+    backup_retention_period = "15D"
+    backup_start_hour = 7
   }
 }

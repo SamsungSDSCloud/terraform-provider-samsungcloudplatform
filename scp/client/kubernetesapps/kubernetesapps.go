@@ -20,14 +20,16 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) CreateApps(ctx context.Context, clusterId string, namespace string, imageId string, productGroupId string, name string) (kubernetesapps.K8sAppsResponse, int, error) {
+func (client *Client) CreateApps(ctx context.Context, clusterId string, namespace string, imageId string, productGroupId string, name string, additionalParams map[string]interface{}, tags map[string]interface{}) (kubernetesapps.K8sAppsResponse, int, error) {
 	result, response, err := client.sdk.ReleaseV1ControllerApi.CreateReleaseV1(ctx, client.config.ProjectId, clusterId, namespace, kubernetesapps.ReleaseCreateRequest{
-		ProjectId:      client.config.ProjectId,
-		ClusterId:      clusterId,
-		ImageId:        imageId,
-		NamespaceName:  namespace,
-		ProductGroupId: productGroupId,
-		ReleaseName:    name,
+		ProjectId:        client.config.ProjectId,
+		ClusterId:        clusterId,
+		ImageId:          imageId,
+		NamespaceName:    namespace,
+		ProductGroupId:   productGroupId,
+		ReleaseName:      name,
+		AdditionalParams: additionalParams,
+		Tags:             client.sdk.ToTagRequestList(tags),
 	})
 	var statusCode int
 	if response != nil {

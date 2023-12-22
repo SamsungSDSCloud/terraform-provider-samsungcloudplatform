@@ -47,7 +47,7 @@ resource "scp_file_storage" "my_scp_file_storage" {
 - `multi_availability_zone` (Boolean) Multi AZ (If null, default value is false)
 - `snapshot_retention_count` (Number) Snapshot retention count
 - `snapshot_schedule` (Map of String) Snapshot schedule
-- `tags` (List of Map of String) Tags
+- `tags` (Map of String)
 - `unlink_objects` (Block List) Unlink Objects (see [below for nested schema](#nestedblock--unlink_objects))
 
 ### Read-Only

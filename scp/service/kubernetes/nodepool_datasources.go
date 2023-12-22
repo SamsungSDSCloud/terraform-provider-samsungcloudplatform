@@ -14,6 +14,7 @@ import (
 
 func init() {
 	scp.RegisterDataSource("scp_kubernetes_node_pools", DatasourceNodePools())
+	scp.RegisterDataSource("scp_kubernetes_node_pool", DatasourceNodePool())
 }
 
 func DatasourceNodePools() *schema.Resource {
@@ -94,6 +95,85 @@ func datasourceNodePoolElem() *schema.Resource {
 			"created_dt":         {Type: schema.TypeString, Computed: true, Description: "Creation Date"},
 			"modified_by":        {Type: schema.TypeString, Computed: true, Description: "The person who modified the resource"},
 			"modified_dt":        {Type: schema.TypeString, Computed: true, Description: "Modification Date"},
+			"region":             {Type: schema.TypeString, Computed: true, Description: "Modification Date"},
 		},
 	}
+}
+
+func DatasourceNodePool() *schema.Resource {
+	return &schema.Resource{
+		ReadContext: nodePoolDetail, //데이터 조회 함수
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
+		Schema: map[string]*schema.Schema{
+			common.ToSnakeCase("KubernetesEngineId"): {Type: schema.TypeString, Required: true, Description: "Kubernetes Engine Id"},
+			common.ToSnakeCase("NodePoolId"):         {Type: schema.TypeString, Required: true, Description: "Node Pool Id"},
+			common.ToSnakeCase("ProjectId"):          {Type: schema.TypeString, Computed: true, Description: "Project Id"},
+
+			common.ToSnakeCase("NodePoolName"):     {Type: schema.TypeString, Computed: true, Description: "NodePoolName"},
+			common.ToSnakeCase("K8sVersion"):       {Type: schema.TypeString, Computed: true, Description: "K8sVersion"},
+			common.ToSnakeCase("ImageId"):          {Type: schema.TypeString, Computed: true, Description: "ImageId"},
+			common.ToSnakeCase("NodePoolStatus"):   {Type: schema.TypeString, Computed: true, Description: "NodePoolStatus"},
+			common.ToSnakeCase("Upgradable"):       {Type: schema.TypeBool, Computed: true, Description: "Upgradable"},
+			common.ToSnakeCase("AutoScale"):        {Type: schema.TypeBool, Computed: true, Description: "AutoScale"},
+			common.ToSnakeCase("MinNodeCount"):     {Type: schema.TypeInt, Computed: true, Description: "MinNodeCount"},
+			common.ToSnakeCase("MaxNodeCount"):     {Type: schema.TypeInt, Computed: true, Description: "MaxNodeCount"},
+			common.ToSnakeCase("AutoRecovery"):     {Type: schema.TypeBool, Computed: true, Description: "AutoRecovery"},
+			common.ToSnakeCase("EncryptEnabled"):   {Type: schema.TypeBool, Computed: true, Description: "EncryptEnabled"},
+			common.ToSnakeCase("ProductGroupId"):   {Type: schema.TypeString, Computed: true, Description: "ProductGroupId"},
+			common.ToSnakeCase("StorageId"):        {Type: schema.TypeString, Computed: true, Description: "StorageId"},
+			common.ToSnakeCase("StorageSize"):      {Type: schema.TypeString, Computed: true, Description: "StorageSize"},
+			common.ToSnakeCase("ScaleId"):          {Type: schema.TypeString, Computed: true, Description: "ScaleId"},
+			common.ToSnakeCase("ContractId"):       {Type: schema.TypeString, Computed: true, Description: "ContractId"},
+			common.ToSnakeCase("ServiceLevelId"):   {Type: schema.TypeString, Computed: true, Description: "ServiceLevelId"},
+			common.ToSnakeCase("CurrentNodeCount"): {Type: schema.TypeInt, Computed: true, Description: "CurrentNodeCount"},
+			common.ToSnakeCase("DesiredNodeCount"): {Type: schema.TypeInt, Computed: true, Description: "DesiredNodeCount"},
+			common.ToSnakeCase("CreatedBy"):        {Type: schema.TypeString, Computed: true, Description: "Created By"},
+			common.ToSnakeCase("CreatedDt"):        {Type: schema.TypeString, Computed: true, Description: "Created Dt"},
+			common.ToSnakeCase("ModifiedBy"):       {Type: schema.TypeString, Computed: true, Description: "Modified By"},
+			common.ToSnakeCase("ModifiedDt"):       {Type: schema.TypeString, Computed: true, Description: "Modified Dt"},
+		},
+		Description: "Provides Kubernetes Engine Detail",
+	}
+}
+
+func nodePoolDetail(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	inst := meta.(*client.Instance)
+
+	engineId := rd.Get("kubernetes_engine_id").(string)
+	nodePoolId := rd.Get("node_pool_id").(string)
+
+	response, _, err := inst.Client.KubernetesEngine.ReadNodePool(ctx, engineId, nodePoolId)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	rd.SetId(uuid.NewV4().String())
+
+	rd.Set(common.ToSnakeCase("ProjectId"), response.ProjectId)
+	rd.Set(common.ToSnakeCase("NodePoolName"), response.NodePoolName)
+	rd.Set(common.ToSnakeCase("K8sVersion"), response.K8sVersion)
+	rd.Set(common.ToSnakeCase("ImageId"), response.ImageId)
+	rd.Set(common.ToSnakeCase("NodePoolStatus"), response.NodePoolStatus)
+	rd.Set(common.ToSnakeCase("Upgradable"), response.Upgradable)
+	rd.Set(common.ToSnakeCase("AutoScale"), response.AutoScale)
+	rd.Set(common.ToSnakeCase("MinNodeCount"), response.MinNodeCount)
+	rd.Set(common.ToSnakeCase("MaxNodeCount"), response.MaxNodeCount)
+	rd.Set(common.ToSnakeCase("AutoRecovery"), response.AutoRecovery)
+	rd.Set(common.ToSnakeCase("EncryptEnabled"), response.EncryptEnabled)
+	rd.Set(common.ToSnakeCase("ProductGroupId"), response.ProductGroupId)
+	rd.Set(common.ToSnakeCase("StorageId"), response.StorageId)
+	rd.Set(common.ToSnakeCase("StorageSize"), response.StorageSize)
+	rd.Set(common.ToSnakeCase("ScaleId"), response.ScaleId)
+	rd.Set(common.ToSnakeCase("ContractId"), response.ContractId)
+	rd.Set(common.ToSnakeCase("ServiceLevelId"), response.ServiceLevelId)
+	rd.Set(common.ToSnakeCase("CurrentNodeCount"), response.CurrentNodeCount)
+	rd.Set(common.ToSnakeCase("DesiredNodeCount"), response.DesiredNodeCount)
+	rd.Set(common.ToSnakeCase("CreatedBy"), response.CreatedBy)
+	rd.Set(common.ToSnakeCase("CreatedDt"), response.CreatedDt.String())
+	rd.Set(common.ToSnakeCase("ModifiedBy"), response.ModifiedBy)
+	rd.Set(common.ToSnakeCase("ModifiedDt"), response.ModifiedDt.String())
+
+	return nil
 }

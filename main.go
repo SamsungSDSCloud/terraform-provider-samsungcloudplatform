@@ -22,5 +22,4 @@ func main() {
 	}
 
 	plugin.Serve(opts)
-
 }

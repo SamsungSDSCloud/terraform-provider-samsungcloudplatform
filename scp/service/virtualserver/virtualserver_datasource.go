@@ -24,11 +24,12 @@ func DatasourceVirtualServer() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
-			"filter":               common.DatasourceFilter(),
-			"virtual_server_id":    {Type: schema.TypeString, Optional: true, Description: "Virtual server id"},
-			"virtual_server_name":  {Type: schema.TypeString, Optional: true, Description: "Virtual Server Name"},
-			"auto_scaling_enabled": {Type: schema.TypeBool, Optional: true, Description: "Auto Scaling Enabled"},
-			"server_group_id":      {Type: schema.TypeString, Optional: true, Description: "Server Group Id"},
+			"filter":                common.DatasourceFilter(),
+			"virtual_server_id":     {Type: schema.TypeString, Optional: true, Description: "Virtual server id"},
+			"virtual_server_name":   {Type: schema.TypeString, Optional: true, Description: "Virtual Server Name"},
+			"auto_scaling_enabled":  {Type: schema.TypeBool, Optional: true, Description: "Auto Scaling Enabled"},
+			"server_group_id":       {Type: schema.TypeString, Optional: true, Description: "Server Group Id"},
+			"auto_scaling_group_id": {Type: schema.TypeString, Optional: true, Description: "Auto Scaling Group Id"},
 			//"serviced_for_list":       {Type: schema.TypeList, Optional: true, Elem: &schema.Schema{Type: schema.TypeString, Description: "Serviced For"}, Description: "Serviced For List"},
 			//"serviced_group_for_list": {Type: schema.TypeList, Optional: true, Elem: &schema.Schema{Type: schema.TypeString, Description: "Serviced Group For"}, Description: "Serviced Group For List"},
 			"page":        {Type: schema.TypeInt, Optional: true, Default: 0, Description: "Page start number from which to get the list"},
@@ -97,6 +98,7 @@ func datasourceElem() *schema.Resource {
 }
 
 func dataSourceList(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
 	inst := meta.(*client.Instance)
 	virtualServerId := rd.Get("virtual_server_id").(string)
 	contents := make([]map[string]interface{}, 0)
@@ -140,15 +142,26 @@ func dataSourceList(ctx context.Context, rd *schema.ResourceData, meta interface
 
 func getListVirtualServersRequestParam(rd *schema.ResourceData) *virtualserver.ListVirtualServersRequestParam {
 	return &virtualserver.ListVirtualServersRequestParam{
-		AutoscalingEnabled: rd.Get("auto_scaling_enabled").(bool),
+		AutoscalingEnabled: getBoolPtrFromRd(rd, "auto_scaling_enabled"),
 		ServerGroupId:      rd.Get("server_group_id").(string),
 		VirtualServerName:  rd.Get("virtual_server_name").(string),
+		AutoScalingGroupId: rd.Get("auto_scaling_group_id").(string),
 		//ServicedForList:      convertToStringArray(rd.Get("serviced_for_list").([]interface{})),
 		//ServicedGroupForList: convertToStringArray(rd.Get("serviced_group_for_list").([]interface{})),
 		Page: int32(rd.Get("page").(int)),
 		Size: int32(rd.Get("size").(int)),
 		Sort: rd.Get("sort").(string),
 	}
+}
+
+func getBoolPtrFromRd(rd *schema.ResourceData, key string) *bool {
+	boolValueFromRd := rd.GetRawConfig().GetAttr(key)
+	if !boolValueFromRd.IsNull() {
+		boolVal := boolValueFromRd.True()
+		return &boolVal
+	}
+
+	return nil
 }
 
 func convertToStringArray(interfaceArray []interface{}) []string {

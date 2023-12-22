@@ -19,11 +19,12 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) CreateNatGateway(ctx context.Context, publicIpAddressId string, subnetId string, description string) (natgateway2.AsyncResponse, int, error) {
+func (client *Client) CreateNatGateway(ctx context.Context, publicIpAddressId string, subnetId string, description string, tags map[string]interface{}) (natgateway2.AsyncResponse, int, error) {
 	result, c, err := client.sdkClient.NatGatewayV2ControllerV2Api.CreateNatGateway(ctx, client.config.ProjectId, natgateway2.NatGatewayCreateRequest{
 		PublicIpAddressId:     publicIpAddressId,
 		SubnetId:              subnetId,
 		NatGatewayDescription: description,
+		Tags:                  client.sdkClient.ToTagRequestList(tags),
 	})
 	var statusCode int
 	if c != nil {

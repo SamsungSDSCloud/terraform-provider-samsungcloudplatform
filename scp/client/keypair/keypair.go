@@ -20,16 +20,9 @@ func NewClient(config *sdk.Configuration) *Client {
 }
 
 func (client *Client) CreateKeyPair(ctx context.Context, request CreateRequest) (keypair.KeyPairCreateV1Response, error) {
-	tags := make([]keypair.TagRequest, 0)
-	for _, tag := range request.Tags {
-		tags = append(tags, keypair.TagRequest{
-			TagKey:   tag.TagKey,
-			TagValue: tag.TagValue,
-		})
-	}
 	result, _, err := client.sdkClient.KeyPairV1Api.CreateKeyPair1(ctx, client.config.ProjectId, keypair.KeyPairCreateV1Request{
 		KeyPairName: request.KeyPairName,
-		Tags:        tags,
+		Tags:        client.sdkClient.ToTagRequestList(request.Tags),
 	})
 
 	return result, err

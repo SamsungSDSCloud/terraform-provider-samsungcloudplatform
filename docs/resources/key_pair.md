@@ -27,7 +27,7 @@ resource "scp_key_pair" "my_keypair" {
 
 ### Optional
 
-- `tags` (Map of String) Tags
+- `tags` (Map of String)
 
 ### Read-Only
 

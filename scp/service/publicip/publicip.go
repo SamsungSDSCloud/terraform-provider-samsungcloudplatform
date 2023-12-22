@@ -3,6 +3,7 @@ package publicip
 import (
 	"context"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
@@ -53,6 +54,7 @@ func ResourceVpcPublicIp() *schema.Resource {
 					"SHARED_GROUP",
 				}, false),
 			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a Public IP resource.",
 	}
@@ -63,6 +65,7 @@ func resourceVpcPublicIpCreate(ctx context.Context, rd *schema.ResourceData, met
 	description := rd.Get("description").(string)
 	location := rd.Get("region").(string)
 	uplinkType := rd.Get("uplink_type").(string)
+	tags := rd.Get("tags").(map[string]interface{})
 	inst := meta.(*client.Instance)
 
 	serviceZoneId, err := client.FindServiceZoneId(ctx, inst.Client, location)
@@ -70,7 +73,7 @@ func resourceVpcPublicIpCreate(ctx context.Context, rd *schema.ResourceData, met
 		return diag.FromErr(err)
 	}
 
-	result, err := inst.Client.PublicIp.CreatePublicIp(ctx, serviceZoneId, uplinkType, description)
+	result, err := inst.Client.PublicIp.CreatePublicIp(ctx, serviceZoneId, uplinkType, description, tags)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -108,6 +111,9 @@ func resourceVpcPublicIpRead(ctx context.Context, rd *schema.ResourceData, meta 
 
 	rd.Set("region", location)
 	rd.Set("uplinkType", info.UplinkType)
+
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
+
 	return nil
 }
 
@@ -118,6 +124,11 @@ func resourceVpcPublicIpUpdate(ctx context.Context, rd *schema.ResourceData, met
 		if err != nil {
 			return diag.FromErr(err)
 		}
+	}
+
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	return resourceVpcPublicIpRead(ctx, rd, meta)

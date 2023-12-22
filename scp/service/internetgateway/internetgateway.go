@@ -5,6 +5,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -44,6 +45,7 @@ func ResourceInternetGateway() *schema.Resource {
 				Description:  "Internet-Gateway description. (Up to 50 characters)",
 				ValidateFunc: validation.StringLenBetween(0, 50),
 			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a Internet Gateway resource.",
 	}
@@ -59,10 +61,11 @@ func resourceInternetGatewayCreate(ctx context.Context, rd *schema.ResourceData,
 	vpcId := rd.Get("vpc_id").(string)
 	description := rd.Get("description").(string)
 	igwType := rd.Get("igw_type").(string)
+	tags := rd.Get("tags").(map[string]interface{})
 
 	inst := meta.(*client.Instance)
 
-	result, _, err := inst.Client.InternetGateway.CreateInternetGateway(ctx, vpcId, igwType, description, false, false)
+	result, _, err := inst.Client.InternetGateway.CreateInternetGateway(ctx, vpcId, igwType, description, false, false, tags)
 	if err != nil {
 		return
 	}
@@ -93,6 +96,7 @@ func resourceInternetGatewayRead(ctx context.Context, rd *schema.ResourceData, m
 
 	rd.Set("vpc_id", info.VpcId)
 	rd.Set("description", info.InternetGatewayDescription)
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
 	return nil
 }
@@ -112,6 +116,11 @@ func resourceInternetGatewayUpdate(ctx context.Context, rd *schema.ResourceData,
 			return diag.FromErr(err)
 		}
 
+	}
+
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	return resourceInternetGatewayRead(ctx, rd, meta)

@@ -5,11 +5,12 @@ type CreateBucketRequest struct {
 	AccessControlRules                       []AccessControlRule
 	ObjectStorageBucketFileEncryptionEnabled bool
 	ObjectStorageBucketName                  string
+	ObjectStorageBucketUserPurpose           string
 	ObjectStorageBucketVersionEnabled        bool
 	ObjectStorageId                          string
 	ServiceZoneId                            string
 	ProductNames                             []string
-	Tags                                     []TagRequest
+	Tags                                     map[string]interface{}
 }
 
 type AccessControlRule struct {

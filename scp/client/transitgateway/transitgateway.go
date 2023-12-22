@@ -95,7 +95,7 @@ func (client *Client) GetTransitGatewayConnectionList(ctx context.Context, reque
 	return result, statusCode, err
 }
 
-func (client *Client) CreateTransitGatewayConnection(ctx context.Context, transitGatewayId string, vpcId string, requesterProjectId string, approverProjectId string, description string, firewallEnabled bool, firewallLoggable bool, connectionType string) (transitgateway2.TransitGatewayConnectionApprovalResponse, int, error) {
+func (client *Client) CreateTransitGatewayConnection(ctx context.Context, transitGatewayId string, vpcId string, requesterProjectId string, approverProjectId string, description string, firewallEnabled bool, firewallLoggable bool, connectionType string, tags map[string]interface{}) (transitgateway2.TransitGatewayConnectionApprovalResponse, int, error) {
 	result, c, err := client.sdkClient.TransitGatewayConnectionOpenApiControllerApi.CreateTransitGatewayConnection(ctx, client.config.ProjectId, transitgateway2.TransitGatewayConnectionCreateRequest{
 		RequesterProjectId:                  requesterProjectId,
 		RequesterTransitGatewayId:           transitGatewayId,
@@ -105,6 +105,7 @@ func (client *Client) CreateTransitGatewayConnection(ctx context.Context, transi
 		FirewallEnabled:                     &firewallEnabled,
 		FirewallLoggable:                    &firewallLoggable,
 		TransitGatewayConnectionType:        connectionType,
+		Tags:                                client.sdkClient.ToTagRequestList(tags),
 	})
 
 	var statusCode int

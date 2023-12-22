@@ -14,9 +14,10 @@ type CreateBackupRequest struct {
 	PolicyType                 string
 	ProductNames               []string
 	RetentionPeriod            string
+	IncrementalRetentionPeriod string
 	Schedules                  []BackupScheduleInfo
 	ServiceZoneId              string
-	Tags                       []TagRequest
+	Tags                       map[string]interface{}
 }
 
 type BackupScheduleInfo struct {
@@ -34,5 +35,7 @@ type TagRequest struct {
 }
 
 type UpdateBackupScheduleRequest struct {
-	Schedules []BackupScheduleInfo
+	RetentionPeriod            string
+	IncrementalRetentionPeriod string
+	Schedules                  []BackupScheduleInfo
 }

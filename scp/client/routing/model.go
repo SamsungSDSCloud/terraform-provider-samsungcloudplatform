@@ -34,3 +34,19 @@ type DeleteRoutingRulesRequest struct {
 	// Routing Rule IDs
 	RoutingRuleIds []string
 }
+
+type ListTgwRoutingTableRequest struct {
+	RoutingTableId             string
+	RoutingTableName           string
+	TransitGatewayConnectionId string
+	CreatedBy                  string
+	Sort                       string
+}
+
+type ListTgwRoutingRuleRequest struct {
+	DestinationNetworkCidr   string
+	Editable                 string
+	RoutingRuleId            string
+	SourceServiceInterfaceId string
+	Sort                     string
+}

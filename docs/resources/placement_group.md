@@ -41,7 +41,7 @@ resource "scp_placement_group" "placement_group_001" {
 
 - `availability_zone_name` (String) Availability Zone Name
 - `description` (String) Description
-- `tags` (Map of String) Tags
+- `tags` (Map of String)
 
 ### Read-Only
 

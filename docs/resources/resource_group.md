@@ -33,7 +33,6 @@ resource "scp_resource_group" "my_resource_group" {
 ### Required
 
 - `name` (String) Resource group name
-- `target_resource_tags` (Block List, Min: 1) (see [below for nested schema](#nestedblock--target_resource_tags))
 
 ### Optional
 
@@ -42,6 +41,7 @@ resource "scp_resource_group" "my_resource_group" {
 - `modified_by_id` (String) The user id which modified the resource group
 - `modified_by_name` (String) The user name which modified the resource group
 - `resource_group_description` (String) Resource group description
+- `target_resource_tags` (Map of String)
 - `target_resource_types` (List of String) Resource group types
 
 ### Read-Only
@@ -53,18 +53,6 @@ resource "scp_resource_group" "my_resource_group" {
 - `modified_dt` (String) The modified date of the resource group
 - `resource_group_name` (String) Resource group name
 - `target_resource_tag` (List of Object) Tag list (see [below for nested schema](#nestedatt--target_resource_tag))
-
-<a id="nestedblock--target_resource_tags"></a>
-### Nested Schema for `target_resource_tags`
-
-Required:
-
-- `tag_key` (String) Tag key
-
-Optional:
-
-- `tag_value` (String) Tag value
-
 
 <a id="nestedatt--target_resource_tag"></a>
 ### Nested Schema for `target_resource_tag`

@@ -63,13 +63,6 @@ func (client *Client) CreateVirtualServer(ctx context.Context, request CreateReq
 		})
 	}
 
-	tags := make([]virtualserver2.TagRequest, 0)
-	for _, tag := range request.Tags {
-		tags = append(tags, virtualserver2.TagRequest{
-			TagKey:   tag.TagKey,
-			TagValue: tag.TagValue,
-		})
-	}
 	result, _, err := client.sdkClient.VirtualServerCreateV3Api.CreateVirtualServer1(ctx, client.config.ProjectId, virtualserver2.VirtualServerCreateV3Request{
 		BlockStorage: &virtualserver2.VirtualServerCreateBlockStorageV3Request{
 			BlockStorageName: request.BlockStorage.BlockStorageName,
@@ -109,7 +102,7 @@ func (client *Client) CreateVirtualServer(ctx context.Context, request CreateReq
 		ServiceZoneId: request.ServiceZoneId,
 		//Timezone:          request.Timezone,			// deprecated
 		VirtualServerName:    request.VirtualServerName,
-		Tags:                 tags,
+		Tags:                 client.sdkClient.ToTagRequestList(request.Tags),
 		AvailabilityZoneName: request.AvailabilityZoneName,
 	})
 	return result, err
@@ -127,13 +120,6 @@ func (client *Client) CreateVirtualServerV4(ctx context.Context, request CreateR
 		})
 	}
 
-	tags := make([]virtualserver2.TagRequest, 0)
-	for _, tag := range request.Tags {
-		tags = append(tags, virtualserver2.TagRequest{
-			TagKey:   tag.TagKey,
-			TagValue: tag.TagValue,
-		})
-	}
 	result, _, err := client.sdkClient.VirtualServerCreateV4Api.CreateVirtualServer2(ctx, client.config.ProjectId, virtualserver2.VirtualServerCreateV4Request{
 		BlockStorage: &virtualserver2.VirtualServerCreateBlockStorageV3Request{
 			BlockStorageName: request.BlockStorage.BlockStorageName,
@@ -170,7 +156,7 @@ func (client *Client) CreateVirtualServerV4(ctx context.Context, request CreateR
 		ServiceZoneId: request.ServiceZoneId,
 		//Timezone:          request.Timezone,			// deprecated
 		VirtualServerName:    request.VirtualServerName,
-		Tags:                 tags,
+		Tags:                 client.sdkClient.ToTagRequestList(request.Tags),
 		AvailabilityZoneName: request.AvailabilityZoneName,
 	})
 	return result, err
@@ -263,19 +249,27 @@ func (client *Client) DetailVirtualServer(ctx context.Context, virtualServerId s
 }
 
 func (client *Client) ListVirtualServers(ctx context.Context, request ListVirtualServersRequestParam) (virtualserver2.ListResponseOfVirtualServersResponse, error) {
-
 	result, _, err := client.sdkClient.VirtualServerV2Api.ListVirtualServers2(ctx, client.config.ProjectId,
 		&virtualserver2.VirtualServerV2ApiListVirtualServers2Opts{
-			AutoscalingEnabled:   optional.NewBool(request.AutoscalingEnabled),
+			AutoscalingEnabled:   boolPtrToOptionalBool(request.AutoscalingEnabled),
 			ServerGroupId:        optional.NewString(request.ServerGroupId),
 			ServicedForList:      optional.NewInterface(request.ServicedForList),
 			ServicedGroupForList: optional.NewInterface(request.ServicedGroupForList),
 			VirtualServerName:    optional.NewString(request.VirtualServerName),
+			AutoScalingGroupId:   optional.NewString(request.AutoScalingGroupId),
 			Page:                 optional.NewInt32(request.Page),
 			Size:                 optional.NewInt32(request.Size),
 			Sort:                 optional.NewInterface(request.Sort),
 		})
 	return result, err
+}
+
+func boolPtrToOptionalBool(boolPtr *bool) optional.Bool {
+	if boolPtr != nil {
+		return optional.NewBool(*boolPtr)
+	} else {
+		return optional.EmptyBool()
+	}
 }
 
 func (client *Client) UpdateVirtualServerSubnetIp(ctx context.Context, virtualServerId string, request VirtualServerSubnetIpUpdateRequest) (virtualserver2.AsyncResponse, error) {

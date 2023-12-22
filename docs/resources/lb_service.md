@@ -112,6 +112,7 @@ resource "scp_public_ip" "my_public_ip_id" {
 - `server_certificate_id` (String) SSL server certification id.
 - `server_ssl_security_level` (String) SSL server security level.
 - `service_ipv4` (String) Servicing IP address
+- `tags` (Map of String)
 - `use_access_log` (Boolean)
 
 ### Read-Only

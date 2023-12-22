@@ -31,7 +31,7 @@ resource "scp_iam_policy" "my_policy01" {
 
 - `description` (String) Description
 - `principals` (Block List) Policy principal list (see [below for nested schema](#nestedblock--principals))
-- `tags` (Block List) Tag list (see [below for nested schema](#nestedblock--tags))
+- `tags` (Map of String)
 
 ### Read-Only
 
@@ -58,15 +58,3 @@ Required:
 
 - `principal_id` (String) Principal ID
 - `principal_type` (String) Principal type
-
-
-<a id="nestedblock--tags"></a>
-### Nested Schema for `tags`
-
-Required:
-
-- `tag_key` (String) Tag key
-
-Optional:
-
-- `tag_value` (String) Tag value

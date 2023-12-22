@@ -20,7 +20,7 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) CreateBlockStorage(ctx context.Context, request CreateBlockStorageRequest) (blockstorage2.AsyncResponse, error) {
+func (client *Client) CreateBlockStorage(ctx context.Context, request CreateBlockStorageRequest, tags map[string]interface{}) (blockstorage2.AsyncResponse, error) {
 	blockStorageCreateRequest := blockstorage2.BlockStorageCreateRequest{
 		BlockStorageName: request.BlockStorageName,
 		BlockStorageSize: request.BlockStorageSize,
@@ -28,13 +28,9 @@ func (client *Client) CreateBlockStorage(ctx context.Context, request CreateBloc
 		ProductId:        request.ProductId,
 		SharedType:       request.SharedType,
 		VirtualServerId:  request.VirtualServerId,
+		Tags:             client.sdkClient.ToTagRequestList(tags),
 	}
-	blockStorageCreateRequest.Tags = make([]blockstorage2.TagRequest, 0)
-	for _, tagReq := range request.Tags {
-		blockStorageCreateRequest.Tags = append(blockStorageCreateRequest.Tags, blockstorage2.TagRequest{
-			TagKey:   tagReq.TagKey,
-			TagValue: tagReq.TagValue})
-	}
+
 	//result, _, err := client.sdkClient.BlockStorageControllerApi.CreateBlockStorage(
 	//	ctx,
 	//	client.config.ProjectId,

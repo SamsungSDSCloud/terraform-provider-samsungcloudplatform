@@ -5,6 +5,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -31,9 +32,9 @@ func ResourceVpc() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true, //필수 작성
 				ForceNew:    true, //해당 필드 수정시 자원 삭제 후 다시 생성됨
-				Description: "VPC name. (3 to 20 characters without specials)",
+				Description: "VPC name. (3 to 17 characters without specials)",
 				ValidateFunc: validation.All( //입력 값 Validation 체크
-					validation.StringLenBetween(3, 20),
+					validation.StringLenBetween(3, 17),
 					validation.StringMatch(regexp.MustCompile(`^[a-zA-Z0-9]+$`), "must contain only alphanumeric characters"),
 				),
 			},
@@ -49,6 +50,7 @@ func ResourceVpc() *schema.Resource {
 				ForceNew:    true,
 				Description: "Region name",
 			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a VPC resource.",
 	}
@@ -63,14 +65,6 @@ func resourceVpcCreate(ctx context.Context, rd *schema.ResourceData, meta interf
 
 	inst := meta.(*client.Instance)
 
-	isVpcNameInvalid, err := inst.Client.Vpc.CheckVpcName(ctx, vpcName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	if isVpcNameInvalid {
-		return diag.Errorf("Input vpc name is invalid (maybe duplicated) : " + vpcName)
-	}
-
 	serviceZoneId, err := client.FindServiceZoneId(ctx, inst.Client, vpcLocation)
 	if err != nil {
 		return diag.FromErr(err)
@@ -78,7 +72,7 @@ func resourceVpcCreate(ctx context.Context, rd *schema.ResourceData, meta interf
 
 	tflog.Debug(ctx, "Try create vpc : "+vpcName+", "+vpcDescription+", "+serviceZoneId)
 
-	response, err := inst.Client.Vpc.CreateVpc(ctx, vpcName, vpcDescription, serviceZoneId)
+	response, err := inst.Client.Vpc.CreateVpc(ctx, vpcName, vpcDescription, serviceZoneId, rd.Get("tags").(map[string]interface{}))
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -116,6 +110,7 @@ func resourceVpcRead(ctx context.Context, rd *schema.ResourceData, meta interfac
 	}
 
 	rd.Set("region", location)
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
 	return nil
 }
@@ -126,6 +121,11 @@ func resourceVpcUpdate(ctx context.Context, rd *schema.ResourceData, meta interf
 		if err != nil {
 			return diag.FromErr(err)
 		}
+	}
+
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	return resourceVpcRead(ctx, rd, meta)

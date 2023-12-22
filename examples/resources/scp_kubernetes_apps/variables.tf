@@ -1,4 +1,3 @@
-
 data "terraform_remote_state" "engine" {
   backend = "local"
 
@@ -15,6 +14,13 @@ data "terraform_remote_state" "namespace" {
   }
 }
 
+variable "additional_params" {
+  type = map(string)
+  default = {
+    "replicaCount" = "1"
+  }
+}
+
 variable "name" {
-  default = "appstest"
+  default = "tf-apps-test1"
 }

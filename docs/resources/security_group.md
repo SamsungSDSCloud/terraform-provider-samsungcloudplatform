@@ -55,6 +55,7 @@ resource "scp_security_group_rule" "tc_rule_all" {
 
 - `description` (String) Subnet description
 - `is_loggable` (Boolean)
+- `tags` (Map of String)
 
 ### Read-Only
 

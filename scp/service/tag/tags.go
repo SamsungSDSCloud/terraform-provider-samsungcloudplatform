@@ -194,3 +194,48 @@ func datasourceTagResourcesList(ctx context.Context, rd *schema.ResourceData, me
 
 	return nil
 }
+
+func TagsSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeMap,
+		Optional: true,
+		Elem:     &schema.Schema{Type: schema.TypeString},
+	}
+}
+
+func SetTags(ctx context.Context, rd *schema.ResourceData, meta interface{}, resourceId string) error {
+	inst := meta.(*client.Instance)
+
+	result, _, err := inst.Client.Tag.ListResourceTags(ctx, resourceId)
+	if err != nil {
+		return err
+	}
+
+	if len(result.Contents) == 0 {
+		return nil
+	}
+
+	tags := make(map[string]string)
+	for _, tag := range result.Contents {
+		tags[tag.TagKey] = tag.TagValue
+	}
+	rd.Set("tags", tags)
+
+	return nil
+}
+
+func UpdateTags(ctx context.Context, rd *schema.ResourceData, meta interface{}, resourceId string) error {
+	if rd.HasChanges("tags") {
+		o, n := rd.GetChange("tags")
+		oldMap := o.(map[string]interface{})
+		newMap := n.(map[string]interface{})
+
+		inst := meta.(*client.Instance)
+		err := client.UpdateResourceTag(ctx, inst.Client, resourceId, oldMap, newMap)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

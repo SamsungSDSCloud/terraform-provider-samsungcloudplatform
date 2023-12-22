@@ -1,3 +1,3 @@
 output "id" {
-  value = scp_postgresql.my_pg_db.id
+  value = scp_postgresql.demo_db.id
 }

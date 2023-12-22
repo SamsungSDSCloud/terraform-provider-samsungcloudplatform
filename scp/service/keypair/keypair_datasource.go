@@ -49,7 +49,8 @@ func dataSourceList(ctx context.Context, rd *schema.ResourceData, meta interface
 		contents := make([]map[string]interface{}, 0)
 
 		content := common.ToMap(response)
-		content["virtual_servers"] = response.VirtualServerIdList
+		content["virtual_server_id_list"] = response.VirtualServerIdList
+		content["launch_configuration_id_list"] = response.LaunchConfigurationIdList
 		contents = append(contents, content)
 
 		rd.SetId(uuid.NewV4().String())
@@ -74,6 +75,7 @@ func dataSourceList(ctx context.Context, rd *schema.ResourceData, meta interface
 
 		for i, resContent := range responses.Contents {
 			contents[i]["virtual_server_id_list"] = resContent.VirtualServerIdList
+			contents[i]["launch_configuration_id_list"] = resContent.LaunchConfigurationIdList
 		}
 
 		var totalCount int32 = 0
@@ -102,6 +104,12 @@ func datasourceElem() *schema.Resource {
 				Computed:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				Description: "Virtual Server Id List",
+			},
+			"launch_configuration_id_list": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "Launch Configuration Id List",
 			},
 			"created_by":  {Type: schema.TypeString, Computed: true, Description: "Person who created the resource"},
 			"created_dt":  {Type: schema.TypeString, Computed: true, Description: "Creation time"},

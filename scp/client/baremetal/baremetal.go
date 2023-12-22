@@ -42,7 +42,7 @@ func (client *Client) GetBareMetalServerDetail(ctx context.Context, serverId str
 	return result, statusCode, err
 }
 
-func (client *Client) CreateBareMetalServer(ctx context.Context, request BMServerCreateRequest) (baremetal.AsyncResponse, error) {
+func (client *Client) CreateBareMetalServer(ctx context.Context, request BMServerCreateRequest, tags map[string]interface{}) (baremetal.AsyncResponse, error) {
 	blockStorages := make([]baremetal.AdditionalBlockStorageCreateRequest, 0)
 	for _, s := range request.ServerDetails[0].StorageDetails {
 		ab := baremetal.AdditionalBlockStorageCreateRequest{
@@ -55,20 +55,23 @@ func (client *Client) CreateBareMetalServer(ctx context.Context, request BMServe
 		blockStorages = append(blockStorages, ab)
 	}
 	serverDetails := make([]baremetal.BareMetalServerDetailsRequest, 0)
-	serverDetail := baremetal.BareMetalServerDetailsRequest{
-		BareMetalLocalSubnetEnabled:   &request.ServerDetails[0].BareMetalLocalSubnetEnabled,
-		BareMetalLocalSubnetId:        request.ServerDetails[0].BareMetalLocalSubnetId,
-		BareMetalLocalSubnetIpAddress: request.ServerDetails[0].BareMetalLocalSubnetIpAddress,
-		BareMetalServerName:           request.ServerDetails[0].BareMetalServerName,
-		DnsEnabled:                    &request.ServerDetails[0].DnsEnabled,
-		IpAddress:                     request.ServerDetails[0].IpAddress,
-		NatEnabled:                    &request.ServerDetails[0].NatEnabled,
-		PublicIpAddressId:             request.ServerDetails[0].PublicIpAddressId,
-		ServerTypeId:                  request.ServerDetails[0].ServerTypeId,
-		StorageDetails:                blockStorages,
-		UseHyperThreading:             request.ServerDetails[0].UseHyperThreading,
+
+	for index, _ := range request.ServerDetails {
+		serverDetail := baremetal.BareMetalServerDetailsRequest{
+			BareMetalLocalSubnetEnabled:   &request.ServerDetails[index].BareMetalLocalSubnetEnabled,
+			BareMetalLocalSubnetId:        request.ServerDetails[index].BareMetalLocalSubnetId,
+			BareMetalLocalSubnetIpAddress: request.ServerDetails[index].BareMetalLocalSubnetIpAddress,
+			BareMetalServerName:           request.ServerDetails[index].BareMetalServerName,
+			DnsEnabled:                    &request.ServerDetails[index].DnsEnabled,
+			IpAddress:                     request.ServerDetails[index].IpAddress,
+			NatEnabled:                    &request.ServerDetails[index].NatEnabled,
+			PublicIpAddressId:             request.ServerDetails[index].PublicIpAddressId,
+			ServerTypeId:                  request.ServerDetails[index].ServerTypeId,
+			StorageDetails:                blockStorages,
+			UseHyperThreading:             request.ServerDetails[index].UseHyperThreading,
+		}
+		serverDetails = append(serverDetails, serverDetail)
 	}
-	serverDetails = append(serverDetails, serverDetail)
 
 	result, _, err := client.sdkClient.BareMetalServerCreateDeleteOpenApiControllerApi.CreateBareMetalServer(ctx, client.config.ProjectId, baremetal.BmServerCreateRequest{
 		BlockId:                   request.BlockId,
@@ -82,7 +85,7 @@ func (client *Client) CreateBareMetalServer(ctx context.Context, request BMServe
 		ServerDetails:             serverDetails,
 		ServiceZoneId:             request.ServiceZoneId,
 		SubnetId:                  request.SubnetId,
-		Tags:                      []baremetal.TagRequest{},
+		Tags:                      client.sdkClient.ToTagRequestList(tags),
 		VpcId:                     request.VpcId,
 	})
 	return result, err
@@ -124,8 +127,19 @@ func (client *Client) ChangeBMDeletePolicy(ctx context.Context, serverId string,
 	return result, err
 }
 
+// 단건 삭제
 func (client *Client) DeleteBareMetalServer(ctx context.Context, serverId string) (baremetal.AsyncResponse, error) {
 	result, _, err := client.sdkClient.BareMetalServerCreateDeleteOpenApiControllerApi.DeleteBareMetalServer(ctx, client.config.ProjectId, serverId)
+
+	return result, err
+}
+
+// 다건 삭제
+func (client *Client) DeleteBareMetalServers(ctx context.Context, serverIds []string) (baremetal.AsyncResponse, error) {
+
+	result, _, err := client.sdkClient.BareMetalServerCreateDeleteOpenApiControllerApi.DeleteBareMetalServers(ctx, client.config.ProjectId, baremetal.BaremetalServersTerminateRequest{
+		BareMetalServerIds: serverIds,
+	})
 
 	return result, err
 }

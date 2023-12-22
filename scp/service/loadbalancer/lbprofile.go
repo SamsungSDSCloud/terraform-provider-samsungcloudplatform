@@ -6,6 +6,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -59,6 +60,12 @@ func ResourceLbProfile() *schema.Resource {
 				ValidateDiagFunc: ValidateLbProfileLayerType,
 				Description:      "Protocol layer type (Only application category). (L4, L7)",
 			},
+			"redirect_type": {
+				Type:     schema.TypeString,
+				Optional: true,
+				//ForceNew:         true,
+				Description: "HTTP redirection option.",
+			},
 			"request_header_size": {
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -90,6 +97,7 @@ func ResourceLbProfile() *schema.Resource {
 				ValidateDiagFunc: ValidateLbProfileForwardedFor,
 				Description:      "Forwarded for value (Only application category with L7 layer). (None, INSERT, REPLACE)",
 			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a Load Balancer Profile resource.",
 	}
@@ -102,6 +110,7 @@ func resourceLbProfileCreate(ctx context.Context, rd *schema.ResourceData, meta 
 	persistenceType := rd.Get("persistence_type").(string)
 	category := rd.Get("category").(string)
 	layerType := rd.Get("layer_type").(string)
+	redirectType := rd.Get("redirect_type").(string)
 	requestHeaderSize := rd.Get("request_header_size").(int)
 	responseHeaderSize := rd.Get("response_header_size").(int)
 	responseTimeout := rd.Get("response_timeout").(int)
@@ -165,7 +174,8 @@ func resourceLbProfileCreate(ctx context.Context, rd *schema.ResourceData, meta 
 		}
 	}
 
-	result, err := inst.Client.LoadBalancer.CreateLbProfile(ctx, lbId, layerType, category, name, persistenceType, protocol, requestHeaderSize, responseHeaderSize, responseTimeout, sessionTimeout, xForwardedFor)
+	tags := rd.Get("tags").(map[string]interface{})
+	result, err := inst.Client.LoadBalancer.CreateLbProfile(ctx, lbId, layerType, category, name, persistenceType, protocol, redirectType, requestHeaderSize, responseHeaderSize, responseTimeout, sessionTimeout, xForwardedFor, tags)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -199,6 +209,7 @@ func resourceLbProfileRead(ctx context.Context, rd *schema.ResourceData, meta in
 		rd.Set("persistence_type", info.LbProfileType)
 	} else if info.LbProfileCategory == "APPLICATION" {
 		rd.Set("layer_type", info.LayerType)
+		rd.Set("redirect_type", info.LbProfileAttrs.RedirectType)
 		rd.Set("request_header_size", info.LbProfileAttrs.RequestHeaderSize)
 		rd.Set("response_header_size", info.LbProfileAttrs.ResponseHeaderSize)
 		rd.Set("response_timeout", info.LbProfileAttrs.ResponseTimeout)
@@ -208,6 +219,8 @@ func resourceLbProfileRead(ctx context.Context, rd *schema.ResourceData, meta in
 		rd.SetId("")
 		return diag.Errorf("Invalid profile category found")
 	}
+
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
 	return nil
 }
@@ -234,6 +247,11 @@ func resourceLbProfileUpdate(ctx context.Context, rd *schema.ResourceData, meta 
 	}
 
 	err := waitForLbProfileStatus(ctx, inst.Client, rd.Id(), rd.Get("lb_id").(string), []string{}, []string{"ACTIVE"}, false)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	err = tfTags.UpdateTags(ctx, rd, meta, rd.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}

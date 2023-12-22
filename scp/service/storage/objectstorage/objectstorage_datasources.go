@@ -65,7 +65,7 @@ func datasourceObjectStoragesRead(ctx context.Context, rd *schema.ResourceData, 
 		sort = optional.NewInterface(v.([]interface{}))
 	}
 
-	responses, err := inst.Client.ObjectStorage.ReadObjectStorageList(ctx, rd.Get("service_zone_id").(string), objectstorage.ObjectStorageV4ControllerApiListObjectStorage6Opts{
+	responses, err := inst.Client.ObjectStorage.ReadObjectStorageList(ctx, rd.Get("service_zone_id").(string), objectstorage.ObjectStorageV4ControllerApiListObjectStorage4Opts{
 		IsMultiAvailabilityZone: isMultiAvailabilityZone,
 		ObjectStorageName:       objectStorageName,
 		Page:                    page,
@@ -119,16 +119,16 @@ func DatasourceObjectStorageBuckets() *schema.Resource {
 			"object_storage_bucket_state":          {Type: schema.TypeString, Optional: true, Description: "Object Storage Bucket State"},
 			"object_storage_bucket_states":         {Type: schema.TypeList, Optional: true, Description: "Object Storage Bucket State List", Elem: &schema.Schema{Type: schema.TypeString}},
 			"object_storage_bucket_purposes":       {Type: schema.TypeList, Optional: true, Description: "Object Storage Bucket Purpose Type List", Elem: &schema.Schema{Type: schema.TypeString}},
+			"object_storage_bucket_user_purpose":   {Type: schema.TypeString, Optional: true, Description: "Object Storage Bucket User Purpose"},
 			"object_storage_quota_id":              {Type: schema.TypeString, Optional: true, Description: "Object Storage Quota ID"},
 			"object_storage_bucket_ids":            {Type: schema.TypeList, Optional: true, Description: "Object Storage Bucket ID List", Elem: &schema.Schema{Type: schema.TypeString}},
-			//"object_storage_bucket_user_purpose":           {Type: schema.TypeString, Optional: true, Description: "Object Storage Bucket User Purpose"},
-			"service_zone_id": {Type: schema.TypeString, Optional: true, Description: "Service Zone ID"},
-			"created_by":      {Type: schema.TypeString, Optional: true, Description: "Created By"},
-			"page":            {Type: schema.TypeInt, Optional: true, Default: 0, Description: "Page start number from which to get the list"},
-			"size":            {Type: schema.TypeInt, Optional: true, Default: 20, Description: "Size to get list"},
-			"sort":            {Type: schema.TypeList, Optional: true, Elem: &schema.Schema{Type: schema.TypeString, Description: "Sort"}, Description: "Sort"},
-			"contents":        {Type: schema.TypeList, Computed: true, Description: "Object Storage Bucket List", Elem: datasourceObjectStorageBucketElem()},
-			"total_count":     {Type: schema.TypeInt, Computed: true, Description: "Total List Size"},
+			"service_zone_id":                      {Type: schema.TypeString, Optional: true, Description: "Service Zone ID"},
+			"created_by":                           {Type: schema.TypeString, Optional: true, Description: "Created By"},
+			"page":                                 {Type: schema.TypeInt, Optional: true, Default: 0, Description: "Page start number from which to get the list"},
+			"size":                                 {Type: schema.TypeInt, Optional: true, Default: 20, Description: "Size to get list"},
+			"sort":                                 {Type: schema.TypeList, Optional: true, Elem: &schema.Schema{Type: schema.TypeString, Description: "Sort"}, Description: "Sort"},
+			"contents":                             {Type: schema.TypeList, Computed: true, Description: "Object Storage Bucket List", Elem: datasourceObjectStorageBucketElem()},
+			"total_count":                          {Type: schema.TypeInt, Computed: true, Description: "Total List Size"},
 		},
 		Description: "Provides list of Object Storage Buckets.",
 	}
@@ -145,6 +145,7 @@ func datasourceObjectStorageBucketsRead(ctx context.Context, rd *schema.Resource
 	var objectStorageBucketState optional.String
 	var objectStorageBucketStates optional.Interface
 	var objectStorageBucketPurposes optional.Interface
+	var objectStorageBucketUserPurpose optional.String
 	var objectStorageQuotaId optional.String
 	var serviceZoneId optional.String
 	var objectStorageBucketIds optional.Interface
@@ -177,6 +178,9 @@ func datasourceObjectStorageBucketsRead(ctx context.Context, rd *schema.Resource
 	if v, ok := rd.GetOk("object_storage_bucket_purposes"); ok {
 		objectStorageBucketPurposes = optional.NewInterface(v.([]interface{}))
 	}
+	if v, ok := rd.GetOk("object_storage_bucket_user_purpose"); ok {
+		objectStorageBucketUserPurpose = optional.NewString(v.(string))
+	}
 	if v, ok := rd.GetOk("object_storage_quota_id"); ok {
 		objectStorageQuotaId = optional.NewString(v.(string))
 	}
@@ -208,6 +212,7 @@ func datasourceObjectStorageBucketsRead(ctx context.Context, rd *schema.Resource
 		ObjectStorageBucketState:         objectStorageBucketState,
 		ObjectStorageBucketStates:        objectStorageBucketStates,
 		ObjectStorageBucketPurposes:      objectStorageBucketPurposes,
+		ObjectStorageBucketUserPurpose:   objectStorageBucketUserPurpose,
 		ObjectStorageQuotaId:             objectStorageQuotaId,
 		ObjectStorageBucketIds:           objectStorageBucketIds,
 		ServiceZoneId:                    serviceZoneId,
@@ -240,8 +245,8 @@ func datasourceObjectStorageBucketElem() *schema.Resource {
 			"object_storage_bucket_id":                     {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket ID"},
 			"object_storage_bucket_name":                   {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket Name"},
 			"object_storage_bucket_purpose":                {Type: schema.TypeString, Computed: true, Description: "ObjectStorageBucketPurpose"},
-			"object_storage_bucket_state":                  {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket State"},
 			"object_storage_bucket_user_purpose":           {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket User Purpose"},
+			"object_storage_bucket_state":                  {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket State"},
 			"object_storage_bucket_version_enabled":        {Type: schema.TypeBool, Computed: true, Description: "Object Storage Bucket Version Enabled"},
 			"object_storage_id":                            {Type: schema.TypeString, Computed: true, Description: "Object Storage ID"},
 			"object_storage_name":                          {Type: schema.TypeString, Computed: true, Description: "Object Storage Name"},
@@ -295,10 +300,10 @@ func DatasourceObjectStorageBucketInfo() *schema.Resource {
 			common.ToSnakeCase("ObjectStorageBucketObjectUploadEnabled"):     {Type: schema.TypeBool, Computed: true, Description: "Object Storage Bucket Object Upload Enabled"},
 			common.ToSnakeCase("ObjectStorageBucketPrivateEndpointUrl"):      {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket Private Endpoint URL"},
 			common.ToSnakeCase("ObjectStorageBucketPublicEndpointUrl"):       {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket Public Endpoint URL"},
-			common.ToSnakeCase("ObjectStorageBucketPurpose"):                 {Type: schema.TypeInt, Computed: true, Description: "Object Storage Bucket Purpose"},
+			common.ToSnakeCase("ObjectStorageBucketPurpose"):                 {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket Purpose"},
+			common.ToSnakeCase("ObjectStorageBucketUserPurpose"):             {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket User Purpose"},
 			common.ToSnakeCase("ObjectStorageBucketState"):                   {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket State"},
 			common.ToSnakeCase("ObjectStorageBucketUsage"):                   {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket Usage"},
-			common.ToSnakeCase("ObjectStorageBucketUserPurpose"):             {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket User Purpose"},
 			common.ToSnakeCase("ObjectStorageBucketVersionEnabled"):          {Type: schema.TypeBool, Computed: true, Description: "Object Storage Bucket Version Enabled"},
 			common.ToSnakeCase("ObjectStorageDeviceUserId"):                  {Type: schema.TypeString, Computed: true, Description: "Object Storage Device User ID"},
 			common.ToSnakeCase("ObjectStorageId"):                            {Type: schema.TypeString, Computed: true, Description: "Object Storage ID"},
@@ -375,6 +380,7 @@ func datasourceObjectStorageBucketInfoRead(ctx context.Context, rd *schema.Resou
 	rd.Set(common.ToSnakeCase("ObjectStorageBucketState"), info.ObjectStorageBucketState)
 	rd.Set(common.ToSnakeCase("ObjectStorageBucketUsage"), info.ObjectStorageBucketUsage)
 	rd.Set(common.ToSnakeCase("ObjectStorageBucketPurpose"), info.ObjectStorageBucketPurpose)
+	rd.Set(common.ToSnakeCase("ObjectStorageBucketUserPurpose"), info.ObjectStorageBucketUserPurpose)
 	rd.Set(common.ToSnakeCase("ObjectStorageBucketVersionEnabled"), info.ObjectStorageBucketVersionEnabled)
 	rd.Set(common.ToSnakeCase("ObjectStorageId"), info.ObjectStorageId)
 	rd.Set(common.ToSnakeCase("ObjectStorageName"), info.ObjectStorageName)

@@ -3,7 +3,6 @@ package iam
 import (
 	"context"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/iam"
 	"github.com/antihax/optional"
@@ -47,7 +46,7 @@ func (client *Client) DeleteAccessKey(ctx context.Context, accessKeyId string) (
 }
 
 func (client *Client) ListAccessKeys(ctx context.Context, projectId string, accessKeyProjectType string, accessKeyState string, active optional.Bool, projectName string) (iam.PageResponseV2OfAccessKeysResponse, error) {
-	result, _, err := client.sdkClient.AccessKeyControllerApi.ListAccessKeys(ctx, &iam.AccessKeyControllerApiListAccessKeysOpts{
+	result, _, err := client.sdkClient.AccessKeyControllerApi.ListAccessKeys1(ctx, &iam.AccessKeyControllerApiListAccessKeys1Opts{
 		ProjectId:            optional.NewString(projectId),
 		AccessKeyProjectType: optional.NewString(accessKeyProjectType),
 		ActiveYn:             active,
@@ -61,7 +60,7 @@ func (client *Client) ListAccessKeys(ctx context.Context, projectId string, acce
 }
 
 func (client *Client) CreateTemporaryAccessKey(ctx context.Context, otp string, durationMinutes int32) (iam.AccessKeyResponse, error) {
-	result, _, err := client.sdkClient.TemporaryAccessKeyControllerApi.CreateTemporaryAccessKey(
+	result, _, err := client.sdkClient.TemporaryAccessKeyControllerApi.CreateTemporaryAccessKey1(
 		ctx,
 		iam.TemporaryAccessKeySecretCreateRequest{
 			DurationMinutes: durationMinutes,
@@ -83,7 +82,7 @@ func (client *Client) DactivateTmpAccessKey(ctx context.Context, accessKeyId str
 
 func (client *Client) DeleteTmpAccessKey(ctx context.Context, accessKeyId string) (int32, error) {
 
-	result, _, err := client.sdkClient.TemporaryAccessKeyControllerApi.DeleteTemporaryAccessKeys(ctx, accessKeyId)
+	result, _, err := client.sdkClient.TemporaryAccessKeyControllerApi.DeleteTemporaryAccessKeys1(ctx, accessKeyId)
 	return result, err
 }
 
@@ -151,12 +150,12 @@ func (client *Client) DetailMember(ctx context.Context, memberId string) (iam.Me
 	return result, err
 }
 
-func (client *Client) CreatePolicy(ctx context.Context, policyName string, policyJson string, principals []iam.PolicyPrincipalRequest, tags []interface{}, description string) (iam.PolicyResponse, error) {
+func (client *Client) CreatePolicy(ctx context.Context, policyName string, policyJson string, principals []iam.PolicyPrincipalRequest, tags map[string]interface{}, description string) (iam.PolicyResponse, error) {
 	result, _, err := client.sdkClient.PolicyControllerApi.CreatePolicy(ctx, client.config.ProjectId, iam.PolicyCreateRequest{
 		PolicyJson:  policyJson,
 		PolicyName:  policyName,
 		Principals:  principals,
-		Tags:        toTagRequestList(tags),
+		Tags:        client.sdkClient.ToTagRequestList(tags),
 		Description: description,
 	})
 
@@ -197,7 +196,7 @@ func (client *Client) ValidatePolicyJson(ctx context.Context, policyJson string)
 	return result, statusCode, err
 }
 
-func (client *Client) CreateRole(ctx context.Context, roleName string, projectIds []string, userSrns []string, tags []interface{}, description string) (iam.RoleResponse, int, error) {
+func (client *Client) CreateRole(ctx context.Context, roleName string, projectIds []string, userSrns []string, tags map[string]interface{}, description string) (iam.RoleResponse, int, error) {
 	var principal = iam.TrustPrincipalsResponse{
 		ProjectIds: projectIds,
 		UserSrns:   userSrns,
@@ -207,7 +206,7 @@ func (client *Client) CreateRole(ctx context.Context, roleName string, projectId
 		RoleName:        roleName,
 		TrustPrincipals: &principal,
 		Description:     description,
-		Tags:            toTagRequestList(tags),
+		Tags:            client.sdkClient.ToTagRequestList(tags),
 	})
 
 	var statusCode int
@@ -514,11 +513,11 @@ func (client *Client) ListRolePolicies(ctx context.Context, roleId string, polic
 	return result, err
 }
 
-func (client *Client) AddMember(ctx context.Context, groupIds []string, userEmail string, tags []interface{}) (int32, int, error) {
+func (client *Client) AddMember(ctx context.Context, groupIds []string, userEmail string, tags map[string]interface{}) (int32, int, error) {
 	userEmails := []string{userEmail}
 	result, c, err := client.sdkClient.MemberControllerApi.AddMembers(ctx, client.config.ProjectId, iam.MembersAddRequest{
 		GroupIds:   groupIds,
-		Tags:       toTagRequestList(tags),
+		Tags:       client.sdkClient.ToTagRequestList(tags),
 		UserEmails: userEmails,
 	})
 
@@ -540,20 +539,4 @@ func (client *Client) RemoveMember(ctx context.Context, id string) (int, error) 
 		statusCode = result.StatusCode
 	}
 	return statusCode, err
-}
-
-func toTagRequestList(list []interface{}) []iam.TagRequest {
-	if len(list) == 0 {
-		return nil
-	}
-	var result []iam.TagRequest
-
-	for _, val := range list {
-		kv := val.(common.HclKeyValueObject)
-		result = append(result, iam.TagRequest{
-			TagKey:   kv["tag_key"].(string),
-			TagValue: kv["tag_value"].(string),
-		})
-	}
-	return result
 }

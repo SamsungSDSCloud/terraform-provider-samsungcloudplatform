@@ -6,6 +6,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -18,6 +19,7 @@ func ResourceKubernetesApps() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: createApps,
 		ReadContext:   readApps,
+		UpdateContext: resourceKubernetesAppsUpdate,
 		DeleteContext: deleteApps,
 
 		Importer: &schema.ResourceImporter{
@@ -49,6 +51,13 @@ func ResourceKubernetesApps() *schema.Resource {
 				ForceNew:    true,
 				Description: "Image ID (use scp_standard_image data source)",
 			},
+			"additional_params": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Additional Params",
+			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a K8s Apps resource.",
 	}
@@ -61,13 +70,15 @@ func createApps(ctx context.Context, data *schema.ResourceData, meta interface{}
 	engineId := data.Get("engine_id").(string)
 	namespace := data.Get("namespace").(string)
 	imageId := data.Get("image_id").(string)
+	additionalParams := data.Get("additional_params").(map[string]interface{})
+	tags := data.Get("tags").(map[string]interface{})
 
 	image, _, err := inst.Client.KubernetesApps.ReadImage(ctx, imageId)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	apps, _, err := inst.Client.KubernetesApps.CreateApps(ctx, engineId, namespace, imageId, image.ProductGroupId, name)
+	apps, _, err := inst.Client.KubernetesApps.CreateApps(ctx, engineId, namespace, imageId, image.ProductGroupId, name, additionalParams, tags)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -98,8 +109,25 @@ func readApps(ctx context.Context, data *schema.ResourceData, meta interface{}) 
 	data.Set("engine_id", apps.ClusterId)
 	data.Set("namespace", apps.NamespaceName)
 	// TODO: Cannot retrieve image id
+	tfTags.SetTags(ctx, data, meta, data.Id())
 
 	return nil
+}
+
+func resourceKubernetesAppsUpdate(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
+	var err error = nil
+	defer func() {
+		if err != nil {
+			diagnostics = diag.FromErr(err)
+		}
+	}()
+
+	err = tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return
+	}
+
+	return readApps(ctx, rd, meta)
 }
 
 func deleteApps(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {

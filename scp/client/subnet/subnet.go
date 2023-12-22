@@ -19,13 +19,14 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) CreateSubnet(ctx context.Context, vpcId string, cidrIpv4Block string, subnetType string, name string, description string) (subnet2.AsyncResponse, error) {
+func (client *Client) CreateSubnet(ctx context.Context, vpcId string, cidrIpv4Block string, subnetType string, name string, description string, tags map[string]interface{}) (subnet2.AsyncResponse, error) {
 	result, _, err := client.sdkClient.SubnetOpenApiControllerApi.CreateSubnetV2(ctx, client.config.ProjectId, subnet2.CreateSubnetRequest{
 		SubnetCidrBlock:   cidrIpv4Block,
 		SubnetName:        name,
 		SubnetType:        subnetType,
 		VpcId:             vpcId,
 		SubnetDescription: description,
+		Tags:              client.sdkClient.ToTagRequestList(tags),
 	})
 	return result, err
 }
@@ -125,7 +126,7 @@ func (client *Client) GetSubnetAvailableVipV2List(ctx context.Context, subnetId 
 }
 
 func (client *Client) ReserveSubnetVipsV2(ctx context.Context, subnetId string, subnetIpId string, vipDescription string) (subnet2.AsyncResponse, error) {
-	result, _, err := client.sdkClient.SubnetVipOpenApiControllerApi.ReserveSubnetVipsV2(ctx, client.config.ProjectId, subnetId, subnetIpId, subnet2.SubnetVirtualIpDescriptionRequest{
+	result, _, err := client.sdkClient.SubnetVipOpenApiControllerApi.ReserveSubnetVipsV2(ctx, client.config.ProjectId, subnetId, subnetIpId, subnet2.SubnetVirtualIpReserveRequest{
 		VipDescription: vipDescription,
 	})
 	return result, err
@@ -145,5 +146,17 @@ func (client *Client) AttachSubnetPublicIp(ctx context.Context, subnetId string,
 
 func (client *Client) DetachSubnetPublicIp(ctx context.Context, subnetId string, vipId string) (subnet2.AsyncResponse, error) {
 	result, _, err := client.sdkClient.SubnetVipOpenApiControllerApi.DetachSubnetPublicIpV2(ctx, client.config.ProjectId, subnetId, vipId)
+	return result, err
+}
+
+func (client *Client) AttachSubnetSecurityGroup(ctx context.Context, subnetId string, vipId string, securityGroupId string) (subnet2.AsyncResponse, error) {
+	result, _, err := client.sdkClient.SubnetVipOpenApiControllerApi.AttachSubnetSecurityGroupV2(ctx, client.config.ProjectId, subnetId, vipId, subnet2.AttachSubnetSecurityGroupRequest{
+		SecurityGroupId: securityGroupId,
+	})
+	return result, err
+}
+
+func (client *Client) DetachSubnetSecurityGroup(ctx context.Context, subnetId string, vipId string, securityGroupId string) (subnet2.AsyncResponse, error) {
+	result, _, err := client.sdkClient.SubnetVipOpenApiControllerApi.DetachSubnetSecurityGroupV2(ctx, client.config.ProjectId, securityGroupId, subnetId, vipId)
 	return result, err
 }

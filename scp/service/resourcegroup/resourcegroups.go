@@ -6,6 +6,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/resourcegroup"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -24,28 +25,9 @@ func ResourceResourceGroup() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
-			"name": {Type: schema.TypeString, Required: true, Description: "Resource group name"},
-			"target_resource_tags": {
-				Type:     schema.TypeList,
-				Required: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"tag_key": {
-							Type:             schema.TypeString,
-							Required:         true,
-							ValidateDiagFunc: common.ValidateName1to256DotDashUnderscore,
-							Description:      "Tag key",
-						},
-						"tag_value": {
-							Type:             schema.TypeString,
-							Optional:         true,
-							ValidateDiagFunc: common.ValidateName1to256DotDashUnderscore,
-							Description:      "Tag value",
-						},
-					},
-				},
-			},
-			"resource_group_name": {Type: schema.TypeString, Computed: true, Description: "Resource group name"},
+			"name":                 {Type: schema.TypeString, Required: true, Description: "Resource group name"},
+			"target_resource_tags": tfTags.TagsSchema(),
+			"resource_group_name":  {Type: schema.TypeString, Computed: true, Description: "Resource group name"},
 			"target_resource_tag": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -158,10 +140,10 @@ func resourceResourceGroupUpdate(ctx context.Context, rd *schema.ResourceData, m
 
 	if rd.HasChanges("target_resource_tags") {
 		o, n := rd.GetChange("target_resource_tags")
-		oldList := o.([]interface{})
-		newList := n.([]interface{})
+		oldMap := o.(map[string]interface{})
+		newMap := n.(map[string]interface{})
 
-		err := client.UpdateResourceTag(ctx, inst.Client, rd.Id(), oldList, newList)
+		err := client.UpdateResourceTag(ctx, inst.Client, rd.Id(), oldMap, newMap)
 		if err != nil {
 			return diag.FromErr(err)
 		}

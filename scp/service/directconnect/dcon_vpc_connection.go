@@ -5,6 +5,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -19,7 +20,7 @@ func ResourceDconVpcConnection() *schema.Resource {
 		//CRUD
 		CreateContext: resourceDconVpcConnectionCreate,
 		ReadContext:   resourceDconVpcConnectionRead,
-		//UpdateContext: resourceDconVpcConnectionUpdate,
+		UpdateContext: resourceDconVpcConnectionUpdate,
 		DeleteContext: resourceDconVpcConnectionDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -52,6 +53,7 @@ func ResourceDconVpcConnection() *schema.Resource {
 				Description:  "Dcon-Vpc connection description. (0 to 100 characters)",
 				ValidateFunc: validation.StringLenBetween(0, 100),
 			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a Dcon-Vpc connection resource.",
 	}
@@ -79,7 +81,7 @@ func resourceDconVpcConnectionCreate(ctx context.Context, rd *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 
-	response, _, err := inst.Client.DirectConnect.CreateDconVpcConnection(ctx, approverVpcInfo.ProjectId, approverVpcId, connectionType, firewallEnabled, requesterDcId, requestVpcInfo.ProjectId, connectionDescription)
+	response, _, err := inst.Client.DirectConnect.CreateDconVpcConnection(ctx, approverVpcInfo.ProjectId, approverVpcId, connectionType, firewallEnabled, requesterDcId, requestVpcInfo.ProjectId, connectionDescription, rd.Get("tags").(map[string]interface{}))
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -113,8 +115,25 @@ func resourceDconVpcConnectionRead(ctx context.Context, rd *schema.ResourceData,
 	rd.Set("type", info.DirectConnectConnectionType)
 	rd.Set("description", info.DirectConnectConnectionDescription)
 	rd.Set("state", info.DirectConnectConnectionState)
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
 	return nil
+}
+
+func resourceDconVpcConnectionUpdate(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
+	var err error = nil
+	defer func() {
+		if err != nil {
+			diagnostics = diag.FromErr(err)
+		}
+	}()
+
+	err = tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return
+	}
+
+	return resourceDconVpcConnectionRead(ctx, rd, meta)
 }
 
 func resourceDconVpcConnectionDelete(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {

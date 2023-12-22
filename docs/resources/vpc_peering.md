@@ -35,6 +35,7 @@ resource "scp_vpc_peering" "peering01" {
 
 ### Optional
 
+- `tags` (Map of String)
 - `vpc_peering_description` (String) VPC Peering Description
 
 ### Read-Only

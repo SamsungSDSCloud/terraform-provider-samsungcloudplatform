@@ -2,7 +2,6 @@ package loggingaudit
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
 	loggingaudit "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/logging-audit"
 	"github.com/antihax/optional"
@@ -28,14 +27,14 @@ func ynStringFromBool(flag bool) string {
 	}
 }
 
-func (client *Client) CreateTrail(ctx context.Context, tags []interface{}, request CreateTrailRequest) (loggingaudit.TrailResponse, error) {
+func (client *Client) CreateTrail(ctx context.Context, tags map[string]interface{}, request CreateTrailRequest) (loggingaudit.TrailResponse, error) {
 	var users []loggingaudit.UserResponse
 	for _, b := range request.LoggingTargetUsers {
 		users = append(users, loggingaudit.UserResponse{UserId: b})
 	}
 
 	result, _, err := client.sdkClient.TrailControllerApi.CreateTrail(ctx, client.config.ProjectId, loggingaudit.CreateTrailRequest{
-		TagCreateRequests:          toTagRequestList(tags),
+		TagCreateRequests:          client.sdkClient.ToTagRequestList(tags),
 		TrailName:                  request.TrailName,
 		ObsBucketId:                request.ObsBucketId,
 		IsLoggingTargetAllUser:     ynStringFromBool(request.IsLoggingTargetAllUser),
@@ -158,20 +157,4 @@ func (client *Client) ListUsers(ctx context.Context, userName string) (loggingau
 		statusCode = c.StatusCode
 	}
 	return response, statusCode, err
-}
-
-func toTagRequestList(list []interface{}) []loggingaudit.TagRequest {
-	if len(list) == 0 {
-		return nil
-	}
-	var result []loggingaudit.TagRequest
-
-	for _, val := range list {
-		kv := val.(common.HclKeyValueObject)
-		result = append(result, loggingaudit.TagRequest{
-			TagKey:   kv["tag_key"].(string),
-			TagValue: kv["tag_value"].(string),
-		})
-	}
-	return result
 }

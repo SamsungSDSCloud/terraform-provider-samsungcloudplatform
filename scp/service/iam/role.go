@@ -5,6 +5,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -55,27 +56,7 @@ func ResourceRole() *schema.Resource {
 					},
 				},
 			},
-			"tags": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"tag_key": {
-							Type:             schema.TypeString,
-							Required:         true,
-							ValidateDiagFunc: common.ValidateName1to256DotDashUnderscore,
-							Description:      "Tag key",
-						},
-						"tag_value": {
-							Type:             schema.TypeString,
-							Optional:         true,
-							ValidateDiagFunc: common.ValidateName1to256DotDashUnderscore,
-							Description:      "Tag value",
-						},
-					},
-				},
-				Description: "Tag list",
-			},
+			"tags": tfTags.TagsSchema(),
 			"description": {
 				Type:             schema.TypeString,
 				Optional:         true,
@@ -139,7 +120,7 @@ func resourceRoleCreate(ctx context.Context, rd *schema.ResourceData, meta inter
 	projectIds, userSrns, _ := convertTrustPrincipal(rd)
 
 	roleName := rd.Get("role_name").(string)
-	tags := rd.Get("tags").([]interface{})
+	tags := rd.Get("tags").(map[string]interface{})
 	desc := rd.Get("description").(string)
 
 	response, _, err := inst.Client.Iam.CreateRole(ctx, roleName, projectIds, userSrns, tags, desc)
@@ -189,21 +170,13 @@ func resourceRoleRead(ctx context.Context, rd *schema.ResourceData, meta interfa
 	rd.Set("created_by", result.CreatedBy)
 	rd.Set("created_by_name", result.CreatedByName)
 	rd.Set("created_by_email", result.CreatedByEmail)
-	rd.Set("created_dt", result.CreatedDt)
+	rd.Set("created_dt", result.CreatedDt.String())
 	rd.Set("modified_by", result.ModifiedBy)
 	rd.Set("modified_by_name", result.ModifiedByName)
 	rd.Set("modified_by_email", result.ModifiedByEmail)
-	rd.Set("modified_dt", result.ModifiedDt)
+	rd.Set("modified_dt", result.ModifiedDt.String())
 
-	var tags common.HclSetObject
-	for _, tag := range result.Tags {
-		kv := common.HclKeyValueObject{
-			"tag_key":   tag.TagKey,
-			"tag_value": tag.TagValue,
-		}
-		tags = append(tags, kv)
-	}
-	rd.Set("tags", tags)
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
 	var principals common.HclSetObject
 	if result.TrustPrincipals != nil {
@@ -231,15 +204,9 @@ func resourceRoleUpdate(ctx context.Context, rd *schema.ResourceData, meta inter
 		}
 	}
 
-	if rd.HasChanges("tags") {
-		o, n := rd.GetChange("tags")
-		oldList := o.([]interface{})
-		newList := n.([]interface{})
-
-		err := client.UpdateResourceTag(ctx, inst.Client, rd.Id(), oldList, newList)
-		if err != nil {
-			return diag.FromErr(err)
-		}
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	if rd.HasChanges("policy_ids") {

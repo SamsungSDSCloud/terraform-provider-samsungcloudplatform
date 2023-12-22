@@ -74,7 +74,7 @@ func ValidatePassword8to30WithSpecialsExceptQuotes(v interface{}, path cty.Path)
 	value := v.(string)
 
 	// Check name length
-	err := checkStringLength(value, 8, 20)
+	err := checkStringLength(value, 8, 30)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity:      diag.Error,
@@ -478,7 +478,7 @@ func ValidateName1to15AlphaOnlyStartsWithCapitalLetter(v interface{}, path cty.P
 	// Check characters
 	if !regexp.MustCompile("[A-Z][a-zA-Z]+$").MatchString(value) {
 		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
+			Severity:      diag.Error,
 			Summary:       fmt.Sprintf("Attribute %q must contain only the alphabet and begin with a capital letter", attrKey),
 			AttributePath: path,
 		})

@@ -20,6 +20,10 @@ resource "scp_vpc" "vpc01" {
   name        = var.name
   description = "Vpc generated from Terraform"
   region      = data.scp_region.my_region.location
+  tags = {
+    tk01 = "tv01"
+    tk02 = "tv02"
+  }
 }
 ```
 
@@ -28,12 +32,13 @@ resource "scp_vpc" "vpc01" {
 
 ### Required
 
-- `name` (String) VPC name. (3 to 20 characters without specials)
+- `name` (String) VPC name. (3 to 17 characters without specials)
 - `region` (String) Region name
 
 ### Optional
 
 - `description` (String) VPC description. (Up to 50 characters)
+- `tags` (Map of String)
 
 ### Read-Only
 

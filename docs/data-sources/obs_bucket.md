@@ -39,7 +39,7 @@ Provides Object Bucket Info.
 - `object_storage_bucket_object_upload_enabled` (Boolean) Object Storage Bucket Object Upload Enabled
 - `object_storage_bucket_private_endpoint_url` (String) Object Storage Bucket Private Endpoint URL
 - `object_storage_bucket_public_endpoint_url` (String) Object Storage Bucket Public Endpoint URL
-- `object_storage_bucket_purpose` (Number) Object Storage Bucket Purpose
+- `object_storage_bucket_purpose` (String) Object Storage Bucket Purpose
 - `object_storage_bucket_state` (String) Object Storage Bucket State
 - `object_storage_bucket_usage` (String) Object Storage Bucket Usage
 - `object_storage_bucket_user_purpose` (String) Object Storage Bucket User Purpose

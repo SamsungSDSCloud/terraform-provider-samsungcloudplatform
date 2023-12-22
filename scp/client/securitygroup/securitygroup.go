@@ -30,13 +30,14 @@ func (client *Client) GetSecurityGroup(ctx context.Context, securityGroupId stri
 	return result, statusCode, err
 }
 
-func (client *Client) CreateSecurityGroup(ctx context.Context, serviceZoneId string, vpcId string, name string, description string, loggable bool) (securitygroup2.AsyncResponse, error) {
+func (client *Client) CreateSecurityGroup(ctx context.Context, serviceZoneId string, vpcId string, name string, description string, loggable bool, tags map[string]interface{}) (securitygroup2.AsyncResponse, error) {
 	result, _, err := client.sdkClient.SecurityGroupOpenApiControllerV3Api.CreateSecurityGroupV3(ctx, client.config.ProjectId, securitygroup2.SecurityGroupCreateV3Request{
 		SecurityGroupName:        name,
 		ServiceZoneId:            serviceZoneId,
 		VpcId:                    vpcId,
 		SecurityGroupDescription: description,
 		Loggable:                 &loggable,
+		Tags:                     client.sdkClient.ToTagRequestList(tags),
 	})
 	return result, err
 }

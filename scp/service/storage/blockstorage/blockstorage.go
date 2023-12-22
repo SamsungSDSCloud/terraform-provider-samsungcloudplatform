@@ -7,6 +7,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/blockstorage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/virtualserver"
 	blockstorage2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/block-storage2"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -95,13 +96,7 @@ func ResourceBlockStorage() *schema.Resource {
 				ForceNew:    true,
 				Description: "The block storage whether to use encryption. This can be enabled when the virtual server is encryption enabled.",
 			},
-			"tags": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a Block Storage resource.",
 	}
@@ -142,16 +137,6 @@ func createBlockStorage(ctx context.Context, data *schema.ResourceData, meta int
 	encryptEnable := data.Get("encrypt_enable").(bool) // TODO : (add Validation) Virtual Server 암호화 True -> EncryptEnable도 True가능
 	sharedType := data.Get("shared_type").(string)
 
-	tags := data.Get("tags").(map[string]interface{})
-	tagsRequests := make([]blockstorage.TagRequest, 0)
-	for key, value := range tags {
-		tagsRequests = append(tagsRequests, blockstorage.TagRequest{
-			TagKey:   key,
-			TagValue: value.(string),
-		})
-	}
-	//log.Println("tagsRequests : ", tagsRequests)
-
 	err = virtualserver.WaitForVirtualServerStatus(ctx, inst.Client, finalVirtualServerId, common.VirtualServerProcessingStates(), []string{common.RunningState, common.StoppedState}, false)
 	if err != nil {
 		return diag.FromErr(err)
@@ -163,9 +148,8 @@ func createBlockStorage(ctx context.Context, data *schema.ResourceData, meta int
 		EncryptEnabled:   encryptEnable,
 		ProductId:        productId,
 		SharedType:       sharedType,
-		Tags:             tagsRequests,
 		VirtualServerId:  finalVirtualServerId,
-	})
+	}, data.Get("tags").(map[string]interface{}))
 
 	if err != nil {
 		if err.Error() == "400 Bad Request" {
@@ -204,14 +188,7 @@ func readBlockStorage(ctx context.Context, data *schema.ResourceData, meta inter
 	virtualServerIds := getVirtualServerIds(info)
 	data.Set("virtual_server_ids", virtualServerIds)
 
-	//tagInfo, err := inst.Client.Tag.ListResourceTags(ctx, data.Id())
-	//if err != nil {
-	//	data.Set("tags", nil)
-	//	return diag.FromErr(err)
-	//} else {
-	//	data.Set("tags", getTags(tagInfo))
-	//}
-	//log.Println("tags : ", getTags(tagInfo))
+	tfTags.SetTags(ctx, data, meta, data.Id())
 
 	return nil
 }
@@ -310,13 +287,14 @@ func updateBlockStorage(ctx context.Context, data *schema.ResourceData, meta int
 			}
 		}
 
-		if data.HasChanges("tags") {
-
-		}
-
 		//log.Println("deletedVmIds : ", deletedVmIds)
 		//log.Println("addedVmIds : ", addedVmIds)
 
+	}
+
+	err := tfTags.UpdateTags(ctx, data, meta, data.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	return readBlockStorage(ctx, data, meta)

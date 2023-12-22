@@ -7,7 +7,7 @@ type CreateRequest struct {
 	PlacementGroupName string
 	// Zone ID serviceZoneId is obtained through @[View Project Details]
 	ServiceZoneId string
-	Tags          []TagRequest
+	Tags          map[string]interface{}
 	// Virtual server type
 	VirtualServerType string
 	// Placement Group description

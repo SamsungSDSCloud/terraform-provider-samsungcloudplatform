@@ -17,13 +17,9 @@ resource "scp_iam_member" "my_member01" {
   user_email = var.email
   group_ids = [var.group_id_1, var.group_id_2]
 
-  tags {
-    tag_key = "tk01"
-    tag_value = "tv01"
-  }
-  tags {
-    tag_key = "tk02"
-    tag_value = "tv02"
+  tags = {
+    tk01 = "tv01"
+    tk02 = "tv02"
   }
 }
 ```
@@ -38,7 +34,7 @@ resource "scp_iam_member" "my_member01" {
 
 ### Optional
 
-- `tags` (Block List) Tag list (see [below for nested schema](#nestedblock--tags))
+- `tags` (Map of String)
 
 ### Read-Only
 
@@ -55,14 +51,3 @@ resource "scp_iam_member" "my_member01" {
 - `user_id` (String) User ID
 - `user_name` (String) User name
 - `user_srn` (String) User SRN
-
-<a id="nestedblock--tags"></a>
-### Nested Schema for `tags`
-
-Required:
-
-- `tag_key` (String) Tag key
-
-Optional:
-
-- `tag_value` (String) Tag value

@@ -20,19 +20,10 @@ func NewClient(config *sdk.Configuration) *Client {
 }
 
 func (client *Client) CreatePlacementGroup(ctx context.Context, request CreateRequest) (placementgroup.PlacementGroupDetailResponse, error) {
-
-	tags := make([]placementgroup.TagRequest, 0)
-	for _, tag := range request.Tags {
-		tags = append(tags, placementgroup.TagRequest{
-			TagKey:   tag.TagKey,
-			TagValue: tag.TagValue,
-		})
-	}
-
 	result, _, err := client.sdk.PlacementGroupV1Api.CreatePlacementGroup1(ctx, client.config.ProjectId, placementgroup.PlacementGroupCreateRequest{
 		PlacementGroupName:        request.PlacementGroupName,
 		ServiceZoneId:             request.ServiceZoneId,
-		Tags:                      tags,
+		Tags:                      client.sdk.ToTagRequestList(request.Tags),
 		VirtualServerType:         request.VirtualServerType,
 		PlacementGroupDescription: request.PlacementGroupDescription,
 		AvailabilityZoneName:      request.AvailabilityZoneName,

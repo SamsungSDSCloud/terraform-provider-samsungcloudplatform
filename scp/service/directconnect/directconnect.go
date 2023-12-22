@@ -6,6 +6,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -22,7 +23,7 @@ func ResourceDirectConnect() *schema.Resource {
 		//CRUD
 		CreateContext: resourceDirectConnectCreate,
 		ReadContext:   resourceDirectConnectRead,
-		//UpdateContext: resourceDirectConnectUpdate,
+		UpdateContext: resourceDirectConnectUpdate,
 		DeleteContext: resourceDirectConnectDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -57,6 +58,7 @@ func ResourceDirectConnect() *schema.Resource {
 				Required:    true,
 				Description: "Bandwidth gbps. (1 or 10)",
 			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a DirectConnect resource.",
 	}
@@ -77,7 +79,7 @@ func resourceDirectConnectCreate(ctx context.Context, rd *schema.ResourceData, m
 	sbandwidth := fmt.Sprint(bandwidth)
 	tflog.Debug(ctx, "Try create direct connect : "+dcName+","+dcDescription+","+sbandwidth)
 
-	response, _, err := inst.Client.DirectConnect.CreateDirectConnect(ctx, bandwidth, dcName, serviceZoneId, dcDescription)
+	response, _, err := inst.Client.DirectConnect.CreateDirectConnect(ctx, bandwidth, dcName, serviceZoneId, dcDescription, rd.Get("tags").(map[string]interface{}))
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -115,8 +117,25 @@ func resourceDirectConnectRead(ctx context.Context, rd *schema.ResourceData, met
 	}
 
 	rd.Set("region", location)
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
 	return nil
+}
+
+func resourceDirectConnectUpdate(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
+	var err error = nil
+	defer func() {
+		if err != nil {
+			diagnostics = diag.FromErr(err)
+		}
+	}()
+
+	err = tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return
+	}
+
+	return resourceDirectConnectRead(ctx, rd, meta)
 }
 
 func resourceDirectConnectDelete(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {

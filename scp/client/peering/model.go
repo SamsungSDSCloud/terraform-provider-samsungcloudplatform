@@ -27,6 +27,7 @@ type VpcPeeringCreateRequest struct {
 	VpcPeeringType string
 	// VPC Peering Description
 	VpcPeeringDescription string
+	Tags                  map[string]interface{}
 }
 
 type VpcPeeringApprovalResponse struct {

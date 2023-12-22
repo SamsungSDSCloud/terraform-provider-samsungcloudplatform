@@ -10,18 +10,13 @@ type CreateFileStorageRequest struct {
 	ServiceZoneId          string
 	SnapshotRetentionCount *int32
 	SnapshotSchedule       SnapshotSchedule
-	Tags                   []TagRequest
+	Tags                   map[string]interface{}
 }
 
 type SnapshotSchedule struct {
 	DayOfWeek string
 	Frequency string
 	Hour      *int32
-}
-
-type TagRequest struct {
-	TagKey   string
-	TagValue string
 }
 
 type ReadFileStorageRequest struct {

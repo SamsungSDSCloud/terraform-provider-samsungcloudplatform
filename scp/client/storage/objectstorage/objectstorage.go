@@ -18,8 +18,8 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) ReadObjectStorageList(ctx context.Context, serviceZoneId string, request objectstorage.ObjectStorageV4ControllerApiListObjectStorage6Opts) (objectstorage.ListResponseOfObjectStorageListV4Response, error) {
-	result, _, err := client.sdkClient.ObjectStorageV4ControllerApi.ListObjectStorage6(ctx, client.config.ProjectId, serviceZoneId, &request)
+func (client *Client) ReadObjectStorageList(ctx context.Context, serviceZoneId string, request objectstorage.ObjectStorageV4ControllerApiListObjectStorage4Opts) (objectstorage.ListResponseOfObjectStorageListV4Response, error) {
+	result, _, err := client.sdkClient.ObjectStorageV4ControllerApi.ListObjectStorage4(ctx, client.config.ProjectId, serviceZoneId, &request)
 	return result, err
 }
 
@@ -46,10 +46,11 @@ func (client *Client) CreateBucket(ctx context.Context, request CreateBucketRequ
 		ObjectStorageBucketName:                  request.ObjectStorageBucketName,
 		ObjectStorageBucketAccessControlEnabled:  &request.ObjectStorageBucketAccessControlEnabled,
 		ObjectStorageBucketFileEncryptionEnabled: &request.ObjectStorageBucketFileEncryptionEnabled,
+		ObjectStorageBucketUserPurpose:           request.ObjectStorageBucketUserPurpose,
 		ObjectStorageBucketVersionEnabled:        &request.ObjectStorageBucketVersionEnabled,
 		AccessControlRules:                       accessControlRules,
 		ProductNames:                             request.ProductNames,
-		Tags:                                     []objectstorage.TagRequest{},
+		Tags:                                     client.sdkClient.ToTagRequestList(request.Tags),
 	}
 
 	result, _, err := client.sdkClient.ObjectStorageBucketV4ControllerApi.CreateObjectStorageBucket(

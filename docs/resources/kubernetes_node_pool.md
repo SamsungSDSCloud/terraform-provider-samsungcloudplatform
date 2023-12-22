@@ -33,15 +33,19 @@ resource "scp_kubernetes_node_pool" "pool" {
   engine_id          = data.terraform_remote_state.engine.outputs.id
   image_id           = data.scp_standard_image.ubuntu_image.id
   desired_node_count = 2
-  cpu_count          = 2
-  memory_size_gb     = 4
-  storage_size_gb    = 100
 
-  availability_zone_name = ""
-  auto_recovery      = false
+  scale_name = var.scale_name
+  storage_name = var.storage_name
+  storage_size_gb = var.storage_size_gb
+
+  // optional field
+  availability_zone_name = null
+
+  // update optional field
   auto_scale         = false
   min_node_count     = null
   max_node_count     = null
+  auto_recovery      = false
 }
 ```
 
@@ -59,13 +63,13 @@ resource "scp_kubernetes_node_pool" "pool" {
 - `auto_recovery` (Boolean) Enable auto recovery
 - `auto_scale` (Boolean) Enable auto scale
 - `availability_zone_name` (String) Availability zone name.
-- `cpu_count` (Number) CPU count for node VMs (default 2)
 - `desired_node_count` (Number) Desired node count in the pool (Desired node count is 0 when auto_scale is enabled)
+- `encrypt_enabled` (Boolean) Encrypt enabled
 - `max_node_count` (Number) Maximum node count
-- `memory_size_gb` (Number) Memory size in GB for node VMs (default 4)
 - `min_node_count` (Number) Minimum node count
+- `scale_name` (String) Scale name
+- `storage_name` (String) Storage name (Currently only SSD is supported)
 - `storage_size_gb` (String) Storage size in GB (default 100)
-- `storage_type` (String) Storage type (Currently only SSD is supported)
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only

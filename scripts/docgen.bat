@@ -4,7 +4,7 @@ cd %SCRIPT_PATH%\..
 
 :: Generate documentation
 :: go generate
-go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --examples-dir .\examples --rendered-provider-name samsungcloudplatform --website-source-dir ./template --website-source-dir ./templates
+go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --examples-dir .\examples --rendered-provider-name scp --website-source-dir ./template --website-source-dir ./templates
 
 cd %SCRIPT_PATH%\..
 del docs\data-sources\firewall.md

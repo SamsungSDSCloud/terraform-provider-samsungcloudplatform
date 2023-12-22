@@ -21,7 +21,7 @@ func NewClient(config *sdk.Configuration) *Client {
 /*
  Load Balancer
 */
-func (client *Client) CreateLoadBalancer(ctx context.Context, blockId string, firewallEnabled bool, loggable bool, loadBalancerSize string, loadBalancerName string, seviceIpCidr string, linkIpCidr string, serviceZoneId string, vpcId string, description string) (loadbalancer2.AsyncResponse, error) {
+func (client *Client) CreateLoadBalancer(ctx context.Context, blockId string, firewallEnabled bool, loggable bool, loadBalancerSize string, loadBalancerName string, seviceIpCidr string, linkIpCidr string, serviceZoneId string, vpcId string, description string, tags map[string]interface{}) (loadbalancer2.AsyncResponse, error) {
 	req := loadbalancer2.LbCreateV3Request{
 		BlockId:                 blockId,
 		FirewallEnabled:         &firewallEnabled,
@@ -33,6 +33,7 @@ func (client *Client) CreateLoadBalancer(ctx context.Context, blockId string, fi
 		ServiceZoneId:           serviceZoneId,
 		VpcId:                   vpcId,
 		LoadBalancerDescription: description,
+		Tags:                    client.sdkClient.ToTagRequestList(tags),
 	}
 
 	result, _, err := client.sdkClient.LoadBalancerOpenApiV3ControllerApi.CreateLoadBalancerV3(ctx, client.config.ProjectId, req)
@@ -121,8 +122,8 @@ func (client *Client) CheckLbProfileName(ctx context.Context, loadBalancerId str
 	}
 }
 
-func (client *Client) CreateLbProfile(ctx context.Context, loadBalancerId string, layerType string, category string, name string, pfType string, protocol string, requestHeaderSize int, responseHeaderSize int, responseTimeout int, sessionTimeout int, xforwardedFor string) (loadbalancer2.AsyncResponse, error) {
-	attr := loadbalancer2.LbProfileAttrCreateRequest{
+func (client *Client) CreateLbProfile(ctx context.Context, loadBalancerId string, layerType string, category string, name string, pfType string, protocol string, redirectType string, requestHeaderSize int, responseHeaderSize int, responseTimeout int, sessionTimeout int, xforwardedFor string, tags map[string]interface{}) (loadbalancer2.AsyncResponse, error) {	attr := loadbalancer2.LbProfileAttrCreateRequest{
+		RedirectType:       redirectType,
 		RequestHeaderSize:  int32(requestHeaderSize),
 		ResponseHeaderSize: int32(responseHeaderSize),
 		ResponseTimeout:    int32(responseTimeout),
@@ -137,6 +138,7 @@ func (client *Client) CreateLbProfile(ctx context.Context, loadBalancerId string
 		LbProfileName:     name,
 		LbProfileType:     pfType,
 		Protocol:          protocol,
+		Tags:              client.sdkClient.ToTagRequestList(tags),
 	})
 
 	return result, err
@@ -205,7 +207,7 @@ func (client *Client) GetLbServerGroup(ctx context.Context, lbServerGroupId stri
 	return result, statusCode, err
 }
 
-func (client *Client) CreateLbServerGroup(ctx context.Context, loadBalancerId string, algorithm string, name string, monitor *LbServerGroupMonitor, members []LbServerGroupMember, tcpMultiplexingEnabled bool) (loadbalancer2.AsyncResponse, error) {
+func (client *Client) CreateLbServerGroup(ctx context.Context, loadBalancerId string, algorithm string, name string, monitor *LbServerGroupMonitor, members []LbServerGroupMember, tcpMultiplexingEnabled bool, tags map[string]interface{}) (loadbalancer2.AsyncResponse, error) {
 
 	result, _, err := client.sdkClient.LbServerGroupOpenApiControllerApi.CreateLoadBalancerServerGroup(ctx, client.config.ProjectId, loadBalancerId, loadbalancer2.LbServerGroupCreateRequest{
 		LbAlgorithm:            algorithm,
@@ -213,6 +215,7 @@ func (client *Client) CreateLbServerGroup(ctx context.Context, loadBalancerId st
 		LbServerGroupMembers:   members,
 		LbServerGroupName:      name,
 		TcpMultiplexingEnabled: &tcpMultiplexingEnabled,
+		Tags:                   client.sdkClient.ToTagRequestList(tags),
 	})
 	return result, err
 }
@@ -274,6 +277,7 @@ func (client *Client) CreateLbService(
 	defaultForwardingPorts string,
 	layerType string,
 	lbServiceName string,
+	natActive bool,
 	persistence string, persistenceProfileId string,
 	protocol string,
 	lbRules []LbServiceRule,
@@ -284,7 +288,8 @@ func (client *Client) CreateLbService(
 	serverSslSecurityLevel string,
 	clientCertificateId string,
 	clientSslSecurityLevel string,
-	useAccessLog bool) (loadbalancer2.AsyncResponse, error) {
+	useAccessLog bool,
+	tags map[string]interface{}) (loadbalancer2.AsyncResponse, error) {
 
 	result, _, err := client.sdkClient.LbServiceOpenApiControllerApi.CreateLoadBalancerService(ctx, client.config.ProjectId, loadBalancerId, loadbalancer2.LbServiceRequest{
 		ApplicationProfileId:   appProfileId,
@@ -292,6 +297,7 @@ func (client *Client) CreateLbService(
 		LayerType:              layerType,
 		LbRules:                lbRules,
 		LbServiceName:          lbServiceName,
+		NatActive:              &natActive,
 		Persistence:            persistence,
 		PersistenceProfileId:   persistenceProfileId,
 		Protocol:               protocol,
@@ -304,6 +310,7 @@ func (client *Client) CreateLbService(
 		ClientCertificateId:    clientCertificateId,
 		ClientSslSecurityLevel: clientSslSecurityLevel,
 		UseAccessLog:           &useAccessLog,
+		Tags:                   client.sdkClient.ToTagRequestList(tags),
 	})
 
 	return result, err

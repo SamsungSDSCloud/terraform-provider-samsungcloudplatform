@@ -65,6 +65,7 @@ func (client *Client) CreateVpcPeering(ctx context.Context, request VpcPeeringCr
 		RequesterProjectId:    request.RequesterProjectId,
 		RequesterVpcId:        request.RequesterVpcId,
 		VpcPeeringDescription: request.VpcPeeringDescription,
+		Tags:                  client.sdkClient.ToTagRequestList(request.Tags),
 	})
 	return result, err
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	image "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/image2"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -44,13 +45,7 @@ func ResourceCustomImage() *schema.Resource {
 				Description:      "Custom image description.",
 				ValidateDiagFunc: common.ValidateDescriptionMaxlength50,
 			},
-			"tags": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
+			"tags":                   tfTags.TagsSchema(),
 			"project_id":             {Type: schema.TypeString, Computed: true},
 			"availability_zone_name": {Type: schema.TypeString, Computed: true},
 			"base_image":             {Type: schema.TypeString, Computed: true},
@@ -82,20 +77,11 @@ func ResourceCustomImage() *schema.Resource {
 func resourceCustomImageCreate(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	tagsRequests := make([]image.TagRequest, 0)
-	for key, value := range rd.Get("tags").(map[string]interface{}) {
-		tagsRequests = append(tagsRequests, image.TagRequest{
-			TagKey:   key,
-			TagValue: value.(string),
-		})
-	}
-
 	response, _, err := inst.Client.CustomImage.CreateCustomImage(ctx, image.CustomImageCreateRequest{
 		ImageName:        rd.Get("image_name").(string),
 		VirtualServerId:  rd.Get("origin_virtual_server_id").(string),
 		ImageDescription: rd.Get("image_description").(string),
-		Tags:             tagsRequests,
-	})
+	}, rd.Get("tags").(map[string]interface{}))
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -137,6 +123,7 @@ func resourceCustomImageRead(ctx context.Context, rd *schema.ResourceData, meta 
 	if rd.Set("products", common.ConvertStructToMaps(responseCustomImage.Products)) != nil {
 		return nil
 	}
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 	return nil
 }
 
@@ -151,6 +138,12 @@ func resourceCustomImageUpdate(ctx context.Context, rd *schema.ResourceData, met
 			diag.Errorf(err.Error())
 		}
 	}
+
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	return resourceCustomImageRead(ctx, rd, meta)
 }
 

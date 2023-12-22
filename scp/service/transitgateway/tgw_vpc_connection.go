@@ -5,6 +5,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -61,6 +62,7 @@ func ResourceTransitGatewayConnection() *schema.Resource {
 				Computed:    true,
 				Description: "Transit Gateway Connection State",
 			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a TGW- VPC connection resource.",
 	}
@@ -105,6 +107,7 @@ func resourceTransitGatewayConnectionCreate(ctx context.Context, rd *schema.Reso
 	firewallLogging := rd.Get("firewall_loggable").(bool)
 	tgwConnectionDescription := rd.Get("transit_gateway_connection_description").(string)
 	tgwConnectionType := "INTERNAL"
+	tags := rd.Get("tags").(map[string]interface{})
 
 	inst := meta.(*client.Instance)
 
@@ -118,7 +121,7 @@ func resourceTransitGatewayConnectionCreate(ctx context.Context, rd *schema.Reso
 		return diag.FromErr(err)
 	}
 
-	response, _, err := inst.Client.TransitGateway.CreateTransitGatewayConnection(ctx, requesterTransitGatewayId, approverVpcId, tgwInfo.ProjectId, vpcInfo.ProjectId, tgwConnectionDescription, firewallEnabled, firewallLogging, tgwConnectionType)
+	response, _, err := inst.Client.TransitGateway.CreateTransitGatewayConnection(ctx, requesterTransitGatewayId, approverVpcId, tgwInfo.ProjectId, vpcInfo.ProjectId, tgwConnectionDescription, firewallEnabled, firewallLogging, tgwConnectionType, tags)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -139,6 +142,8 @@ func resourceTransitGatewayConnectionRead(ctx context.Context, rd *schema.Resour
 	}
 	rd.Set("transit_gateway_connection_state", info.TransitGatewayConnectionState)
 	rd.Set("transit_gateway_connection_description", info.TransitGatewayConnectionDescription)
+
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
 	return nil
 }
@@ -179,6 +184,12 @@ func resourceTransitGatewayConnectionUpdate(ctx context.Context, rd *schema.Reso
 			diag.FromErr(err)
 		}
 	}
+
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	return resourceTransitGatewayConnectionRead(ctx, rd, meta)
 
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/image2"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -77,6 +78,7 @@ func ResourceMigrationImage() *schema.Resource {
 				Required:    true,
 				Description: "Image Description",
 			},
+			"tags": tfTags.TagsSchema(),
 			"icon": {
 				Type:     schema.TypeMap,
 				Computed: true,
@@ -169,7 +171,7 @@ func resourceMigrationImageCreate(ctx context.Context, rd *schema.ResourceData, 
 		ServiceZoneId:        ServiceZoneId,
 		ImageDescription:     ImageDescription,
 	}
-	response, err := inst.Client.MigrationImage.CreateMigrationImage(ctx, createRequest)
+	response, err := inst.Client.MigrationImage.CreateMigrationImage(ctx, createRequest, rd.Get("tags").(map[string]interface{}))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -187,6 +189,7 @@ func resourceMigrationImageRead(ctx context.Context, rd *schema.ResourceData, me
 		return diag.FromErr(err)
 	}
 	rd.Set("name", MigrationImageInfo.ImageName)
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
 	return nil
 }
@@ -198,6 +201,11 @@ func resourceMigrationImageUpdate(ctx context.Context, rd *schema.ResourceData, 
 		if err != nil {
 			return diag.FromErr(err)
 		}
+	}
+
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	return resourceMigrationImageRead(ctx, rd, meta)

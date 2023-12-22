@@ -6,6 +6,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	iam2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/iam"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -61,27 +62,7 @@ func ResourcePolicy() *schema.Resource {
 				},
 				Description: "Policy principal list",
 			},
-			"tags": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"tag_key": {
-							Type:             schema.TypeString,
-							Required:         true,
-							ValidateDiagFunc: common.ValidateName1to256DotDashUnderscore,
-							Description:      "Tag key",
-						},
-						"tag_value": {
-							Type:             schema.TypeString,
-							Optional:         true,
-							ValidateDiagFunc: common.ValidateName1to256DotDashUnderscore,
-							Description:      "Tag value",
-						},
-					},
-				},
-				Description: "Tag list",
-			},
+			"tags": tfTags.TagsSchema(),
 			"description": {
 				Type:             schema.TypeString,
 				Optional:         true,
@@ -123,7 +104,7 @@ func resourcePolicyCreate(ctx context.Context, rd *schema.ResourceData, meta int
 	policyName := rd.Get("policy_name").(string)
 	principals := toPrincipalRequestList(rd.Get("principals").([]interface{}))
 
-	response, err := inst.Client.Iam.CreatePolicy(ctx, policyName, policyJson, principals, rd.Get("tags").([]interface{}), rd.Get("description").(string))
+	response, err := inst.Client.Iam.CreatePolicy(ctx, policyName, policyJson, principals, rd.Get("tags").(map[string]interface{}), rd.Get("description").(string))
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -159,15 +140,8 @@ func resourcePolicyRead(ctx context.Context, rd *schema.ResourceData, meta inter
 	rd.Set("modified_by_name", result.ModifiedByName)
 	rd.Set("modified_by_email", result.ModifiedByEmail)
 	rd.Set("modified_dt", result.ModifiedDt.String())
-	var tags common.HclSetObject
-	for _, tag := range result.Tags {
-		kv := common.HclKeyValueObject{
-			"tag_key":   tag.TagKey,
-			"tag_value": tag.TagValue,
-		}
-		tags = append(tags, kv)
-	}
-	rd.Set("tags", tags)
+
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
 	return nil
 }
@@ -192,6 +166,11 @@ func resourcePolicyUpdate(ctx context.Context, rd *schema.ResourceData, meta int
 		if err != nil {
 			return diag.FromErr(err)
 		}
+	}
+
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	return resourcePolicyRead(ctx, rd, meta)

@@ -33,6 +33,7 @@ output "output_my_scp_obs_buckets" {
 - `object_storage_bucket_purposes` (List of String) Object Storage Bucket Purpose Type List
 - `object_storage_bucket_state` (String) Object Storage Bucket State
 - `object_storage_bucket_states` (List of String) Object Storage Bucket State List
+- `object_storage_bucket_user_purpose` (String) Object Storage Bucket User Purpose
 - `object_storage_id` (String) Object Storage Bucket Name
 - `object_storage_quota_id` (String) Object Storage Quota ID
 - `object_storage_system_bucket_enabled` (Boolean) Is Object Storage System Bucket enabled (true | false)

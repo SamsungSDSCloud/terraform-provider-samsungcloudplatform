@@ -82,6 +82,7 @@ resource "scp_lb_server_group" "my_lb_server_group_tcp" {
 - `monitor_http_url` (String) Monitor http url path. (Only HTTP monitor_protocol. 0 to 50 alpha-numeric characters with period, dash, underscore)
 - `monitor_http_version` (String) Monitor http version. (Only HTTP monitor_protocol. 1.0, 1.1)
 - `server_group_member` (Block List) Server-Group members (see [below for nested schema](#nestedblock--server_group_member))
+- `tags` (Map of String)
 
 ### Read-Only
 

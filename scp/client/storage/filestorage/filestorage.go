@@ -27,14 +27,6 @@ func (client *Client) CheckFileStorage(ctx context.Context, request CheckFileSto
 }
 
 func (client *Client) CreateFileStorage(ctx context.Context, request CreateFileStorageRequest) (filestorage2.AsyncResponse, error) {
-	tags := make([]filestorage2.TagRequest, 0)
-	for _, tag := range request.Tags {
-		tags = append(tags, filestorage2.TagRequest{
-			TagKey:   tag.TagKey,
-			TagValue: tag.TagValue,
-		})
-	}
-
 	requestToApi := filestorage2.CreateFileStorageV4Request{
 		CifsPassword:          request.CifsPassword,
 		DiskType:              request.DiskType,
@@ -43,7 +35,7 @@ func (client *Client) CreateFileStorage(ctx context.Context, request CreateFileS
 		MultiAvailabilityZone: request.MultiAvailabilityZone,
 		ProductNames:          request.ProductNames,
 		ServiceZoneId:         request.ServiceZoneId,
-		Tags:                  tags,
+		Tags:                  client.sdkClient.ToTagRequestList(request.Tags),
 	}
 
 	if request.SnapshotSchedule.Frequency != "" {
@@ -59,7 +51,7 @@ func (client *Client) CreateFileStorage(ctx context.Context, request CreateFileS
 		requestToApi.SnapshotRetentionCount = request.SnapshotRetentionCount
 	}
 
-	result, _, err := client.sdkClient.FileStorageOpenApiV4Api.CreateFileStorageV4(ctx, client.config.ProjectId, requestToApi)
+	result, _, err := client.sdkClient.FileStorageOpenApiV4Api.CreateFileStorage(ctx, client.config.ProjectId, requestToApi)
 	return result, err
 }
 

@@ -45,6 +45,7 @@ resource "scp_migration_image" "my_migration_image" {
 ### Optional
 
 - `az_name` (String) Availability Zone Name
+- `tags` (Map of String)
 
 ### Read-Only
 

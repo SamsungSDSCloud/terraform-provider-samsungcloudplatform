@@ -56,7 +56,7 @@ func (client *Client) CreateBareMetalBlockStorage(ctx context.Context, request B
 		ServiceZoneId:             request.ServiceZoneId,
 		SnapshotCapacityRate:      request.SnapshotCapacityRate,
 		SnapshotSchedule:          &snapshotSchedule,
-		Tags:                      []baremetalblockstorage.TagRequest{},
+		Tags:                      client.sdkClient.ToTagRequestList(request.Tags),
 	})
 	var statusCode int
 	if c != nil {

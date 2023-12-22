@@ -7,6 +7,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/loadbalancer"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -156,6 +157,7 @@ func ResourceLbService() *schema.Resource {
 				Optional:    true,
 				Description: "NAT IP attached to LB service IP.",
 			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a Load Balancer Service resource.",
 	}
@@ -188,6 +190,7 @@ func resourceLbServiceCreate(ctx context.Context, rd *schema.ResourceData, meta 
 
 	loadBalancerId := rd.Get("lb_id").(string)
 	lbServiceName := rd.Get("name").(string)
+	natActive := rd.Get("nat_active").(bool)
 
 	layerType := rd.Get("layer_type").(string)
 
@@ -288,9 +291,10 @@ func resourceLbServiceCreate(ctx context.Context, rd *schema.ResourceData, meta 
 		}
 	}
 
+	tags := rd.Get("tags").(map[string]interface{})
 	response, err := inst.Client.LoadBalancer.CreateLbService(ctx, loadBalancerId, appProfileId, defaultForwardingPorts, layerType,
-		lbServiceName, persistence, persistenceProfileId, protocol, rules, serviceIpAddr, servicePorts, serviceIpId,
-		serverCertificateId, serverSslSecurityLevel, clientCertificateId, clientSslSecurityLevel, useAccessLog)
+		lbServiceName, natActive, persistence, persistenceProfileId, protocol, rules, serviceIpAddr, servicePorts, serviceIpId,
+		serverCertificateId, serverSslSecurityLevel, clientCertificateId, clientSslSecurityLevel, useAccessLog, tags)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -324,7 +328,7 @@ func resourceLbServiceRead(ctx context.Context, rd *schema.ResourceData, meta in
 	rd.Set("server_ssl_security_level", info.ServerSslSecurityLevel)
 	rd.Set("forwarding_ports", info.DefaultForwardingPorts)
 	rd.Set("layer_type", info.LayerType)
-	rd.Set("lb_rules", info.LbRules)
+	rd.Set("lb_rules", common.ConvertStructToMaps(info.LbRules))
 	rd.Set("lb_service_ip_id", info.LbServiceIpId)
 	rd.Set("persistence", info.Persistence)
 	rd.Set("persistence_profile_id", info.PersistenceProfileId)
@@ -332,6 +336,7 @@ func resourceLbServiceRead(ctx context.Context, rd *schema.ResourceData, meta in
 	rd.Set("service_ipv4", info.ServiceIpAddress)
 	rd.Set("service_ports", info.ServicePorts)
 	rd.Set("use_access_log", info.UseAccessLog)
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
 	return nil
 }
@@ -408,8 +413,13 @@ func resourceLbServiceUpdate(ctx context.Context, rd *schema.ResourceData, meta 
 		_, _, err := inst.Client.LoadBalancer.AttachNatIpToLoadBalancerServiceIp(ctx, rd.Get("lb_id").(string), lbServiceIpId, natActive, publicIpId)
 
 		if err != nil {
-			diag.Errorf(err.Error())
+			return diag.FromErr(err)
 		}
+	}
+
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	return resourceLbServiceRead(ctx, rd, meta)

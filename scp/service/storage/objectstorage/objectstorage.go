@@ -7,6 +7,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/objectstorage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -90,6 +91,16 @@ func ResourceObjectStorageBucket() *schema.Resource {
 				Optional:    true,
 				Description: "Object Storage Bucket DR Type",
 			},
+			"object_storage_bucket_purpose": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Object Storage Bucket Purpose",
+			},
+			"object_storage_bucket_user_purpose": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Object Storage Bucket User Purpose",
+			},
 			"sync_object_storage_bucket_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -101,14 +112,7 @@ func ResourceObjectStorageBucket() *schema.Resource {
 				ForceNew:    true,
 				Description: "Service Zone ID",
 			},
-			"tags": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: "Tags",
-				Elem: &schema.Schema{
-					Type: schema.TypeMap,
-				},
-			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides an Object Storage resource.",
 	}
@@ -160,10 +164,11 @@ func createBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}
 		ObjectStorageBucketFileEncryptionEnabled: rd.Get("object_storage_bucket_file_encryption_enabled").(bool),
 		ObjectStorageBucketName:                  rd.Get("object_storage_bucket_name").(string),
 		ObjectStorageBucketVersionEnabled:        rd.Get("object_storage_bucket_version_enabled").(bool),
+		ObjectStorageBucketUserPurpose:           rd.Get("object_storage_bucket_user_purpose").(string),
 		ObjectStorageId:                          rd.Get("object_storage_id").(string),
 		ServiceZoneId:                            rd.Get("service_zone_id").(string),
 		ProductNames:                             productNames,
-		Tags:                                     getTagRequestArray(rd),
+		Tags:                                     rd.Get("tags").(map[string]interface{}),
 	})
 
 	if err != nil {
@@ -227,7 +232,11 @@ func readBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}) 
 	rd.Set("service_zone_id", info.ServiceZoneId)
 	rd.Set("object_storage_bucket_dr_enabled", info.ObjectStorageBucketDrEnabled)
 	rd.Set("object_storage_bucket_dr_type", info.ObjectStorageBucketDrType)
+	rd.Set("object_storage_bucket_purpose", info.ObjectStorageBucketPurpose)
+	rd.Set("object_storage_bucket_user_purpose", info.ObjectStorageBucketUserPurpose)
 	rd.Set("sync_object_storage_bucket_id", info.SyncObjectStorageBucketId)
+
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
 	return nil
 }
@@ -273,6 +282,11 @@ func updateBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}
 		}
 	}
 
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	return readBucket(ctx, rd, meta)
 }
 
@@ -308,17 +322,4 @@ func waitForObjectStorageStatus(ctx context.Context, scpClient *client.SCPClient
 		}
 		return info, info.ObjectStorageBucketState, nil
 	})
-}
-
-func getTagRequestArray(rd *schema.ResourceData) []objectstorage.TagRequest {
-	tags := rd.Get("tags").([]interface{})
-	tagsRequests := make([]objectstorage.TagRequest, 0)
-	for _, tag := range tags {
-		tagMap := tag.(map[string]interface{})
-		tagsRequests = append(tagsRequests, objectstorage.TagRequest{
-			TagKey:   tagMap["tag_key"].(string),
-			TagValue: tagMap["tag_value"].(string),
-		})
-	}
-	return tagsRequests
 }

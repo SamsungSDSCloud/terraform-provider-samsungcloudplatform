@@ -7,6 +7,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/bmblockstorage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	baremetalblockstorage "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/bare-metal-block-storage"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -87,14 +88,7 @@ func ResourceBmBlockStorage() *schema.Resource {
 				ValidateDiagFunc: validateSnapShotSchedule,
 				Description:      "schedule for snapshot",
 			},
-			"tags": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				ForceNew: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a BM Block Storage resource.",
 	}
@@ -233,6 +227,7 @@ func createBmBlockStorage(ctx context.Context, data *schema.ResourceData, meta i
 		BareMetalServerIds:        baremetalServerIds,
 		ServiceZoneId:             serverInfo.ServiceZoneId,
 		ProductId:                 productId,
+		Tags:                      data.Get("tags").(map[string]interface{}),
 	})
 
 	if err != nil {
@@ -289,6 +284,7 @@ func readBmBlockStorage(ctx context.Context, data *schema.ResourceData, meta int
 		}
 	}
 
+	tfTags.SetTags(ctx, data, meta, data.Id())
 	return nil
 }
 
@@ -328,6 +324,8 @@ func updateBmBlockStorage(ctx context.Context, data *schema.ResourceData, meta i
 		}
 
 	}
+
+	tfTags.UpdateTags(ctx, data, meta, data.Id())
 
 	return readBmBlockStorage(ctx, data, meta)
 }

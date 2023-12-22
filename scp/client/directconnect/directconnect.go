@@ -29,12 +29,13 @@ func (client *Client) GetDirectConnectInfo(ctx context.Context, directConnectId 
 	return result, statusCode, err
 }
 
-func (client *Client) CreateDirectConnect(ctx context.Context, bandwidth int32, dcName string, serviceZoneId string, dcDescription string) (directconnect2.AsyncResponse, int, error) {
+func (client *Client) CreateDirectConnect(ctx context.Context, bandwidth int32, dcName string, serviceZoneId string, dcDescription string, tags map[string]interface{}) (directconnect2.AsyncResponse, int, error) {
 	result, c, err := client.sdkClient.DirectConnectOpenApiV3ControllerApi.CreateDirectConnect1(ctx, client.config.ProjectId, directconnect2.DirectConnectCreateV3Request{
 		BandwidthGbps:            bandwidth,
 		DirectConnectName:        dcName,
 		ServiceZoneId:            serviceZoneId,
 		DirectConnectDescription: dcDescription,
+		Tags:                     client.sdkClient.ToTagRequestList(tags),
 	})
 	var statusCode int
 	if c != nil {
@@ -60,7 +61,7 @@ func (client *Client) GetDirectConnectList(ctx context.Context, request *directc
 //------------Direct Connect Connection-------------------//
 
 func (client *Client) CreateDconVpcConnection(ctx context.Context, approverProjectId string, approverVpcId string, connectionType string, firewallEnabled bool, requesterDcId string,
-	requesterProjectId string, connectionDescription string) (directconnect2.AsyncResponse, int, error) {
+	requesterProjectId string, connectionDescription string, tags map[string]interface{}) (directconnect2.AsyncResponse, int, error) {
 	result, c, err := client.sdkClient.DirectConnectConnectionOpenApiControllerApi.CreateDirectConnectConnection(ctx, client.config.ProjectId, directconnect2.DirectConnectConnectionCreateRequest{
 		ApproverProjectId:                  approverProjectId,
 		ApproverVpcId:                      approverVpcId,
@@ -69,6 +70,7 @@ func (client *Client) CreateDconVpcConnection(ctx context.Context, approverProje
 		RequesterDirectConnectId:           requesterDcId,
 		RequesterProjectId:                 requesterProjectId,
 		DirectConnectConnectionDescription: connectionDescription,
+		Tags:                               client.sdkClient.ToTagRequestList(tags),
 	})
 	var statusCode int
 	if c != nil {

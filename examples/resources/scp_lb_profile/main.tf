@@ -1,6 +1,6 @@
 resource "scp_lb_profile" "my_lb_profile_persistence" {
-  lb_id           = data.terraform_remote_state.load_balancer.outputs.id
-  name            = var.name_persistence
+  lb_id            = data.terraform_remote_state.load_balancer.outputs.id
+  name             = var.name_persistence
   category         = "PERSISTENCE"
   persistence_type = "SOURCE_IP"
 }
@@ -18,6 +18,7 @@ resource "scp_lb_profile" "my_lb_profile_app_l7" {
   name                 = var.name_l7
   category             = "APPLICATION"
   layer_type           = "L7"
+  redirect_type        = "HTTP_TO_HTTPS_REDIRECT"
   request_header_size  = 1
   response_header_size = 1
   response_timeout     = 1

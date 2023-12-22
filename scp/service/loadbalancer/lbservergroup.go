@@ -7,6 +7,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/loadbalancer"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -162,6 +163,7 @@ func ResourceLbServerGroup() *schema.Resource {
 				// ValidateDiagFunc : 0 <= str length <= 300
 				Description: "Response body content. (Only HTTP monitor_protocol. 0 to 300 byte characters)",
 			},
+			"tags": tfTags.TagsSchema(),
 		},
 		CustomizeDiff: customdiff.All(
 			func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
@@ -311,7 +313,8 @@ func resourceLbServerGroupCreate(ctx context.Context, rd *schema.ResourceData, m
 		return diag.Errorf("Input server group name is invalid (maybe duplicated) : " + name)
 	}
 
-	response, err := inst.Client.LoadBalancer.CreateLbServerGroup(ctx, loadBalancerId, algorithm, name, &monitor, members, tcpMultiplexingEnabled)
+	tags := rd.Get("tags").(map[string]interface{})
+	response, err := inst.Client.LoadBalancer.CreateLbServerGroup(ctx, loadBalancerId, algorithm, name, &monitor, members, tcpMultiplexingEnabled, tags)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -367,6 +370,7 @@ func resourceLbServerGroupRead(ctx context.Context, rd *schema.ResourceData, met
 	rd.Set("monitor_http_request_body", info.LbMonitor.RequestBody)
 	rd.Set("monitor_http_response_body", info.LbMonitor.ResponseBody)
 	//rd.Set("tcp_multiplexing_enabled", info.TcpMultiplexingEnabled)
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
 	return nil
 }
@@ -440,6 +444,11 @@ func resourceLbServerGroupUpdate(ctx context.Context, rd *schema.ResourceData, m
 		if err != nil {
 			return diag.FromErr(err)
 		}
+	}
+
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	return resourceLbServerGroupRead(ctx, rd, meta)

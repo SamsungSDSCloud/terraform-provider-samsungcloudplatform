@@ -7,6 +7,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/loggingaudit"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -113,28 +114,6 @@ func ResourceTrail() *schema.Resource {
 					"STOPPED",
 				}, false)),
 			},
-			"tags": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"tag_key": {
-							Type:             schema.TypeString,
-							Required:         true,
-							ValidateDiagFunc: common.ValidateName1to256DotDashUnderscore,
-							Description:      "Tag key",
-						},
-						"tag_value": {
-							Type:             schema.TypeString,
-							Optional:         true,
-							ValidateDiagFunc: common.ValidateName1to256DotDashUnderscore,
-							Description:      "Tag value",
-						},
-					},
-				},
-				Description: "Tag list",
-			},
-
 			"obs_name": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -175,6 +154,7 @@ func ResourceTrail() *schema.Resource {
 				Computed:    true,
 				Description: "batch processing status",
 			},
+			"tags": tfTags.TagsSchema(),
 		},
 	}
 }
@@ -197,7 +177,7 @@ func resourceTrailCreate(ctx context.Context, rd *schema.ResourceData, meta inte
 		return
 	}
 
-	tags := rd.Get("tags").([]interface{})
+	tags := rd.Get("tags").(map[string]interface{})
 	request := loggingaudit.CreateTrailRequest{
 		TrailName:                  rd.Get("name").(string),
 		ObsBucketId:                rd.Get("obs_bucket_id").(string),
@@ -283,6 +263,8 @@ func resourceTrailRead(ctx context.Context, rd *schema.ResourceData, meta interf
 	rd.Set("batch_last_success_dt", info.TrailBatchLastSuccessDt)
 	rd.Set("batch_start_dt", info.TrailBatchStartDt)
 	rd.Set("batch_state", info.TrailBatchState)
+
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
 	return nil
 }
@@ -385,15 +367,9 @@ func resourceTrailUpdate(ctx context.Context, rd *schema.ResourceData, meta inte
 		}
 	}
 
-	if rd.HasChanges("tags") {
-		o, n := rd.GetChange("tags")
-		oldList := o.([]interface{})
-		newList := n.([]interface{})
-
-		err := client.UpdateResourceTag(ctx, inst.Client, rd.Id(), oldList, newList)
-		if err != nil {
-			return diag.FromErr(err)
-		}
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	return resourceTrailRead(ctx, rd, meta)

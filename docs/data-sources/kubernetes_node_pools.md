@@ -68,6 +68,7 @@ Read-Only:
 - `os_type` (String) Host OS type (Ubuntu, Window,..)
 - `product_group_id` (String) Product group id
 - `project_id` (String) Project id
+- `region` (String) Modification Date
 - `scale_id` (String) Scale id
 - `service_level_id` (String) Service level id
 - `storage_id` (String) Storage id

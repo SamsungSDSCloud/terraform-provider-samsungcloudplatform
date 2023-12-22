@@ -51,3 +51,24 @@ func (client *Client) GetServerGroup(ctx context.Context, serverGroupName string
 
 	return result, err
 }
+
+func (client *Client) GetServerGroupByServicedForCondition(ctx context.Context, serverGroupName string, servicedFor string) (servergroup2.ListResponseOfServerGroupsResponse, error) {
+	var optServerGroupName optional.String
+	if len(serverGroupName) > 0 {
+		optServerGroupName = optional.NewString(serverGroupName)
+	}
+	var optServicedForList optional.Interface
+	if len(servicedFor) > 0 {
+		optServicedForList = optional.NewInterface(servicedFor)
+	}
+
+	result, _, err := client.sdkClient.ServerGroupSearchControllerApi.ListServerGroup(ctx, client.config.ProjectId, &servergroup2.ServerGroupSearchControllerApiListServerGroupOpts{
+		ServerGroupName: optServerGroupName,
+		ServicedForList: optServicedForList,
+		Page:            optional.Int32{},
+		Size:            optional.Int32{},
+		Sort:            optional.Interface{},
+	})
+
+	return result, err
+}

@@ -18,13 +18,17 @@ resource "scp_kubernetes_node_pool" "pool" {
   engine_id          = data.terraform_remote_state.engine.outputs.id
   image_id           = data.scp_standard_image.ubuntu_image.id
   desired_node_count = 2
-  cpu_count          = 2
-  memory_size_gb     = 4
-  storage_size_gb    = 100
 
-  availability_zone_name = ""
-  auto_recovery      = false
+  scale_name = var.scale_name
+  storage_name = var.storage_name
+  storage_size_gb = var.storage_size_gb
+
+  // optional field
+  availability_zone_name = null
+
+  // update optional field
   auto_scale         = false
   min_node_count     = null
   max_node_count     = null
+  auto_recovery      = false
 }

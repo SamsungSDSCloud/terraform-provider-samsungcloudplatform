@@ -7,15 +7,16 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/baremetal"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/bmblockstorage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/image"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	publicip2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/public-ip2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"log"
+	"net"
 	"regexp"
 	"strconv"
 	"strings"
@@ -42,11 +43,16 @@ func ResourceBareMetalServer() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"bm_server_name": {
-				Type:             schema.TypeString,
-				Required:         true,
-				ForceNew:         true,
-				ValidateDiagFunc: validateName3to24LowerAlphaDashStartsWithLowerCase,
-				Description:      "Bare-metal server name",
+				Type:     schema.TypeList,
+				Required: true,
+				ForceNew: true,
+				MinItems: 1,
+				MaxItems: 5,
+				Elem: &schema.Schema{
+					Type:             schema.TypeString,
+					ValidateDiagFunc: validateName3to24LowerAlphaDashStartsWithLowerCase,
+				},
+				Description: "Bare-metal server name",
 			},
 			"delete_protection": {
 				Type:        schema.TypeBool,
@@ -126,21 +132,36 @@ func ResourceBareMetalServer() *schema.Resource {
 				Description: "Subnet id of this bare-metal server. Subnet must be a valid subnet resource which is attached to the VPC.",
 			},
 			"public_ip_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    true,
+				Type:     schema.TypeList,
+				Required: true,
+				ForceNew: true,
+				MinItems: 1,
+				MaxItems: 5,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 				Description: "Public IP id of this bare-metal server. Public-IP must be a valid public-ip resource which is attached to the VPC.",
 			},
 			"use_dns": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
+				Type:     schema.TypeList,
+				Required: true,
+				MinItems: 1,
+				MaxItems: 5,
+				Elem: &schema.Schema{
+					Type:    schema.TypeBool,
+					Default: false,
+				},
 				Description: "Enable DNS feature for this bare-metal server.",
 			},
 			"use_hyper_threading": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     false,
+				Type:     schema.TypeList,
+				Required: true,
+				MinItems: 1,
+				MaxItems: 5,
+				Elem: &schema.Schema{
+					Type:    schema.TypeString,
+					Default: "N",
+				},
 				Description: "Enable hyper-threading feature for this bare-metal server.",
 			},
 			"admin_account": {
@@ -157,37 +178,69 @@ func ResourceBareMetalServer() *schema.Resource {
 				Description:      "Admin account password for this bare-metal server OS. (CAUTION) The actual plain-text password will be sent to your email.",
 			},
 			"ipv4": {
-				Type:        schema.TypeString,
+				Type:        schema.TypeList,
 				Required:    true,
+				MinItems:    1,
+				MaxItems:    5,
 				Description: "IP address of this bare-metal server",
+				Elem: &schema.Schema{
+					Type:             schema.TypeString,
+					ValidateDiagFunc: validateIpv4InList,
+				},
 			},
 			"nat_enabled": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
+				Type:     schema.TypeList,
+				Required: true,
+				MinItems: 1,
+				MaxItems: 5,
+				Elem: &schema.Schema{
+					Type:    schema.TypeBool,
+					Default: false,
+				},
 				Description: "Enable NAT feature for this bare-metal server.",
 			},
 			"local_subnet_enabled": {
-				Type:        schema.TypeBool,
-				Required:    true,
+				Type:     schema.TypeList,
+				Required: true,
+				MinItems: 1,
+				MaxItems: 5,
+				Elem: &schema.Schema{
+					Type: schema.TypeBool,
+				},
 				Description: "Enable local subnet for this bare-metal server",
 			},
 			"local_subnet_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
+				Type:     schema.TypeList,
+				Required: true,
+				MinItems: 1,
+				MaxItems: 5,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 				Description: "Local Subnet id of this bare-metal server. Subnet must be a valid subnet resource which is attached to the VPC.",
 			},
 			"local_subnet_ipv4": {
-				Type:        schema.TypeString,
-				Optional:    true,
+				Type:     schema.TypeList,
+				Required: true,
+				MinItems: 1,
+				MaxItems: 5,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 				Description: "Local IP address of this bare-metal server",
 			},
 			"state": {
-				Type:             schema.TypeString,
-				Required:         true,
-				ValidateDiagFunc: validateBmState,
-				Description:      "Baremetal Server State(ex. RUNNING, STOPPED)",
+				Type:     schema.TypeList,
+				Required: true,
+				MinItems: 1,
+				MaxItems: 5,
+				Elem: &schema.Schema{
+					Type:             schema.TypeString,
+					ValidateDiagFunc: validateBmState,
+				},
+				Description: "Baremetal Server State(ex. RUNNING, STOPPED)",
 			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a Bare-metal Server resource.",
 	}
@@ -207,7 +260,7 @@ func validateName3to24LowerAlphaDashStartsWithLowerCase(v interface{}, path cty.
 	var diags diag.Diagnostics
 
 	// Get attribute key
-	attr := path[len(path)-1].(cty.GetAttrStep)
+	attr := path[0].(cty.GetAttrStep)
 	attrKey := attr.Name
 
 	// Get value
@@ -235,11 +288,34 @@ func validateName3to24LowerAlphaDashStartsWithLowerCase(v interface{}, path cty.
 	return diags
 }
 
+func validateIpv4InList(v interface{}, path cty.Path) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	attr := path[0].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	value := v.(string)
+	if value == "" {
+		return diags
+	}
+
+	trial := net.ParseIP(value)
+	if trial.To4() == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q is not IP address", attrKey),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
 func validateBmState(v interface{}, path cty.Path) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	// Get attribute key
-	attr := path[len(path)-1].(cty.GetAttrStep)
+	attr := path[0].(cty.GetAttrStep)
 	attrKey := attr.Name
 
 	// Get value
@@ -284,6 +360,50 @@ func ConvertBlockStorageList(list common.HclListObject, diskToId map[string]stri
 	return result, nil
 }
 
+func convertInterfaceToStringList(input []interface{}) []string {
+
+	output := make([]string, len(input))
+
+	for i, v := range input {
+		if v == nil {
+			output[i] = ""
+		} else if str, ok := v.(string); ok {
+			output[i] = str
+		}
+	}
+
+	return output
+}
+
+func convertInterfaceToBoolList(input []interface{}) []bool {
+
+	output := make([]bool, len(input))
+
+	for i, v := range input {
+		if v == nil {
+			output[i] = false
+		} else if b, ok := v.(bool); ok {
+			output[i] = b
+		}
+	}
+
+	return output
+}
+
+// update 시에 달라진 index와 새로운 값을 반환시켜준다.
+func getChangeDiffIndex(rd *schema.ResourceData, key string) (idxList []int, newValue []string) {
+	o, n := rd.GetChange(key)
+	oldValue := convertInterfaceToStringList(o.([]interface{}))
+	newValue = convertInterfaceToStringList(n.([]interface{}))
+
+	for index, _ := range oldValue {
+		if oldValue[index] != newValue[index] {
+			idxList = append(idxList, index)
+		}
+	}
+	return idxList, newValue
+}
+
 func resourceBareMetalServerCreate(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
 	var err error = nil
 	defer func() {
@@ -294,7 +414,8 @@ func resourceBareMetalServerCreate(ctx context.Context, rd *schema.ResourceData,
 
 	inst := meta.(*client.Instance)
 
-	serverName := rd.Get("bm_server_name").(string)
+	serverName := convertInterfaceToStringList(rd.Get("bm_server_name").([]interface{}))
+
 	isDeleteProtected := rd.Get("delete_protection").(bool)
 	cpuCount := rd.Get("cpu_count").(int)
 	memorySizeGB := rd.Get("memory_size_gb").(int)
@@ -303,34 +424,30 @@ func resourceBareMetalServerCreate(ctx context.Context, rd *schema.ResourceData,
 	blockStorageList := rd.Get("block_storages").(common.HclListObject)
 
 	subnetId := rd.Get("subnet_id").(string)
-	publicIpId := rd.Get("public_ip_id").(string)
+	publicIpId := convertInterfaceToStringList(rd.Get("public_ip_id").([]interface{}))
 
 	adminAccount := rd.Get("admin_account").(string)
 	adminPassword := rd.Get("admin_password").(string)
 	initialScript := rd.Get("initial_script").(string)
 
-	state := rd.Get("state").(string)
+	states := convertInterfaceToStringList(rd.Get("state").([]interface{}))
 
-	if strings.Compare(state, common.StoppedState) == 0 {
-		return diag.Errorf("state value must be RUNNING")
+	for _, state := range states {
+		if strings.Compare(state, common.StoppedState) == 0 {
+			return diag.Errorf("state value must be RUNNING")
+		}
 	}
 
 	vpcId := rd.Get("vpc_id").(string)
 	imageId := rd.Get("image_id").(string)
-	useDNS := rd.Get("use_dns").(bool)
-	//ipAddr := rd.Get("ipv4").(string)
-	natEnabled := rd.Get("nat_enabled").(bool)
-	useHyperThreading := rd.Get("use_hyper_threading").(string)
-	localSubnetEnabled := rd.Get("local_subnet_enabled").(bool)
-	localSubnetId := rd.Get("local_subnet_id").(string)
-	localSubnetIp := rd.Get("local_subnet_ipv4").(string)
-	if !localSubnetEnabled {
-		localSubnetId = "" // to bypass local-subnet data manipulation bug
-	}
+	useDNS := convertInterfaceToBoolList(rd.Get("use_dns").([]interface{}))
+	ipAddr := convertInterfaceToStringList(rd.Get("ipv4").([]interface{}))
+	natEnabled := convertInterfaceToBoolList(rd.Get("nat_enabled").([]interface{}))
+	useHyperThreading := convertInterfaceToStringList(rd.Get("use_hyper_threading").([]interface{}))
+	localSubnetEnabled := convertInterfaceToBoolList(rd.Get("local_subnet_enabled").([]interface{}))
+	localSubnetIds := convertInterfaceToStringList(rd.Get("local_subnet_id").([]interface{}))
+	localSubnetIp := convertInterfaceToStringList(rd.Get("local_subnet_ipv4").([]interface{}))
 
-	if !localSubnetEnabled && localSubnetId != "" {
-		return diag.Errorf("local subnet is disabled, but has subnet id")
-	}
 	// Get vpc info
 	vpcInfo, _, err := inst.Client.Vpc.GetVpcInfo(ctx, vpcId)
 	if err != nil {
@@ -408,19 +525,35 @@ func resourceBareMetalServerCreate(ctx context.Context, rd *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 
-	serverDetails := baremetal.BMServerDetailsRequest{
-		BareMetalLocalSubnetEnabled:   localSubnetEnabled,
-		BareMetalLocalSubnetId:        localSubnetId,
-		BareMetalLocalSubnetIpAddress: localSubnetIp,
-		BareMetalServerName:           serverName,
-		DnsEnabled:                    useDNS,
-		//IpAddress:                     ipAddr,
-		NatEnabled:        natEnabled,
-		PublicIpAddressId: publicIpId,
-		ServerTypeId:      scaleId,
-		StorageDetails:    blockStorageInfoList,
-		UseHyperThreading: useHyperThreading,
+	serverDetailList := make([]baremetal.BMServerDetailsRequest, 0)
+
+	for index, _ := range serverName {
+
+		localSubnetId := localSubnetIds[index]
+		if !localSubnetEnabled[index] {
+			localSubnetId = "" // to bypass local-subnet data manipulation bug
+		}
+
+		if !localSubnetEnabled[index] && localSubnetId != "" {
+			return diag.Errorf("local subnet is disabled, but has subnet id")
+		}
+
+		serverDetails := baremetal.BMServerDetailsRequest{
+			BareMetalLocalSubnetEnabled:   localSubnetEnabled[index],
+			BareMetalLocalSubnetId:        localSubnetId,
+			BareMetalLocalSubnetIpAddress: localSubnetIp[index],
+			BareMetalServerName:           serverName[index],
+			DnsEnabled:                    useDNS[index],
+			IpAddress:                     ipAddr[index],
+			NatEnabled:                    natEnabled[index],
+			PublicIpAddressId:             publicIpId[index],
+			ServerTypeId:                  scaleId,
+			StorageDetails:                blockStorageInfoList,
+			UseHyperThreading:             useHyperThreading[index],
+		}
+		serverDetailList = append(serverDetailList, serverDetails)
 	}
+
 	createRequest := baremetal.BMServerCreateRequest{
 		BlockId:                   blockId,
 		ContractId:                contractId,
@@ -432,18 +565,21 @@ func resourceBareMetalServerCreate(ctx context.Context, rd *schema.ResourceData,
 		OsUserPassword:            adminPassword,
 		ProductGroupId:            targetProductGroupId,
 		ServiceZoneId:             vpcInfo.ServiceZoneId,
-		ServerDetails:             []baremetal.BMServerDetailsRequest{serverDetails},
-		Tags:                      []baremetal.TagRequest{},
+		ServerDetails:             serverDetailList,
 		VpcId:                     vpcId,
 	}
-	createResponse, err := inst.Client.BareMetal.CreateBareMetalServer(ctx, createRequest)
+	createResponse, err := inst.Client.BareMetal.CreateBareMetalServer(ctx, createRequest, rd.Get("tags").(map[string]interface{}))
 	if err != nil {
 		return
 	}
 
-	err = WaitForBMServerStatus(ctx, inst.Client, createResponse.ResourceId, common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
-	if err != nil {
-		return
+	resourceIds := strings.Split(createResponse.ResourceId, ",")
+
+	for _, resourceId := range resourceIds {
+		err = WaitForBMServerStatus(ctx, inst.Client, resourceId, common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
+		if err != nil {
+			return
+		}
 	}
 
 	rd.SetId(createResponse.ResourceId)
@@ -484,7 +620,20 @@ func resourceBareMetalServerRead(ctx context.Context, rd *schema.ResourceData, m
 	}()
 
 	inst := meta.(*client.Instance)
-	bmServerInfo, _, err := inst.Client.BareMetal.GetBareMetalServerDetail(ctx, rd.Id())
+	baremetalIds := strings.Split(rd.Id(), ",")
+
+	serverNames := make([]string, 0)
+	ipv4List := make([]string, 0)
+	useDnsList := make([]bool, 0)
+	useHyperThreadingList := make([]string, 0)
+	natEnabledList := make([]bool, 0)
+	publicIpIdList := make([]string, 0)
+	localSubnetEnabledList := make([]bool, 0)
+	localSubnetIdList := make([]string, 0)
+	localSubnetIpv4List := make([]string, 0)
+	states := make([]string, 0)
+
+	bmServerInfo, _, err := inst.Client.BareMetal.GetBareMetalServerDetail(ctx, baremetalIds[0])
 	if err != nil {
 		rd.SetId("")
 		if common.IsDeleted(err) {
@@ -506,12 +655,11 @@ func resourceBareMetalServerRead(ctx context.Context, rd *schema.ResourceData, m
 		}
 	}
 
+	rd.Set("subnet_id", bmServerInfo.SubnetId)
 	rd.Set("image_id", bmServerInfo.ImageId)
-	rd.Set("bm_server_name", bmServerInfo.BareMetalServerName)
-	rd.Set("delete_protection", bmServerInfo.DeletionProtectionEnabled)
+	rd.Set("delete_protection", bmServerInfo.DeletionProtectionEnabled == "Y")
 	rd.Set("contract_discount", bmServerInfo.Contract)
 	rd.Set("vpc_id", bmServerInfo.VpcId)
-	rd.Set("use_dns", bmServerInfo.DnsEnabled)
 	rd.Set("initial_script", bmServerInfo.InitialScriptContent)
 
 	blockStorages := common.HclListObject{}
@@ -564,20 +712,17 @@ func resourceBareMetalServerRead(ctx context.Context, rd *schema.ResourceData, m
 		return
 	}
 
-	ipv4 := bmServerInfo.IpAddress
-	localSubnetId := bmServerInfo.BareMetalLocalSubnetId
-	localSubnetIp := bmServerInfo.BareMetalLocalSubnetIpAddress
-	subnetId := bmServerInfo.SubnetId
-	natIpv4 := bmServerInfo.NatIpAddress
-	natEnabled := bmServerInfo.PublicNatStatus
+	serverNames = append(serverNames, bmServerInfo.BareMetalServerName)
+	ipv4List = append(ipv4List, bmServerInfo.IpAddress)
+	useDnsList = append(useDnsList, bmServerInfo.DnsEnabled == "Y")
+	useHyperThreadingList = append(useHyperThreadingList, bmServerInfo.UseHyperThreading)
+	natEnabledList = append(natEnabledList, bmServerInfo.NatIpAddress != "")
+	localSubnetEnabledList = append(localSubnetEnabledList, bmServerInfo.BareMetalLocalSubnetId != "")
+	localSubnetIdList = append(localSubnetIdList, bmServerInfo.BareMetalLocalSubnetId)
+	localSubnetIpv4List = append(localSubnetIpv4List, bmServerInfo.BareMetalLocalSubnetIpAddress)
+	states = append(states, strings.ToUpper(bmServerInfo.BareMetalServerState))
 
-	rd.Set("ipv4", ipv4)
-	rd.Set("subnet_id", subnetId)
-	rd.Set("local_subnet_id", localSubnetId)
-	rd.Set("local_subnet_ipv4", localSubnetIp)
-	rd.Set("local_subnet_enabled", localSubnetId != "")
-	rd.Set("nat_ipv4", natIpv4)
-	rd.Set("nat_enabled", natEnabled == "SUCCESS")
+	natIpv4 := bmServerInfo.NatIpAddress
 
 	if natIpv4 != "" {
 		publicIpInfo, err := inst.Client.PublicIp.GetPublicIps(ctx, &publicip2.PublicIpOpenApiV3ControllerApiListPublicIpsV3Opts{
@@ -597,11 +742,74 @@ func resourceBareMetalServerRead(ctx context.Context, rd *schema.ResourceData, m
 
 		if len(publicIpInfo.Contents) == 0 {
 			// this case is found on auto assign mode
-			rd.Set("public_ip_id", "")
+			publicIpIdList = append(publicIpIdList, "")
 		} else {
-			rd.Set("public_ip_id", publicIpInfo.Contents[0].PublicIpAddressId)
+			publicIpIdList = append(publicIpIdList, publicIpInfo.Contents[0].PublicIpAddressId)
+		}
+	} else {
+		publicIpIdList = append(publicIpIdList, "")
+	}
+
+	for i := 1; i < len(baremetalIds); i++ {
+		bmServerInfo, _, err := inst.Client.BareMetal.GetBareMetalServerDetail(ctx, baremetalIds[i])
+		if err != nil {
+			rd.SetId("")
+			if common.IsDeleted(err) {
+				return nil
+			}
+			return diag.FromErr(err)
+		}
+
+		serverNames = append(serverNames, bmServerInfo.BareMetalServerName)
+		ipv4List = append(ipv4List, bmServerInfo.IpAddress)
+		useDnsList = append(useDnsList, bmServerInfo.DnsEnabled == "Y")
+		useHyperThreadingList = append(useHyperThreadingList, bmServerInfo.UseHyperThreading)
+		natEnabledList = append(natEnabledList, bmServerInfo.NatIpAddress != "")
+		localSubnetEnabledList = append(localSubnetEnabledList, bmServerInfo.BareMetalLocalSubnetId != "")
+		localSubnetIdList = append(localSubnetIdList, bmServerInfo.BareMetalLocalSubnetId)
+		localSubnetIpv4List = append(localSubnetIpv4List, bmServerInfo.BareMetalLocalSubnetIpAddress)
+		states = append(states, strings.ToUpper(bmServerInfo.BareMetalServerState))
+
+		natIpv4 := bmServerInfo.NatIpAddress
+
+		if natIpv4 != "" {
+			publicIpInfo, err := inst.Client.PublicIp.GetPublicIps(ctx, &publicip2.PublicIpOpenApiV3ControllerApiListPublicIpsV3Opts{
+				IpAddress:     optional.NewString(natIpv4),
+				VpcId:         optional.NewString(bmServerInfo.VpcId),
+				PublicIpState: optional.String{},
+				UplinkType:    optional.String{},
+				CreatedBy:     optional.String{},
+				Page:          optional.Int32{},
+				Size:          optional.Int32{},
+				Sort:          optional.Interface{},
+			})
+			if err != nil {
+				diagnostics = diag.FromErr(err)
+				return
+			}
+
+			if len(publicIpInfo.Contents) == 0 {
+				// this case is found on auto assign mode
+				publicIpIdList = append(publicIpIdList, "")
+			} else {
+				publicIpIdList = append(publicIpIdList, publicIpInfo.Contents[0].PublicIpAddressId)
+			}
+		} else {
+			publicIpIdList = append(publicIpIdList, "")
 		}
 	}
+	rd.Set("bm_server_name", serverNames)
+	rd.Set("ipv4", ipv4List)
+	rd.Set("local_subnet_id", localSubnetIdList)
+	rd.Set("local_subnet_ipv4", localSubnetIpv4List)
+	rd.Set("local_subnet_enabled", localSubnetEnabledList)
+	rd.Set("public_ip_id", publicIpIdList)
+	rd.Set("nat_enabled", natEnabledList)
+	rd.Set("use_dns", useDnsList)
+	rd.Set("use_hyper_threading", useHyperThreadingList)
+	rd.Set("state", states)
+	tfTags.SetTags(ctx, rd, meta, baremetalIds[0])
+
 	return nil
 }
 
@@ -615,244 +823,281 @@ func resourceBareMetalServerUpdate(ctx context.Context, rd *schema.ResourceData,
 
 	inst := meta.(*client.Instance)
 
-	if !rd.HasChanges("delete_protection") && !rd.HasChanges("contract_discount") && !rd.HasChanges("local_subnet_enabled") && !rd.HasChanges("nat_enabled") && !rd.HasChanges("block_storages") && !rd.HasChanges("state") {
+	if !rd.HasChanges("delete_protection") && !rd.HasChanges("contract_discount") &&
+		!rd.HasChanges("local_subnet_enabled") && !rd.HasChanges("nat_enabled") &&
+		!rd.HasChanges("block_storages") && !rd.HasChanges("state") && !rd.HasChanges("tags") {
 		return diag.Errorf("nothing to update")
 	}
 
-	serverInfo, _, err := inst.Client.BareMetal.GetBareMetalServerDetail(ctx, rd.Id())
-	if err != nil {
-		return
-	}
-	targetProductGroupId := serverInfo.ProductGroupId
+	serverIds := strings.Split(rd.Id(), ",")
 
-	if rd.HasChanges("delete_protection") {
-		deleteProtection := rd.Get("delete_protection").(bool)
-		isDeleteProtectionEnabled := "Y"
-		if !deleteProtection {
-			isDeleteProtectionEnabled = "N"
-		}
-		_, err = inst.Client.BareMetal.ChangeBMDeletePolicy(ctx, rd.Id(), isDeleteProtectionEnabled)
+	/*
+		serverInfo, _, err := inst.Client.BareMetal.GetBareMetalServerDetail(ctx, serverIds[0])
 		if err != nil {
-			return diag.FromErr(err)
-		}
-	}
-
-	if rd.HasChanges("contract_discount") {
-		contractDiscount := rd.Get("contract_discount").(string)
-
-		// Get product group information
-		productGroup, err := inst.Client.Product.GetProductGroup(ctx, targetProductGroupId)
-		//productGroup, err := inst.Client.Product.GetProducesList(ctx, vpcInfo.ServiceZoneId, targetProductGroupId, "")
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		contractToId := common.ProductToIdMap(common.ProductContractDiscount, &productGroup)
-		if len(contractToId) == 0 {
-			diagnostics = diag.Errorf("Failed to find contract info")
 			return
 		}
+		targetProductGroupId := serverInfo.ProductGroupId
 
-		contractId, ok := contractToId[contractDiscount]
-		if !ok {
-			diagnostics = diag.Errorf("Invalid contract")
-			return
-		}
-
-		_, err = inst.Client.BareMetal.ChangeBMContract(ctx, rd.Id(), contractId)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-	}
-
-	if rd.HasChanges("local_subnet_enabled") {
-		localSubnetEnabled := rd.Get("local_subnet_enabled").(bool)
-		localSubnetIp := rd.Get("local_subnet_ipv4").(string)
-		localSubnetId := rd.Get("local_subnet_id").(string)
-
-		if localSubnetEnabled {
-			_, err = inst.Client.BareMetal.AttachBMLocalSubnet(ctx, rd.Id(), localSubnetId, localSubnetIp)
-			if err != nil {
-				return diag.FromErr(err)
+		if rd.HasChanges("delete_protection") {
+			deleteProtection := rd.Get("delete_protection").(bool)
+			isDeleteProtectionEnabled := "Y"
+			if !deleteProtection {
+				isDeleteProtectionEnabled = "N"
 			}
-		} else {
-			_, err = inst.Client.BareMetal.DetachBMLocalSubnet(ctx, rd.Id())
+			_, err = inst.Client.BareMetal.ChangeBMDeletePolicy(ctx, rd.Id(), isDeleteProtectionEnabled)
 			if err != nil {
 				return diag.FromErr(err)
 			}
 		}
-		// wait for server state change to editing //
-		time.Sleep(3 * time.Second)
 
-		err = WaitForBMServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-	}
+		if rd.HasChanges("contract_discount") {
+			contractDiscount := rd.Get("contract_discount").(string)
 
-	if rd.HasChanges("nat_enabled") {
-		natEnabled := rd.Get("nat_enabled").(bool)
-		publicIpId := rd.Get("public_ip_id").(string)
-
-		addressType := "AUTO"
-		if publicIpId != "" {
-			addressType = "MANUAL"
-		}
-		if natEnabled {
-			_, err = inst.Client.BareMetal.EnableBMNat(ctx, rd.Id(), addressType, publicIpId)
+			// Get product group information
+			productGroup, err := inst.Client.Product.GetProductGroup(ctx, targetProductGroupId)
+			//productGroup, err := inst.Client.Product.GetProducesList(ctx, vpcInfo.ServiceZoneId, targetProductGroupId, "")
 			if err != nil {
 				return diag.FromErr(err)
 			}
-		} else {
-			_, err = inst.Client.BareMetal.DisableBMNat(ctx, rd.Id())
+
+			contractToId := common.ProductToIdMap(common.ProductContractDiscount, &productGroup)
+			if len(contractToId) == 0 {
+				diagnostics = diag.Errorf("Failed to find contract info")
+				return
+			}
+
+			contractId, ok := contractToId[contractDiscount]
+			if !ok {
+				diagnostics = diag.Errorf("Invalid contract")
+				return
+			}
+
+			_, err = inst.Client.BareMetal.ChangeBMContract(ctx, rd.Id(), contractId)
 			if err != nil {
 				return diag.FromErr(err)
 			}
 		}
-		err = WaitForBMServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
-		if err != nil {
-			return diag.FromErr(err)
+
+		if rd.HasChanges("local_subnet_enabled") {
+			localSubnetEnabled := rd.Get("local_subnet_enabled").(bool)
+			localSubnetIp := rd.Get("local_subnet_ipv4").(string)
+			localSubnetId := rd.Get("local_subnet_id").(string)
+
+			if localSubnetEnabled {
+				_, err = inst.Client.BareMetal.AttachBMLocalSubnet(ctx, rd.Id(), localSubnetId, localSubnetIp)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+			} else {
+				_, err = inst.Client.BareMetal.DetachBMLocalSubnet(ctx, rd.Id())
+				if err != nil {
+					return diag.FromErr(err)
+				}
+			}
+			// wait for server state change to editing //
+			time.Sleep(3 * time.Second)
+
+			err = WaitForBMServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
+			if err != nil {
+				return diag.FromErr(err)
+			}
 		}
-	}
+
+		if rd.HasChanges("nat_enabled") {
+			natEnabled := rd.Get("nat_enabled").(bool)
+			publicIpId := rd.Get("public_ip_id").(string)
+
+			addressType := "AUTO"
+			if publicIpId != "" {
+				addressType = "MANUAL"
+			}
+			if natEnabled {
+				_, err = inst.Client.BareMetal.EnableBMNat(ctx, rd.Id(), addressType, publicIpId)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+			} else {
+				_, err = inst.Client.BareMetal.DisableBMNat(ctx, rd.Id())
+				if err != nil {
+					return diag.FromErr(err)
+				}
+			}
+			err = WaitForBMServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	*/
 
 	if rd.HasChanges("state") {
-		state := rd.Get("state").(string)
-		baremetalServerIds := make([]string, 0)
-		baremetalServerIds = append(baremetalServerIds, rd.Id())
+		idxList, newValue := getChangeDiffIndex(rd, "state")
+
+		stopBaremetalIds := make([]string, 0)
+		startBaremetalIds := make([]string, 0)
+
+		for _, value := range idxList {
+			if strings.Compare(newValue[value], common.StoppedState) == 0 {
+				stopBaremetalIds = append(stopBaremetalIds, serverIds[value])
+			} else {
+				startBaremetalIds = append(startBaremetalIds, serverIds[value])
+			}
+		}
 
 		// 실행(RUNNING) -> 중지(STOPPED)
-		if strings.Compare(state, common.StoppedState) == 0 {
+		if len(stopBaremetalIds) != 0 {
 			_, err := inst.Client.BareMetal.StopBareMetalServer(ctx, baremetal.BMStartStopRequest{
-				BareMetalServerIds: baremetalServerIds,
+				BareMetalServerIds: stopBaremetalIds,
 			})
 
 			if err != nil {
 				return diag.FromErr(err)
+			}
+
+			// wait for server state change to editing
+			for _, id := range stopBaremetalIds {
+				err = WaitForBMServerStatus(ctx, inst.Client, id, common.VirtualServerProcessingStates(), []string{common.StoppedState}, true)
+
+				if err != nil {
+					return diag.FromErr(err)
+				}
 			}
 		}
 
 		// 중지(STOPPED) -> 시작(RUNNING)
-		if strings.Compare(state, common.RunningState) == 0 {
+		if len(startBaremetalIds) != 0 {
 			_, err := inst.Client.BareMetal.StartBareMetalServer(ctx, baremetal.BMStartStopRequest{
-				BareMetalServerIds: baremetalServerIds,
+				BareMetalServerIds: startBaremetalIds,
 			})
 
 			if err != nil {
 				return diag.FromErr(err)
 			}
-		}
 
-		// wait for server state change to editing //
-		err = WaitForBMServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{state}, true)
-		if err != nil {
-			return diag.FromErr(err)
+			for _, id := range startBaremetalIds {
+				// wait for server state change to editing
+				err = WaitForBMServerStatus(ctx, inst.Client, id, common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
+
+				if err != nil {
+					return diag.FromErr(err)
+				}
+			}
 		}
 	}
 
-	if rd.HasChanges("block_storages") {
-		storageList, _, err := inst.Client.BareMetalBlockStorage.GetBareMetalBlockStorages(ctx)
+	/*
+		if rd.HasChanges("block_storages") {
+			storageList, _, err := inst.Client.BareMetalBlockStorage.GetBareMetalBlockStorages(ctx)
 
-		// Get product group information
-		productGroup, err := inst.Client.Product.GetProductGroup(ctx, targetProductGroupId)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		diskProductNameToId := common.ProductToIdMap(common.ProductDisk, &productGroup)
-		if len(diskProductNameToId) == 0 {
-			diagnostics = diag.Errorf("Failed to find external disk product")
-			return
-		}
-
-		o, n := rd.GetChange("block_storages")
-		oldVal := o.(common.HclListObject)
-		newVal := n.(common.HclListObject)
-		var oldList []baremetal.BMAdditionalBlockStorageCreateRequest
-		var newList []baremetal.BMAdditionalBlockStorageCreateRequest
-		oldList, err = ConvertBlockStorageList(oldVal, diskProductNameToId)
-		newList, err = ConvertBlockStorageList(newVal, diskProductNameToId)
-
-		if len(oldList) == len(newList) {
-			return diag.Errorf("there is no change in number of storages")
-		}
-
-		for _, oldRequest := range oldList {
-			isExist := false
-			for _, newRequest := range newList {
-				if oldRequest.BareMetalBlockStorageName == newRequest.BareMetalBlockStorageName {
-					isExist = true
-				}
-			}
-			if isExist {
-				continue
-			}
-			storageId := ""
-			for _, storageInfo := range storageList.Contents {
-				if storageInfo.BareMetalBlockStorageName == oldRequest.BareMetalBlockStorageName {
-					storageId = storageInfo.BareMetalBlockStorageId
-				}
-			}
-			if storageId == "" {
-				return diag.Errorf("storage name is not exist")
-			}
-			// if not exist, this old request has to be deleted
-
-			_, _, err := inst.Client.BareMetalBlockStorage.DetachBareMetalBlockStorage(ctx, storageId, []string{rd.Id()})
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			err = WaitForBMServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
+			// Get product group information
+			productGroup, err := inst.Client.Product.GetProductGroup(ctx, targetProductGroupId)
 			if err != nil {
 				return diag.FromErr(err)
 			}
 
-			// if storage is orphan, delete storage
-			result, _, err := inst.Client.BareMetalBlockStorage.GetBareMetalBlockStorageDetail(ctx, storageId)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			if len(result.Servers) == 0 {
-				_, _, _ = inst.Client.BareMetalBlockStorage.DeleteBareMetalBlockStorage(ctx, storageId)
-			}
-		}
-		for _, newRequest := range newList {
-			isExist := false
-			for _, oldRequest := range oldList {
-				if oldRequest.BareMetalBlockStorageName == newRequest.BareMetalBlockStorageName {
-					isExist = true
-				}
-			}
-			if isExist {
-				continue
-			}
-			// Get vpc info
-			vpcInfo, _, err := inst.Client.Vpc.GetVpcInfo(ctx, rd.Get("vpc_id").(string))
-			if err != nil {
+			diskProductNameToId := common.ProductToIdMap(common.ProductDisk, &productGroup)
+			if len(diskProductNameToId) == 0 {
+				diagnostics = diag.Errorf("Failed to find external disk product")
 				return
 			}
 
-			request := bmblockstorage.BmBlockStorageCreateRequest{
-				BareMetalBlockStorageName: newRequest.BareMetalBlockStorageName,
-				BareMetalServerIds:        []string{rd.Id()},
-				BareMetalBlockStorageSize: newRequest.BareMetalBlockStorageSize,
-				EncryptionEnabled:         newRequest.EncryptionEnabled,
-				IsSnapshotPolicy:          false,
-				SnapshotCapacityRate:      0,
-				ServiceZoneId:             vpcInfo.ServiceZoneId,
-				SnapshotSchedule:          bmblockstorage.SnapshotSchedule{},
-				Tags:                      []bmblockstorage.TagRequest{},
-				ProductId:                 newRequest.BareMetalBlockStorageTypeId,
+			o, n := rd.GetChange("block_storages")
+			oldVal := o.(common.HclListObject)
+			newVal := n.(common.HclListObject)
+			var oldList []baremetal.BMAdditionalBlockStorageCreateRequest
+			var newList []baremetal.BMAdditionalBlockStorageCreateRequest
+			oldList, err = ConvertBlockStorageList(oldVal, diskProductNameToId)
+			newList, err = ConvertBlockStorageList(newVal, diskProductNameToId)
+
+			if len(oldList) == len(newList) {
+				return diag.Errorf("there is no change in number of storages")
 			}
-			// if not exist, this new request has to be created
-			_, _, err = inst.Client.BareMetalBlockStorage.CreateBareMetalBlockStorage(ctx, request)
-			if err != nil {
-				return diag.FromErr(err)
+
+			for _, oldRequest := range oldList {
+				isExist := false
+				for _, newRequest := range newList {
+					if oldRequest.BareMetalBlockStorageName == newRequest.BareMetalBlockStorageName {
+						isExist = true
+					}
+				}
+				if isExist {
+					continue
+				}
+				storageId := ""
+				for _, storageInfo := range storageList.Contents {
+					if storageInfo.BareMetalBlockStorageName == oldRequest.BareMetalBlockStorageName {
+						storageId = storageInfo.BareMetalBlockStorageId
+					}
+				}
+				if storageId == "" {
+					return diag.Errorf("storage name is not exist")
+				}
+				// if not exist, this old request has to be deleted
+
+				_, _, err := inst.Client.BareMetalBlockStorage.DetachBareMetalBlockStorage(ctx, storageId, []string{rd.Id()})
+				if err != nil {
+					return diag.FromErr(err)
+				}
+				err = WaitForBMServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+
+				// if storage is orphan, delete storage
+				result, _, err := inst.Client.BareMetalBlockStorage.GetBareMetalBlockStorageDetail(ctx, storageId)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+				if len(result.Servers) == 0 {
+					_, _, _ = inst.Client.BareMetalBlockStorage.DeleteBareMetalBlockStorage(ctx, storageId)
+				}
 			}
-			err = WaitForBMServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
-			if err != nil {
-				return diag.FromErr(err)
+			for _, newRequest := range newList {
+				isExist := false
+				for _, oldRequest := range oldList {
+					if oldRequest.BareMetalBlockStorageName == newRequest.BareMetalBlockStorageName {
+						isExist = true
+					}
+				}
+				if isExist {
+					continue
+				}
+				// Get vpc info
+				vpcInfo, _, err := inst.Client.Vpc.GetVpcInfo(ctx, rd.Get("vpc_id").(string))
+				if err != nil {
+					return
+				}
+
+				request := bmblockstorage.BmBlockStorageCreateRequest{
+					BareMetalBlockStorageName: newRequest.BareMetalBlockStorageName,
+					BareMetalServerIds:        []string{rd.Id()},
+					BareMetalBlockStorageSize: newRequest.BareMetalBlockStorageSize,
+					EncryptionEnabled:         newRequest.EncryptionEnabled,
+					IsSnapshotPolicy:          false,
+					SnapshotCapacityRate:      0,
+					ServiceZoneId:             vpcInfo.ServiceZoneId,
+					SnapshotSchedule:          bmblockstorage.SnapshotSchedule{},
+					Tags:                      []bmblockstorage.TagRequest{},
+					ProductId:                 newRequest.BareMetalBlockStorageTypeId,
+				}
+				// if not exist, this new request has to be created
+				_, _, err = inst.Client.BareMetalBlockStorage.CreateBareMetalBlockStorage(ctx, request)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+				err = WaitForBMServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
+				if err != nil {
+					return diag.FromErr(err)
+				}
 			}
 		}
+	*/
+
+	for _, bmId := range serverIds {
+		err = tfTags.UpdateTags(ctx, rd, meta, bmId)
+	}
+
+	if err != nil {
+		return
 	}
 	return resourceBareMetalServerRead(ctx, rd, meta)
 }
@@ -860,19 +1105,26 @@ func resourceBareMetalServerUpdate(ctx context.Context, rd *schema.ResourceData,
 func resourceBareMetalServerDelete(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	inst := meta.(*client.Instance)
-	error := WaitForBMServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState, common.StoppedState}, false)
-	if error != nil {
-		return diag.FromErr(error)
+	baremetalIds := strings.Split(rd.Id(), ",")
+
+	for _, baremetalId := range baremetalIds {
+		err := WaitForBMServerStatus(ctx, inst.Client, baremetalId, common.VirtualServerProcessingStates(), []string{common.RunningState, common.StoppedState}, false)
+		if err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
-	_, err := inst.Client.BareMetal.DeleteBareMetalServer(ctx, rd.Id())
+	_, err := inst.Client.BareMetal.DeleteBareMetalServers(ctx, baremetalIds)
+
 	if err != nil && !common.IsDeleted(err) {
 		return diag.FromErr(err)
 	}
 
-	err = WaitForBMServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.DeletedState}, false)
-	if err != nil {
-		return diag.FromErr(err)
+	for _, baremetalId := range baremetalIds {
+		err = WaitForBMServerStatus(ctx, inst.Client, baremetalId, common.VirtualServerProcessingStates(), []string{common.DeletedState}, false)
+		if err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil

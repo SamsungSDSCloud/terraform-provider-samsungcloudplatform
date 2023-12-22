@@ -19,7 +19,7 @@ data "scp_obs_buckets" "buckets" {
 
 resource "scp_trail" "my_trail" {
   name          = var.name
-  obs_bucket_id = data.scp_obs_buckets.buckets.contents[0].object_storage_bucket_id
+  obs_bucket_id = data.scp_obs_buckets.buckets.contents[0].obs_bucket_id
   save_type     = var.save_type
 
   use_verification = true
@@ -51,7 +51,7 @@ resource "scp_trail" "my_trail" {
 - `logging_target_resource_ids` (Set of String) Logging target resource ID list
 - `logging_target_users` (Set of String) Logging target user ID list
 - `state` (String)
-- `tags` (Block List) Tag list (see [below for nested schema](#nestedblock--tags))
+- `tags` (Map of String)
 - `use_verification` (Boolean) Use trail verification
 
 ### Read-Only
@@ -65,14 +65,3 @@ resource "scp_trail" "my_trail" {
 - `obs_bucket_name` (String) Object storage bucket name
 - `obs_folder_name` (String) Object storage folder name
 - `obs_name` (String) Object storage name
-
-<a id="nestedblock--tags"></a>
-### Nested Schema for `tags`
-
-Required:
-
-- `tag_key` (String) Tag key
-
-Optional:
-
-- `tag_value` (String) Tag value

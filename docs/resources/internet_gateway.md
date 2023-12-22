@@ -40,6 +40,7 @@ resource "scp_internet_gateway" "my_igw" {
 ### Optional
 
 - `description` (String) Internet-Gateway description. (Up to 50 characters)
+- `tags` (Map of String)
 
 ### Read-Only
 

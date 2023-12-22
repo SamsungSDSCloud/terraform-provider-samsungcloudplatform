@@ -39,6 +39,7 @@ resource "scp_kubernetes_apps" "apps" {
   engine_id = data.terraform_remote_state.engine.outputs.id
   namespace = data.terraform_remote_state.namespace.outputs.id
   image_id  = data.scp_kubernetes_apps_image.apps_image.id
+  additional_params = var.additional_params
 }
 ```
 
@@ -51,6 +52,11 @@ resource "scp_kubernetes_apps" "apps" {
 - `image_id` (String) Image ID (use scp_standard_image data source)
 - `name` (String) Kubernetes app name
 - `namespace` (String) Namespace name
+
+### Optional
+
+- `additional_params` (Map of String) Additional Params
+- `tags` (Map of String)
 
 ### Read-Only
 

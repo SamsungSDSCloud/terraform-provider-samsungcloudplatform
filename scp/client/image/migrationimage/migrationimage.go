@@ -32,7 +32,8 @@ func (client *Client) GetMigrationImageInfo(ctx context.Context, migrationImageI
 	return result, statusCode, err
 }
 
-func (client *Client) CreateMigrationImage(ctx context.Context, request image2.MigrationImageCreateRequest) (image2.AsyncResponse, error) {
+func (client *Client) CreateMigrationImage(ctx context.Context, request image2.MigrationImageCreateRequest, tags map[string]interface{}) (image2.AsyncResponse, error) {
+	request.Tags = client.sdkClient.ToTagRequestList(tags)
 	result, _, err := client.sdkClient.MigrationImageV2Api.CreateMigrationImage(ctx, client.config.ProjectId, request)
 	return result, err
 }

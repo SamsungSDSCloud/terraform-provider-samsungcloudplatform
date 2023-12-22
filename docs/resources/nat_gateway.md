@@ -53,6 +53,7 @@ resource "scp_nat_gateway" "my_nat" {
 
 - `description` (String) NAT-Gateway description. (Up to 50 characters)
 - `public_ip_id` (String) NAT-Gateway public IP. If not set, it will be auto generated.
+- `tags` (Map of String)
 
 ### Read-Only
 

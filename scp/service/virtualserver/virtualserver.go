@@ -9,6 +9,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/virtualserver"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/image"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	blockstorage2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/block-storage2"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/image2"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/product"
@@ -68,17 +69,31 @@ func ResourceVirtualServer() *schema.Resource {
 				Default:     false,
 				Description: "Enable anti-affinity feature for this virtual server",
 			},
+			"server_group_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     false,
+				Description: "Server Group Id for Anti-affinity",
+			},
 			"cpu_count": {
 				Type:             schema.TypeInt,
-				Required:         true,
+				Optional:         true,
+				Default:          -1,
 				Description:      "CPU core count(2, 4, 8,..)",
 				ValidateDiagFunc: common.ValidatePositiveInt,
 			},
 			"memory_size_gb": {
 				Type:             schema.TypeInt,
-				Required:         true,
+				Optional:         true,
+				Default:          -1,
 				Description:      "Memory size in gigabytes(4, 8, 16,..)",
 				ValidateDiagFunc: common.ValidatePositiveInt,
+			},
+			"server_type": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "NOT USED",
+				Description: "Server Type (s1v1m2,..)",
 			},
 			"os_storage_name": {
 				Type:             schema.TypeString,
@@ -237,11 +252,7 @@ func ResourceVirtualServer() *schema.Resource {
 				Optional:    true,
 				Description: "Availability Zone Name",
 			},
-			"tags": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Description: "Tags",
-			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a Virtual Server resource.",
 	}
@@ -296,8 +307,16 @@ func resourceVirtualServerCreate(ctx context.Context, rd *schema.ResourceData, m
 
 	vsName := rd.Get("virtual_server_name").(string)
 	isDeleteProtected := rd.Get("delete_protection").(bool)
+
 	cpuCount := rd.Get("cpu_count").(int)
 	memorySizeGB := rd.Get("memory_size_gb").(int)
+	serverType := rd.Get("server_type").(string)
+	if serverType == "NOT USED" && (cpuCount == -1 || memorySizeGB == -1) {
+		return diag.Errorf("Either server_type or cpu_count/memory_size_gb must be specified.")
+	}
+	if serverType != "NOT USED" && len(serverType) > 0 && (cpuCount != -1 || memorySizeGB != -1) {
+		return diag.Errorf("Choose the scale type between server_type and cpu_count/memory_size_gb.")
+	}
 
 	osStorageName := rd.Get("os_storage_name").(string)
 	osStorageSize := rd.Get("os_storage_size_gb").(int)
@@ -326,6 +345,7 @@ func resourceVirtualServerCreate(ctx context.Context, rd *schema.ResourceData, m
 	}
 
 	antiAffinity := rd.Get("anti_affinity").(bool)
+	inputtedServerGroupId := rd.Get("server_group_id").(string)
 
 	vpcId := rd.Get("vpc_id").(string)
 
@@ -348,9 +368,13 @@ func resourceVirtualServerCreate(ctx context.Context, rd *schema.ResourceData, m
 	if err != nil {
 		return
 	}
-	isOsWindows, targetProductGroupId, err := getImageInfo(ctx, vpcInfo.ServiceZoneId, imageId, meta)
+	isOsWindows, isGpuImage, targetProductGroupId, err := getImageInfo(ctx, vpcInfo.ServiceZoneId, imageId, meta)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if isGpuImage == true && serverType == "NOT USED" {
+		return diag.Errorf("server_type must be specified with GPU image.")
 	}
 
 	if !isOsWindows && adminAccount != common.LinuxAdminAccount {
@@ -405,7 +429,13 @@ func resourceVirtualServerCreate(ctx context.Context, rd *schema.ResourceData, m
 
 	// Find VM scaling
 	var scaleProductInfo *product.ProductForCalculatorResponse
-	scaleProductInfo = getScaleProductInfoFromProductGroup(productGroup, cpuCount, memorySizeGB)
+	if serverType != "NOT USED" && len(serverType) > 0 {
+		scaleProductInfo = getScaleProductInfoFromProductGroupByServerType(productGroup, serverType)
+		diagnostics = diag.Errorf("No matched product scale server_type")
+	} else {
+		scaleProductInfo = getScaleProductInfoFromProductGroupByCpuMemory(productGroup, cpuCount, memorySizeGB)
+		diagnostics = diag.Errorf("No matched product scale to cpu_couunt, memory_size_gb")
+	}
 	if scaleProductInfo == nil {
 		return
 	}
@@ -424,18 +454,28 @@ func resourceVirtualServerCreate(ctx context.Context, rd *schema.ResourceData, m
 	//}
 
 	// Find ServerGroup
-	serverGroupList, err := inst.Client.ServerGroup.GetServerGroup(ctx, "", []string{common.ServicedForVirtualServer})
+	serverGroupList, err := inst.Client.ServerGroup.GetServerGroupByServicedForCondition(ctx, "", common.ServicedForVirtualServer)
 	if err != nil {
 		return
 	}
 
 	var serverGroupId string
 	if antiAffinity {
+		log.Println("contents : ", serverGroupList.Contents)
 		for _, sg := range serverGroupList.Contents {
 			if sg.AffinityPolicyType != "NONE" {
-				serverGroupId = sg.ServerGroupId
-				break
+				if inputtedServerGroupId != "" {
+					serverGroupId = sg.ServerGroupId
+					break
+				} else {
+					if sg.ServerGroupId == inputtedServerGroupId {
+						serverGroupId = sg.ServerGroupId
+					}
+				}
 			}
+		}
+		if len(serverGroupId) == 0 {
+			return diag.Errorf("Server Group Not Found for Anti-affinity")
 		}
 	}
 
@@ -531,7 +571,7 @@ func resourceVirtualServerCreate(ctx context.Context, rd *schema.ResourceData, m
 		ServiceZoneId:        vpcInfo.ServiceZoneId,
 		VirtualServerName:    vsName,
 		AvailabilityZoneName: rd.Get("availability_zone_name").(string),
-		Tags:                 getTagRequestArray(rd),
+		Tags:                 rd.Get("tags").(map[string]interface{}),
 		KeyPairId:            keyPairId,
 		PlacementGroupId:     placementGroupId,
 	}
@@ -584,26 +624,54 @@ func resourceVirtualServerCreate(ctx context.Context, rd *schema.ResourceData, m
 	return resourceVirtualServerRead(ctx, rd, meta)
 }
 
-func getScaleProductInfoFromProductGroup(productGroup product.ProductGroupDetailResponse, cpuCount int, memorySizeGB int) *product.ProductForCalculatorResponse {
+func getScaleProductInfoFromProductGroupByCpuMemory(productGroup product.ProductGroupDetailResponse, cpuCount int, memorySizeGB int) *product.ProductForCalculatorResponse {
 	var resultProduct *product.ProductForCalculatorResponse = nil
-	if scaleProductInfoArray, ok := productGroup.Products[common.ProductScale]; ok {
-		cpuString := strconv.Itoa(cpuCount)
-		memoryString := strconv.Itoa(memorySizeGB)
-		resultProduct = getScaleProductInfo(scaleProductInfoArray, cpuString, memoryString)
-		if resultProduct != nil {
-			return resultProduct
-		}
+	scaleProductInfoArray := getScaleProductInfoArray(productGroup)
+	cpuString := strconv.Itoa(cpuCount)
+	memoryString := strconv.Itoa(memorySizeGB)
+	resultProduct = getScaleProductInfoByCpuMemory(scaleProductInfoArray, cpuString, memoryString)
+	if resultProduct != nil {
+		return resultProduct
 	}
 	return resultProduct
 }
 
-func getScaleProductInfo(scaleProductInfoArray []product.ProductForCalculatorResponse, cpuString string, memoryString string) *product.ProductForCalculatorResponse {
+func getScaleProductInfoFromProductGroupByServerType(productGroup product.ProductGroupDetailResponse, serverType string) *product.ProductForCalculatorResponse {
+	var resultProduct *product.ProductForCalculatorResponse = nil
+	scaleProductInfoArray := getScaleProductInfoArray(productGroup)
+	resultProduct = getScaleProductInfoByServerType(scaleProductInfoArray, serverType)
+	if resultProduct != nil {
+		return resultProduct
+	}
+	return resultProduct
+}
+
+func getScaleProductInfoArray(productGroup product.ProductGroupDetailResponse) []product.ProductForCalculatorResponse {
+	if scaleProductInfoArray, ok := productGroup.Products[common.ProductScale]; ok {
+		return scaleProductInfoArray
+	}
+	return nil
+}
+
+func getScaleProductInfoByCpuMemory(scaleProductInfoArray []product.ProductForCalculatorResponse, cpuString string, memoryString string) *product.ProductForCalculatorResponse {
 	const FOUND = 3
 	for _, product := range scaleProductInfoArray {
 		if product.ProductType != common.ProductScale {
 			continue
 		}
 		if isMatchedCpuMemoryItemValueFound(product, cpuString, memoryString) == FOUND {
+			return &product
+		}
+	}
+	return nil
+}
+
+func getScaleProductInfoByServerType(scaleProductInfoArray []product.ProductForCalculatorResponse, serverType string) *product.ProductForCalculatorResponse {
+	for _, product := range scaleProductInfoArray {
+		if product.ProductType != common.ProductScale {
+			continue
+		}
+		if product.ProductName == serverType {
 			return &product
 		}
 	}
@@ -634,29 +702,32 @@ func hasMatchedCpuItemValue(item product.ItemForCalculatorResponse, cpuString st
 	return item.ItemType == "cpu" && item.ItemValue == cpuString
 }
 
-func getImageInfo(ctx context.Context, serviceZoneId string, imageId string, meta interface{}) (bool, string, error) {
+func getImageInfo(ctx context.Context, serviceZoneId string, imageId string, meta interface{}) (bool, bool, string, error) {
 	var err error = nil
 	inst := meta.(*client.Instance)
 
 	isOsWindows := false
+	isGpuImage := false
 	var targetProductGroupId string
 	imageType, err := inst.Client.Image.GetImageType(ctx, imageId)
 	if err != nil {
-		return false, "", err
+		return false, false, "", err
 	}
 
 	if imageType == "STANDARD" {
 		standardImages, err := inst.Client.Image.GetStandardImageList(ctx, serviceZoneId, image.ActiveState, common.ServicedGroupCompute, common.ServicedForVirtualServer)
 		if err != nil {
-			return false, "", err
+			return false, false, "", err
 		}
-
-		for _, c := range standardImages.Contents {
-			if c.ImageId == imageId {
-				targetProductGroupId = c.ProductGroupId
-				if c.OsType == common.OsTypeWindows {
-					isOsWindows = true
-				}
+		targetProductGroupId, isOsWindows = getProductGroupIdFromStandardImageResponse(standardImages, imageId)
+		if targetProductGroupId == "" {
+			standardGpuImages, err := inst.Client.Image.GetStandardImageList(ctx, serviceZoneId, image.ActiveState, common.ServicedGroupCompute, common.ServicedForGpuServer)
+			if err != nil {
+				return false, false, "", err
+			}
+			targetProductGroupId, isOsWindows = getProductGroupIdFromStandardImageResponse(standardGpuImages, imageId)
+			if targetProductGroupId != "" {
+				isGpuImage = true
 			}
 		}
 	} else if imageType == "CUSTOM" {
@@ -667,7 +738,7 @@ func getImageInfo(ctx context.Context, serviceZoneId string, imageId string, met
 			ServiceZoneId:    optional.NewString(serviceZoneId),
 		})
 		if err != nil {
-			return false, "", err
+			return false, false, "", err
 		}
 
 		for _, c := range customImages.Contents {
@@ -689,7 +760,7 @@ func getImageInfo(ctx context.Context, serviceZoneId string, imageId string, met
 			Sort:             optional.NewInterface([]string{"imageName:asc"}),
 		})
 		if err != nil {
-			return false, "", err
+			return false, false, "", err
 		}
 
 		for _, c := range migrationImages.Contents {
@@ -702,19 +773,21 @@ func getImageInfo(ctx context.Context, serviceZoneId string, imageId string, met
 		}
 	}
 
-	return isOsWindows, targetProductGroupId, err
+	return isOsWindows, isGpuImage, targetProductGroupId, err
 }
 
-func getTagRequestArray(rd *schema.ResourceData) []virtualserver.TagRequest {
-	tags := rd.Get("tags").(map[string]interface{})
-	tagsRequests := make([]virtualserver.TagRequest, 0)
-	for key, value := range tags {
-		tagsRequests = append(tagsRequests, virtualserver.TagRequest{
-			TagKey:   key,
-			TagValue: value.(string),
-		})
+func getProductGroupIdFromStandardImageResponse(standardImages image2.ListResponseOfStandardImageResponse, imageId string) (string, bool) {
+	var isOsWindows = false
+	var targetProductGroupId string
+	for _, c := range standardImages.Contents {
+		if c.ImageId == imageId {
+			targetProductGroupId = c.ProductGroupId
+			if c.OsType == common.OsTypeWindows {
+				isOsWindows = true
+			}
+		}
 	}
-	return tagsRequests
+	return targetProductGroupId, isOsWindows
 }
 
 func resourceVirtualServerRead(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
@@ -859,35 +932,42 @@ func resourceVirtualServerRead(ctx context.Context, rd *schema.ResourceData, met
 	if err != nil {
 		return
 	}
-
-	cpuFound := false
-	memoryFound := false
-	for _, item := range scale.Item {
-		if item.ItemType == "cpu" {
-			var cpuCount int
-			cpuCount, err = strconv.Atoi(item.ItemValue)
-
-			if err != nil {
-				continue
-			}
-
-			rd.Set("cpu_count", cpuCount)
-			cpuFound = true
-		} else if item.ItemType == "memory" {
-			var memorySize int
-			memorySize, err = strconv.Atoi(item.ItemValue)
-
-			if err != nil {
-				continue
-			}
-
-			rd.Set("memory_size_gb", memorySize)
-			memoryFound = true
-		}
+	//in case of not default value
+	if rd.Get("server_type").(string) != "NOT USED" {
+		rd.Set("server_type", scale.ProductName)
 	}
 
-	if !cpuFound || !memoryFound {
-		return
+	//in case of not default value
+	if rd.Get("cpu_count").(int) != -1 || rd.Get("memory_size_gb").(int) != -1 {
+		cpuFound := false
+		memoryFound := false
+		for _, item := range scale.Item {
+			if item.ItemType == "cpu" {
+				var cpuCount int
+				cpuCount, err = strconv.Atoi(item.ItemValue)
+
+				if err != nil {
+					continue
+				}
+
+				rd.Set("cpu_count", cpuCount)
+				cpuFound = true
+			} else if item.ItemType == "memory" {
+				var memorySize int
+				memorySize, err = strconv.Atoi(item.ItemValue)
+
+				if err != nil {
+					continue
+				}
+
+				rd.Set("memory_size_gb", memorySize)
+				memoryFound = true
+			}
+		}
+
+		if !cpuFound || !memoryFound {
+			return
+		}
 	}
 
 	ipv4 := virtualServerInfo.Ip
@@ -955,11 +1035,14 @@ func resourceVirtualServerRead(ctx context.Context, rd *schema.ResourceData, met
 	rd.Set("key_pair_id", virtualServerInfo.KeyPairId)
 	rd.Set("placement_group_id", virtualServerInfo.PlacementGroupId)
 
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
+
 	return nil
 }
 
 func getExternalStorageMapSchema(blockStorageResponse blockstorage2.BlockStorageResponse, productIdToNameMapper map[string]string, mapPrevExternalStorage map[string]interface{}) map[string]interface{} {
 	extStorage := getExtStorage(blockStorageResponse, productIdToNameMapper)
+
 	tags := mapPrevExternalStorage["tags"].(map[string]interface{})
 	tagElem := make(map[string]string)
 	for key, value := range tags {
@@ -1023,12 +1106,35 @@ func resourceVirtualServerUpdate(ctx context.Context, rd *schema.ResourceData, m
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		scaleProductInfo := getScaleProductInfoFromProductGroup(productGroup, cpuCount, memorySizeGB)
+		scaleProductInfo := getScaleProductInfoFromProductGroupByCpuMemory(productGroup, cpuCount, memorySizeGB)
 		if scaleProductInfo == nil {
 			return diag.Errorf("Server Type Not Found !!")
 		}
 
 		// Update scale
+		_, err = inst.Client.VirtualServer.UpdateScale(ctx, virtualServerInfo.VirtualServerId, scaleProductInfo.ProductName)
+		if err != nil {
+			return
+		}
+
+		err = WaitForVirtualServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
+		if err != nil {
+			return
+		}
+	}
+
+	if rd.HasChanges("server_type") {
+		serverType := rd.Get("server_type").(string)
+
+		productGroup, err := inst.Client.Product.GetProductGroup(ctx, targetProductGroupId)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		scaleProductInfo := getScaleProductInfoFromProductGroupByServerType(productGroup, serverType)
+		if scaleProductInfo == nil {
+			return diag.Errorf("Server Type Not Found !!")
+		}
+
 		_, err = inst.Client.VirtualServer.UpdateScale(ctx, virtualServerInfo.VirtualServerId, scaleProductInfo.ProductName)
 		if err != nil {
 			return
@@ -1294,6 +1400,27 @@ func resourceVirtualServerUpdate(ctx context.Context, rd *schema.ResourceData, m
 		}
 	}
 
+	if rd.HasChanges("os_storage_size_gb") {
+		osStorageSize := rd.Get("os_storage_size_gb").(int)
+
+		blockStorageResponseList := getBlockStorageResponseList(ctx, virtualServerInfo.BlockStorageIds, inst)
+
+		for _, blockStorageResponse := range blockStorageResponseList {
+			if *blockStorageResponse.IsBootDisk {
+				inst.Client.BlockStorage.ResizeBlockStorage(ctx, blockstorage.UpdateBlockStorageRequest{
+					BlockStorageId:   blockStorageResponse.BlockStorageId,
+					BlockStorageSize: int32(osStorageSize),
+					ProductId:        blockStorageResponse.ProductId,
+				})
+				err = WaitForVirtualServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
+				if err != nil {
+					return
+				}
+				break
+			}
+		}
+	}
+
 	if rd.HasChanges("external_storage") {
 		oldExternalStorages, newExternalStorages := rd.GetChange("external_storage")
 		tempStrOldExternalStorages := make([]map[string]interface{}, 0)
@@ -1331,7 +1458,13 @@ func resourceVirtualServerUpdate(ctx context.Context, rd *schema.ResourceData, m
 		}
 
 		for _, addedExternalStorage := range addedExternalStorageList {
-			_, err = inst.Client.BlockStorage.CreateBlockStorage(ctx, getCreatedBlockStorageRequest(addedExternalStorage, productGroup, rd.Id()))
+			tagsMap := make(map[string]interface{})
+			if len(addedExternalStorage.Tags) > 0 {
+				for _, v := range addedExternalStorage.Tags {
+					tagsMap[v.TagKey] = v.TagValue
+				}
+			}
+			_, err = inst.Client.BlockStorage.CreateBlockStorage(ctx, getCreatedBlockStorageRequest(addedExternalStorage, productGroup, rd.Id()), tagsMap)
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -1382,6 +1515,11 @@ func resourceVirtualServerUpdate(ctx context.Context, rd *schema.ResourceData, m
 		if err != nil {
 			return
 		}
+	}
+
+	err = tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return
 	}
 
 	return resourceVirtualServerRead(ctx, rd, meta)

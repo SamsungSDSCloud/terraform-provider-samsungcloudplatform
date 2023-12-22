@@ -5,6 +5,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -66,6 +67,7 @@ func ResourceSubnet() *schema.Resource {
 				Description:  "Subnet cidr ipv4",
 				ValidateFunc: validation.IsCIDR,
 			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a Subnet resource.",
 	}
@@ -79,6 +81,7 @@ func resourceSubnetCreate(ctx context.Context, rd *schema.ResourceData, meta int
 	description := rd.Get("description").(string)
 	cidrIpv4 := rd.Get("cidr_ipv4").(string)
 	subnetType := strings.ToUpper(rd.Get("type").(string))
+	tags := rd.Get("tags").(map[string]interface{})
 
 	inst := meta.(*client.Instance)
 
@@ -103,7 +106,7 @@ func resourceSubnetCreate(ctx context.Context, rd *schema.ResourceData, meta int
 		return diag.Errorf("Input cidr is invalid (maybe duplicated) : " + cidrIpv4)
 	}
 
-	result, err := inst.Client.Subnet.CreateSubnet(ctx, vpcId, cidrIpv4, subnetType, name, description)
+	result, err := inst.Client.Subnet.CreateSubnet(ctx, vpcId, cidrIpv4, subnetType, name, description, tags)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -138,6 +141,8 @@ func resourceSubnetRead(ctx context.Context, rd *schema.ResourceData, meta inter
 	rd.Set("description", info.SubnetDescription)
 	rd.Set("type", info.SubnetType)
 
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
+
 	return nil
 }
 
@@ -155,6 +160,11 @@ func resourceSubnetUpdate(ctx context.Context, rd *schema.ResourceData, meta int
 		if err != nil {
 			return diag.FromErr(err)
 		}
+	}
+
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	return resourceSubnetRead(ctx, rd, meta)

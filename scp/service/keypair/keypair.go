@@ -6,6 +6,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/keypair"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -37,11 +38,7 @@ func ResourceKeyPair() *schema.Resource {
 				ValidateDiagFunc: nil,
 				Description:      "Private Key",
 			},
-			"tags": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Description: "Tags",
-			},
+			"tags": tfTags.TagsSchema(),
 		},
 	}
 }
@@ -57,18 +54,10 @@ func resourceKeyPairCreate(ctx context.Context, rd *schema.ResourceData, meta in
 	inst := meta.(*client.Instance)
 
 	keyPairName := rd.Get("key_pair_name").(string)
-	tags := rd.Get("tags").(map[string]interface{})
-	tagsRequests := make([]keypair.TagRequest, 0)
-	for key, value := range tags {
-		tagsRequests = append(tagsRequests, keypair.TagRequest{
-			TagKey:   key,
-			TagValue: value.(string),
-		})
-	}
 
 	response, err := inst.Client.KeyPair.CreateKeyPair(ctx, keypair.CreateRequest{
 		KeyPairName: keyPairName,
-		Tags:        tagsRequests,
+		Tags:        rd.Get("tags").(map[string]interface{}),
 	})
 	if err != nil {
 		return
@@ -106,12 +95,25 @@ func resourceKeyPairRead(ctx context.Context, rd *schema.ResourceData, meta inte
 	}
 
 	rd.Set("key_pair_name", keyPairInfo.KeyPairName)
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
 	return nil
 }
 
 func resourceKeyPairUpdate(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
-	return nil
+	var err error = nil
+	defer func() {
+		if err != nil {
+			diagnostics = diag.FromErr(err)
+		}
+	}()
+
+	err = tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return
+	}
+
+	return resourceKeyPairRead(ctx, rd, meta)
 }
 
 func resourceKeyPairDelete(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {

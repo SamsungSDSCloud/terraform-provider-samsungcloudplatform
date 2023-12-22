@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -91,7 +92,7 @@ func ResourceKubernetesNodePool() *schema.Resource {
 			"engine_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    false,
+				ForceNew:    true,
 				Description: "ID of scp_kubernetes_engine resource",
 			},
 			"availability_zone_name": {
@@ -111,6 +112,12 @@ func ResourceKubernetesNodePool() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 				Description: "Enable auto scale",
+			},
+			"encrypt_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Encrypt enabled",
 			},
 			"desired_node_count": {
 				Type:        schema.TypeInt,
@@ -134,72 +141,30 @@ func ResourceKubernetesNodePool() *schema.Resource {
 				Computed:    true,
 				Description: "Minimum node count",
 			},
-			"storage_type": {
+			"scale_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				ForceNew:    true,
+				Default:     "s1v2m4",
+				Description: "Scale name",
+			},
+			"storage_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
 				Default:     "SSD",
-				Description: "Storage type (Currently only SSD is supported)",
+				Description: "Storage name (Currently only SSD is supported)",
 			},
 			"storage_size_gb": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				ForceNew:    true,
 				Default:     "100",
 				Description: "Storage size in GB (default 100)",
-			},
-			/*"service_level": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Service level (Use None for now)",
-			},*/
-			"cpu_count": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     2,
-				Description: "CPU count for node VMs (default 2)",
-			},
-			"memory_size_gb": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     4,
-				Description: "Memory size in GB for node VMs (default 4)",
 			},
 		},
 		Description: "Provides a K8s Node Pool resource.",
 	}
-}
-
-func getRequiredProducts(ctx context.Context, scpClient *client.SCPClient, engineId string, cpuCount int, memorySizeGB int, serviceLevel string, storageType string) (productGroupId string, contractId string, scaleId string, serviceLevelId string, storageProductId string, err error) {
-	engineInfo, _, err := scpClient.KubernetesEngine.ReadEngine(ctx, engineId)
-	if err != nil {
-		return
-	}
-
-	productGroupId, err = client.FindProductGroupId(ctx, scpClient, engineInfo.ZoneId, common.ContainerProductGroup, common.KubernetesEngineVmProductName)
-	if err != nil {
-		return
-	}
-
-	contractId, err = client.FindProductId(ctx, scpClient, productGroupId, common.ContractProductType, "None")
-	if err != nil {
-		return
-	}
-
-	scaleId, err = client.FindScaleProduct(ctx, scpClient, productGroupId, cpuCount, memorySizeGB)
-	if err != nil {
-		return
-	}
-
-	serviceLevelId, err = client.FindProductId(ctx, scpClient, productGroupId, "SERVICE_LEVEL", serviceLevel)
-	if err != nil {
-		return
-	}
-
-	storageProductId, err = client.FindProductId(ctx, scpClient, productGroupId, "DEFAULT_DISK", storageType)
-	if err != nil {
-		return
-	}
-
-	return
 }
 
 func createNodePool(ctx context.Context, data *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
@@ -214,13 +179,17 @@ func createNodePool(ctx context.Context, data *schema.ResourceData, meta interfa
 	inst := meta.(*client.Instance)
 
 	engineId := data.Get("engine_id").(string)
-	cpuCount := data.Get("cpu_count").(int)
-	memorySizeGB := data.Get("memory_size_gb").(int)
-	storageType := data.Get("storage_type").(string)
-	//serviceLevel := data.Get("service_level").(string)
-	serviceLevel := "None"
+	scaleName := data.Get("storage_name").(string)
+	var serverType string
 
-	productGroupId, contractId, scaleId, serviceLevelId, storageProductId, err := getRequiredProducts(ctx, inst.Client, engineId, cpuCount, memorySizeGB, serviceLevel, storageType)
+	if strings.HasPrefix(scaleName, "h") {
+		serverType = "High Capacity"
+	} else if strings.HasPrefix(scaleName, "g") {
+		serverType = "GPU"
+	} else {
+		serverType = "Standard"
+	}
+
 	if err != nil {
 		return
 	}
@@ -232,18 +201,18 @@ func createNodePool(ctx context.Context, data *schema.ResourceData, meta interfa
 			AvailabilityZoneName: data.Get("availability_zone_name").(string),
 			AutoRecovery:         data.Get("auto_recovery").(bool),
 			AutoScale:            data.Get("auto_scale").(bool),
-			ContractId:           contractId,
+			ContractName:         "None",
 			DesiredNodeCount:     int32(data.Get("desired_node_count").(int)),
+			EncryptEnabled:       data.Get("encrypt_enabled").(bool),
 			ImageId:              data.Get("image_id").(string),
 			MaxNodeCount:         int32(data.Get("max_node_count").(int)),
 			MinNodeCount:         int32(data.Get("min_node_count").(int)),
 			NodePoolName:         data.Get("name").(string),
-			ProductGroupId:       productGroupId,
-			ScaleId:              scaleId,
-			ServiceLevelId:       serviceLevelId,
-			StorageId:            storageProductId,
-			//StorageSize:          storageSize,
-			StorageSize: data.Get("storage_size_gb").(string),
+			ServerType:           serverType,
+			ScaleName:            data.Get("scale_name").(string),
+			ServiceLevelName:     "None",
+			StorageName:          data.Get("storage_name").(string),
+			StorageSize:          data.Get("storage_size_gb").(string),
 		})
 
 	if err != nil {
@@ -276,14 +245,7 @@ func readNodePool(ctx context.Context, data *schema.ResourceData, meta interface
 
 	inst := meta.(*client.Instance)
 
-	//nodePool, _, err := inst.Client.KubernetesEngine.ReadNodePool(ctx, data.Get("engine_id").(string), data.Id())
-	nodePoolList, _, err := inst.Client.KubernetesEngine.GetNodePoolList(ctx, data.Get("engine_id").(string), &kubernetesengine2.NodePoolV2ApiListNodePoolsV2Opts{
-		NodePoolName: optional.String{},
-		CreatedBy:    optional.String{},
-		Page:         optional.NewInt32(0),
-		Size:         optional.NewInt32(100),
-		Sort:         optional.String{},
-	})
+	nodePool, _, err := inst.Client.KubernetesEngine.ReadNodePool(ctx, data.Get("engine_id").(string), data.Id())
 
 	if err != nil {
 		data.SetId("")
@@ -292,18 +254,6 @@ func readNodePool(ctx context.Context, data *schema.ResourceData, meta interface
 		}
 
 		return diag.FromErr(err)
-	}
-
-	var nodePool kubernetesengine2.NodePoolsV2Response
-	for _, item := range nodePoolList.Contents {
-		if item.NodePoolId == data.Id() {
-			nodePool = item
-		}
-	}
-
-	if nodePool.NodePoolId == "" {
-		data.SetId("")
-		return nil
 	}
 
 	scale, err := client.FindProductById(ctx, inst.Client, nodePool.ProductGroupId, nodePool.ScaleId)
@@ -371,37 +321,76 @@ func readNodePool(ctx context.Context, data *schema.ResourceData, meta interface
 func updateNodePool(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	if data.HasChanges("auto_recovery", "auto_scale", "contract_id", "desired_node_count",
-		"image_id", "max_node_count", "min_node_count", "name", "product_id_group", "scale_id",
-		"service_level_id", "storage_id", "storage_size") {
+	if data.HasChanges("auto_recovery", "auto_scale", "desired_node_count", "max_node_count", "min_node_count") {
 
 		engineId := data.Get("engine_id").(string)
-		cpuCount := data.Get("cpu_count").(int)
-		memorySizeGB := data.Get("memory_size_gb").(int)
-		//serviceLevel := data.Get("service_level").(string)
-		serviceLevel := "None"
-		storageType := data.Get("storage_type").(string)
-		storageSize := "100"
 
-		productGroupId, contractId, scaleId, serviceLevelId, storageProductId, err := getRequiredProducts(ctx, inst.Client, engineId, cpuCount, memorySizeGB, serviceLevel, storageType)
-
-		_, _, err = inst.Client.KubernetesEngine.UpdateNodePool(ctx, engineId, data.Id(), kubernetesengine.NodePoolUpdateRequest{
+		_, _, err := inst.Client.KubernetesEngine.UpdateNodePool(ctx, engineId, data.Id(), kubernetesengine.NodePoolUpdateRequest{
 			AutoRecovery:     data.Get("auto_recovery").(bool),
 			AutoScale:        data.Get("auto_scale").(bool),
-			ContractId:       contractId,
 			DesiredNodeCount: int32(data.Get("desired_node_count").(int)),
-			ImageId:          data.Get("image_id").(string),
 			MaxNodeCount:     int32(data.Get("max_node_count").(int)),
 			MinNodeCount:     int32(data.Get("min_node_count").(int)),
-			NodePoolName:     data.Get("name").(string),
-			ProductGroupId:   productGroupId,
-			ScaleId:          scaleId,
-			ServiceLevelId:   serviceLevelId,
-			StorageId:        storageProductId,
-			StorageSize:      storageSize,
-			//StorageSize:      data.Get("storage_size_gb").(string),
 		})
 
+		time.Sleep(5 * time.Second)
+
+		//FAIL, ERROR, NOT READY, RUNNING
+		err = client.WaitForStatus(ctx, inst.Client, []string{}, []string{"Running"}, refreshNodePool(ctx, meta, engineId, data.Id(), true))
+
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if data.HasChanges("image_id") {
+		engineId := data.Get("engine_id").(string)
+		nodePool, _, err := inst.Client.KubernetesEngine.ReadNodePool(ctx, data.Get("engine_id").(string), data.Id())
+		beforeImageid := nodePool.ImageId
+		afterImageid := data.Get("image_id").(string)
+
+		beforeImageType, beforeOsType, beforeK8sVersion, beforeOsVersion, beforeProductId, err := getImageInfo(ctx, beforeImageid, meta)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		afterImageType, afterOsType, afterK8sVersion, afterOsVersion, afterProductId, err := getImageInfo(ctx, afterImageid, meta)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if afterImageType == "" || afterImageType == "" || afterImageType == "" || afterK8sVersion == "" {
+			return diag.Errorf("It is not kubernetes image (" + afterImageid + ")")
+		}
+
+		beforeK8sMinorVersion, _ := strconv.ParseInt(strings.Split(beforeK8sVersion, ".")[1], 10, 64)
+		afterK8sMinorVersion, _ := strconv.ParseInt(strings.Split(afterK8sVersion, ".")[1], 10, 64)
+
+		if beforeImageType != afterImageType {
+			return diag.Errorf("Image type not match (berfor : " + beforeImageType + " / after : " + afterImageType + ")")
+		}
+
+		if beforeOsType != afterOsType {
+			return diag.Errorf("OS type not match (berfor : " + beforeOsType + " / after : " + afterOsType + ")")
+		}
+
+		if beforeOsVersion != afterOsVersion {
+			return diag.Errorf("OS version not match (berfor : " + beforeOsVersion + " / after : " + afterOsVersion + ")")
+		}
+
+		if beforeProductId != afterProductId {
+			return diag.Errorf("Product Id not match (berfor : " + beforeProductId + " / after : " + afterProductId + ")")
+		}
+
+		// K8s minor version 차이가 1만 나야함
+		if afterK8sMinorVersion-beforeK8sMinorVersion != 1 {
+			return diag.Errorf("Cannot upgrade from " + beforeK8sVersion + " to " + afterK8sVersion)
+		}
+
+		_, _, err = inst.Client.KubernetesEngine.UpgradeNodePool(ctx, engineId, data.Id())
+
+		if err != nil {
+			return diag.FromErr(err)
+		}
 		time.Sleep(5 * time.Second)
 
 		//FAIL, ERROR, NOT READY, RUNNING
@@ -477,4 +466,20 @@ func refreshNodePool(ctx context.Context, meta interface{}, engineId string, nod
 		}
 		return nil, "", fmt.Errorf("failed to read kubernetes nodepool(%s) status:%d", nodePoolId, httpStatus)
 	}
+}
+
+func getImageInfo(ctx context.Context, imageId string, meta interface{}) (string, string, string, string, string, error) {
+	var err error = nil
+	inst := meta.(*client.Instance)
+
+	standardImage, err := inst.Client.Image.GetStandardImageInfo(ctx, imageId)
+
+	if err != nil {
+		return "", "", "", "", "", err
+	}
+
+	k8sVersion := standardImage.Properties["k8s.version"]
+	osVersion := standardImage.Properties["os.version"]
+	productId := standardImage.Products[0].ProductId
+	return standardImage.ImageType, standardImage.OsType, k8sVersion, osVersion, productId, err
 }

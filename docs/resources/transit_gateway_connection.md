@@ -57,6 +57,7 @@ resource "scp_transit_gateway_connection_approve" "tgw_conn_approve" {
 ### Optional
 
 - `firewall_loggable` (Boolean) Activate Firewall Logging or not
+- `tags` (Map of String)
 - `transit_gateway_connection_description` (String) TGW - VPC Connection description
 
 ### Read-Only

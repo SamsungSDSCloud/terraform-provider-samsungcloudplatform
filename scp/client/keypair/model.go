@@ -2,7 +2,7 @@ package keypair
 
 type CreateRequest struct {
 	KeyPairName string
-	Tags        []TagRequest
+	Tags        map[string]interface{}
 }
 
 type TagRequest struct {

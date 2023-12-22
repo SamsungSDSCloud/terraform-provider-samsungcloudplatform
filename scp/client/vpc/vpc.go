@@ -59,16 +59,12 @@ func (client *Client) GetVpcListV2(ctx context.Context, request ListVpcRequest) 
 	return result, err
 }
 
-func (client *Client) CheckVpcName(ctx context.Context, vpcName string) (bool, error) {
-	result, _, err := client.sdkClient.VpcOpenApiControllerApi.CheckDuplicationVpcV2(ctx, client.config.ProjectId, vpcName)
-	return *result.Result, err
-}
-
-func (client *Client) CreateVpc(ctx context.Context, vpcName string, vpcDescription string, serviceZoneId string) (vpc2.AsyncResponse, error) {
+func (client *Client) CreateVpc(ctx context.Context, vpcName string, vpcDescription string, serviceZoneId string, tags map[string]interface{}) (vpc2.AsyncResponse, error) {
 	result, _, err := client.sdkClient.VpcOpenApiV3ControllerApi.CreateVpcV3(ctx, client.config.ProjectId, vpc2.VpcCreateV3Request{
 		VpcName:        vpcName,
 		VpcDescription: vpcDescription,
 		ServiceZoneId:  serviceZoneId,
+		Tags:           client.sdkClient.ToTagRequestList(tags),
 	})
 	return result, err
 }
@@ -76,11 +72,6 @@ func (client *Client) CreateVpc(ctx context.Context, vpcName string, vpcDescript
 func (client *Client) DeleteVpc(ctx context.Context, vpcId string) error {
 	_, _, err := client.sdkClient.VpcOpenApiControllerApi.DeleteVpcV2(ctx, client.config.ProjectId, vpcId)
 	return err
-}
-
-func (client *Client) CheckVpcDns(ctx context.Context, vpcId string, dnsUserZoneDomain string) (bool, error) {
-	result, _, err := client.sdkClient.VpcOpenApiControllerApi.CheckDuplicationDnsUserZoneV2(ctx, client.config.ProjectId, vpcId, dnsUserZoneDomain)
-	return *result.Result, err
 }
 
 func (client *Client) GetVpcDnsList(ctx context.Context, vpcId string) (vpc2.ListResponseOfDnsUserZoneResponse, error) {

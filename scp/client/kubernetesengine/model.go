@@ -13,6 +13,7 @@ type CreateEngineRequest struct {
 	CifsVolumeId         string
 	VpcId                string
 	ZoneId               string
+	Tags                 map[string]interface{}
 }
 
 type ListEngineRequest struct {
@@ -26,9 +27,12 @@ type ListEngineRequest struct {
 	Sort                   string
 }
 
-type UpdateEngineRequest struct {
-	K8sVersion         string
+type UpdatePublicEndpointAccessControlRequest struct {
 	PublicAclIpAddress string
+}
+
+type UpgradeRequest struct {
+	K8sVersion string
 }
 
 type UpdateEngineLoggingRequest struct {
@@ -36,33 +40,32 @@ type UpdateEngineLoggingRequest struct {
 }
 
 type UpdateEngineLoadBalancerRequest struct {
-	LoadBalancerEnabled bool
-	LbId                string
+	LbId string
 }
 
 type UpdateEngineCifsVolumeRequest struct {
-	CifsVolumeIdEnabled bool
-	CifsVolumeId        string
+	CifsVolumeId string
 }
 
 type UpdateEnginePrivateAclRequest struct {
-	PrivateAclResources []PrivateAclResourcesRequest
+	PrivateAclResourcesToUpdate []PrivateAclResourcesRequestToUpdate
 }
 
 type CreateNodePoolRequest struct {
 	AvailabilityZoneName string
 	AutoRecovery         bool
 	AutoScale            bool
-	ContractId           string
+	ContractName         string
 	DesiredNodeCount     int32
+	EncryptEnabled       bool
 	ImageId              string
 	MaxNodeCount         int32
 	MinNodeCount         int32
 	NodePoolName         string
-	ProductGroupId       string
-	ScaleId              string
-	ServiceLevelId       string
-	StorageId            string
+	ScaleName            string
+	ServerType           string
+	ServiceLevelName     string
+	StorageName          string
 	StorageSize          string
 }
 
@@ -86,4 +89,10 @@ type PrivateAclResourcesRequest struct {
 	Id    string
 	Type  string
 	Value string
+}
+
+type PrivateAclResourcesRequestToUpdate struct {
+	ResourceId    string
+	ResourceType  string
+	ResourceValue string
 }

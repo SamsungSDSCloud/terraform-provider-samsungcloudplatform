@@ -20,7 +20,7 @@ resource "scp_obs_bucket" "my_scp_obs_bucket" {
 
   object_storage_bucket_file_encryption_enabled = true
   object_storage_bucket_version_enabled = true
-
+  object_storage_bucket_user_purpose = "PRIVATE"
   object_storage_bucket_access_control_enabled = true
   product_names = ["Object Storage"]
   dynamic "access_control_rules" {
@@ -30,7 +30,7 @@ resource "scp_obs_bucket" "my_scp_obs_bucket" {
       rule_type = access_control_rules.value["rule_type"]
     }
   }
-
+  tags = {test1:"test2",test3:"test4"}
   object_storage_bucket_dr_enabled = false
 }
 ```
@@ -52,9 +52,11 @@ resource "scp_obs_bucket" "my_scp_obs_bucket" {
 - `object_storage_bucket_access_control_enabled` (Boolean) Object Storage Bucket Access Control Enabled
 - `object_storage_bucket_dr_enabled` (Boolean) Object Storage Bucket DR Enabled
 - `object_storage_bucket_dr_type` (String) Object Storage Bucket DR Type
+- `object_storage_bucket_purpose` (String) Object Storage Bucket Purpose
+- `object_storage_bucket_user_purpose` (String) Object Storage Bucket User Purpose
 - `object_storage_bucket_version_enabled` (Boolean) Object Storage Bucket Version Enabled
 - `sync_object_storage_bucket_id` (String) Sync Object Storage Bucket ID
-- `tags` (List of Map of String) Tags
+- `tags` (Map of String)
 
 ### Read-Only
 

@@ -7,10 +7,12 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/backup"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/backup2"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"strings"
 )
 
 func init() {
@@ -75,8 +77,22 @@ func ResourceBackup() *schema.Resource {
 			"is_backup_dr_enabled": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
 				Description: "Backup(DR) Activation (If 'Y', Backup(DR) will be activated)",
+			},
+			"is_backup_dr_deleted": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Is Backup DR Deleted.",
+			},
+			"is_backup_dr_destroy_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "IF 'Y', Destroy DR replica together.",
+			},
+			"backup_dr_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Backup DR ID",
 			},
 			"object_id": {
 				Type:        schema.TypeString,
@@ -107,9 +123,13 @@ func ResourceBackup() *schema.Resource {
 			},
 			"retention_period": {
 				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "Backup Retention Period",
+				Optional:    true,
+				Description: "Full Backup Retention Period",
+			},
+			"incremental_retention_period": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Incremental Backup Retention Period",
 			},
 			"schedules": {
 				Type:        schema.TypeList,
@@ -156,14 +176,7 @@ func ResourceBackup() *schema.Resource {
 				ForceNew:    true,
 				Description: "Service Zone ID",
 			},
-			"tags": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: "Tags",
-				Elem: &schema.Schema{
-					Type: schema.TypeMap,
-				},
-			},
+			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a Backup resource.",
 	}
@@ -185,6 +198,7 @@ func createBackup(ctx context.Context, rd *schema.ResourceData, meta interface{}
 	policyType := rd.Get("policy_type").(string)
 	productNames := convertToStringArray(rd.Get("product_names").([]interface{}))
 	retentionPeriod := rd.Get("retention_period").(string)
+	incrementalRetentionPeriod := rd.Get("incremental_retention_period").(string)
 	serviceZoneId := rd.Get("service_zone_id").(string)
 	scheduleList := rd.Get("schedules").(common.HclListObject)
 	scheduleInfoList := convertSchedules(scheduleList)
@@ -197,15 +211,16 @@ func createBackup(ctx context.Context, rd *schema.ResourceData, meta interface{}
 		BackupRepository:         backupRepository,
 		DrAzCode:                 drAzCode,
 		//FileSystemBackupSelections: fileSystemBackupSelections,
-		IsBackupDrEnabled: isBackupDrEnabled,
-		ObjectId:          objectId,
-		ObjectType:        objectType,
-		PolicyType:        policyType,
-		ProductNames:      productNames,
-		RetentionPeriod:   retentionPeriod,
-		Schedules:         scheduleInfoList,
-		ServiceZoneId:     serviceZoneId,
-		Tags:              getTagRequestArray(rd),
+		IsBackupDrEnabled:          isBackupDrEnabled,
+		ObjectId:                   objectId,
+		ObjectType:                 objectType,
+		PolicyType:                 policyType,
+		ProductNames:               productNames,
+		RetentionPeriod:            retentionPeriod,
+		IncrementalRetentionPeriod: incrementalRetentionPeriod,
+		Schedules:                  scheduleInfoList,
+		ServiceZoneId:              serviceZoneId,
+		Tags:                       rd.Get("tags").(map[string]interface{}),
 	}
 
 	response, err := inst.Client.Backup.CreateBackup(ctx, request)
@@ -246,6 +261,7 @@ func readBackup(ctx context.Context, rd *schema.ResourceData, meta interface{}) 
 	rd.Set("object_id", info.ObjectId)
 	rd.Set("object_type", info.ObjectType)
 	rd.Set("policy_type", info.PolicyType)
+	rd.Set("is_backup_dr_deleted", info.IsBackupDrDeleted)
 	/*productNames := common.HclListObject{}
 	for _, schedule := range rd.ProductNames {
 		scheduleIds = append(scheduleIds, schedule)
@@ -253,7 +269,12 @@ func readBackup(ctx context.Context, rd *schema.ResourceData, meta interface{}) 
 	rd.Set("product_names")*/
 
 	rd.Set("retention_period", info.RetentionPeriod)
+	rd.Set("incremental_retention_period", info.IncrementalRetentionPeriod)
 	rd.Set("service_zone_id", info.ServiceZoneId)
+	rd.Set("backup_dr_id", info.BackupDrId)
+	if _, ok := rd.GetOk("is_backup_dr_destroy_enabled"); !ok {
+		rd.Set("is_backup_dr_destroy_enabled", false)
+	}
 
 	backupScheduleList, err := inst.Client.Backup.ReadBackupScheduleList(ctx, rd.Id(), backup2.BackupSearchOpenApiV2ApiListSchedulesOpts{
 		Page: optional.Int32{},
@@ -272,6 +293,8 @@ func readBackup(ctx context.Context, rd *schema.ResourceData, meta interface{}) 
 
 	backupSchedules := convertBackupScheduleResponseListToHclSetObject(backupScheduleList.Contents)
 	rd.Set("schedules", backupSchedules)
+
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
 	return nil
 }
@@ -296,12 +319,17 @@ func convertBackupScheduleResponseListToHclSetObject(backupScheduleList []backup
 func updateBackup(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	if rd.HasChanges("schedules") {
+	if rd.HasChanges("schedules") || rd.HasChanges("retention_period") || rd.HasChanges("incremental_retention_period") {
 		scheduleList := rd.Get("schedules").(common.HclListObject)
+		retentionPeriod := rd.Get("retention_period").(string)
+		incrementalRetentionPeriod := rd.Get("incremental_retention_period").(string)
+
 		scheduleInfoList := convertSchedules(scheduleList)
 
 		request := backup.UpdateBackupScheduleRequest{
-			Schedules: scheduleInfoList,
+			Schedules:                  scheduleInfoList,
+			IncrementalRetentionPeriod: incrementalRetentionPeriod,
+			RetentionPeriod:            retentionPeriod,
 		}
 
 		_, err := inst.Client.Backup.UpdateBackupSchedule(ctx, rd.Id(), request)
@@ -314,12 +342,36 @@ func updateBackup(ctx context.Context, rd *schema.ResourceData, meta interface{}
 			return diag.FromErr(err)
 		}
 	}
+	if rd.HasChanges("is_backup_dr_enabled") && rd.Get("is_backup_dr_enabled").(string) == "N" {
+		_, err := inst.Client.Backup.UpdateBackupDr(ctx, rd, rd.Get("backup_dr_id").(string))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		err = waitForBackupStatus(ctx, inst.Client, rd.Id(), []string{}, []string{"ACTIVE"}, true)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	return readBackup(ctx, rd, meta)
 }
 
 func deleteBackup(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
+
+	if rd.Get("is_backup_dr_destroy_enabled").(bool) && strings.EqualFold(rd.Get("is_backup_dr_deleted").(string), "N") {
+		_, err := inst.Client.Backup.DeleteBackupDr(ctx, rd.Get("backup_dr_id").(string))
+		err = waitForBackupStatus(ctx, inst.Client, rd.Id(), []string{}, []string{"ACTIVE"}, true)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
 	_, err := inst.Client.Backup.DeleteBackup(ctx, rd.Id())
 	if err != nil && !common.IsDeleted(err) {
 		return diag.FromErr(err)

@@ -36,6 +36,7 @@ resource "scp_direct_connect" "dc01" {
 ### Optional
 
 - `description` (String) DirectConnect description. (Up to 50 characters)
+- `tags` (Map of String)
 
 ### Read-Only
 

@@ -5,6 +5,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
+	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -35,27 +36,7 @@ func ResourceMember() *schema.Resource {
 				Required:    true,
 				Description: "User email",
 			},
-			"tags": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"tag_key": {
-							Type:             schema.TypeString,
-							Required:         true,
-							ValidateDiagFunc: common.ValidateName1to256DotDashUnderscore,
-							Description:      "Tag key",
-						},
-						"tag_value": {
-							Type:             schema.TypeString,
-							Optional:         true,
-							ValidateDiagFunc: common.ValidateName1to256DotDashUnderscore,
-							Description:      "Tag value",
-						},
-					},
-				},
-				Description: "Tag list",
-			},
+			"tags": tfTags.TagsSchema(),
 
 			"project_id":       {Type: schema.TypeString, Computed: true, Description: "Project ID"},
 			"company_name":     {Type: schema.TypeString, Computed: true, Description: "Company name"},
@@ -77,11 +58,10 @@ func ResourceMember() *schema.Resource {
 func resourceMemberCreate(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	//groupIds := common.ToStringList(rd.Get("group_ids").([]interface{}))
 	groupIds := common.ToStringList(rd.Get("group_ids").(*schema.Set).List())
 	email := rd.Get("user_email").(string)
 
-	_, _, err := inst.Client.Iam.AddMember(ctx, groupIds, email, rd.Get("tags").([]interface{}))
+	_, _, err := inst.Client.Iam.AddMember(ctx, groupIds, email, rd.Get("tags").(map[string]interface{}))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -129,6 +109,7 @@ func resourceMemberRead(ctx context.Context, rd *schema.ResourceData, meta inter
 	rd.Set("user_name", member.UserName)
 	rd.Set("user_srn", member.UserSrn)
 
+	tfTags.SetTags(ctx, rd, meta, rd.Id())
 	return nil
 }
 
@@ -169,15 +150,9 @@ func resourceMemberUpdate(ctx context.Context, rd *schema.ResourceData, meta int
 		}
 
 	}
-	if rd.HasChanges("tags") {
-		o, n := rd.GetChange("tags")
-		oldList := o.([]interface{})
-		newList := n.([]interface{})
-
-		err := client.UpdateResourceTag(ctx, inst.Client, rd.Id(), oldList, newList)
-		if err != nil {
-			return diag.FromErr(err)
-		}
+	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	return resourceMemberRead(ctx, rd, meta)

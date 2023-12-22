@@ -39,6 +39,7 @@ resource "scp_subnet" "my_subnet" {
 ### Optional
 
 - `description` (String) Subnet description. (Up to 50 characters)
+- `tags` (Map of String)
 
 ### Read-Only
 

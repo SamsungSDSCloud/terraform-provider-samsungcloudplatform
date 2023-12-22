@@ -16,6 +16,13 @@ Provides a K8s Engine resource.
 data "scp_region" "region" {
 }
 
+data "scp_virtual_servers" "virtual_server_list" {
+  filter {
+    name   = "virtual_server_state"
+    values = ["RUNNING"]
+  }
+}
+
 resource "scp_kubernetes_engine" "engine" {
   name               = var.name
   kubernetes_version = "v1.24.8"
@@ -28,6 +35,11 @@ resource "scp_kubernetes_engine" "engine" {
   // update optional field
   cloud_logging_enabled = false
   public_acl_ip_address = "123.123.123.123"
+  private_acl_resources {
+    resource_id = data.scp_virtual_servers.virtual_server_list.contents[0].virtual_server_id
+    resource_type = "Virtual Server"
+    resource_value = data.scp_virtual_servers.virtual_server_list.contents[0].virtual_server_name
+  }
   load_balancer_id      = data.terraform_remote_state.load_balancer.outputs.id
   cifs_volume_id    = data.terraform_remote_state.file-storage.outputs.cifs_id
 }
@@ -52,6 +64,7 @@ resource "scp_kubernetes_engine" "engine" {
 - `load_balancer_id` (String) Load balancer ID
 - `private_acl_resources` (Block List) Tag list (see [below for nested schema](#nestedblock--private_acl_resources))
 - `public_acl_ip_address` (String) List of comma separated IP addresses (CIDR or Single IP) for access control
+- `tags` (Map of String)
 
 ### Read-Only
 
@@ -62,11 +75,8 @@ resource "scp_kubernetes_engine" "engine" {
 <a id="nestedblock--private_acl_resources"></a>
 ### Nested Schema for `private_acl_resources`
 
-Required:
-
-- `id` (String) Tag key
-
 Optional:
 
-- `type` (String) Tag value
-- `value` (String) Tag value
+- `resource_id` (String) Resource ID
+- `resource_type` (String) Resource Type
+- `resource_value` (String) Resource Value

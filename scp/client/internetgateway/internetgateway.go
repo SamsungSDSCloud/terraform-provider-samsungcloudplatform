@@ -17,13 +17,14 @@ func NewClient(config *sdk.Configuration) *Client {
 		sdkClient: internetgateway2.NewAPIClient(config),
 	}
 }
-func (client *Client) CreateInternetGateway(ctx context.Context, vpcId string, igwType string, description string, useFirewall bool, useFirewallLog bool) (internetgateway2.AsyncResponse, int, error) {
+func (client *Client) CreateInternetGateway(ctx context.Context, vpcId string, igwType string, description string, useFirewall bool, useFirewallLog bool, tags map[string]interface{}) (internetgateway2.AsyncResponse, int, error) {
 	result, c, err := client.sdkClient.InternetGatewayV4ControllerApi.CreateInternetGateway2(ctx, client.config.ProjectId, internetgateway2.InternetGatewayCreateV4Request{
 		VpcId:                      vpcId,
 		InternetGatewayType:        igwType,
 		InternetGatewayDescription: description,
 		FirewallEnabled:            &useFirewall,
 		FirewallLoggable:           &useFirewallLog,
+		Tags:                       client.sdkClient.ToTagRequestList(tags),
 	})
 	var statusCode int
 	if c != nil {

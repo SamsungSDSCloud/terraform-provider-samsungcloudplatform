@@ -19,7 +19,8 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) CreateCustomImage(ctx context.Context, createCustomImageRequest image.CustomImageCreateRequest) (image.AsyncResponse, int, error) {
+func (client *Client) CreateCustomImage(ctx context.Context, createCustomImageRequest image.CustomImageCreateRequest, tags map[string]interface{}) (image.AsyncResponse, int, error) {
+	createCustomImageRequest.Tags = client.sdkClient.ToTagRequestList(tags)
 	result, c, err := client.sdkClient.CustomImageV2Api.CreateCustomImage(ctx, client.config.ProjectId, createCustomImageRequest)
 	var statusCode int
 	if c != nil {

@@ -4,7 +4,6 @@ import (
 	"context"
 	sdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/client"
 	kubernetesengine2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/kubernetes-engine2"
-	"io/ioutil"
 )
 
 type Client struct {
@@ -33,7 +32,7 @@ func (client *Client) CreateEngine(ctx context.Context, request CreateEngineRequ
 	result, response, err := client.sdk.K8sEngineV2Api.CreateKubernetesEngineV2(
 		ctx,
 		client.config.ProjectId,
-		kubernetesengine2.KubernetesEngineCreateRequest{
+		kubernetesengine2.ClusterCreateV2Request{
 			CloudLoggingEnabled:  &request.CloudLoggingEnabled,
 			K8sVersion:           request.K8sVersion,
 			KubernetesEngineName: request.KubernetesEngineName,
@@ -46,6 +45,7 @@ func (client *Client) CreateEngine(ctx context.Context, request CreateEngineRequ
 			CifsVolumeId:         request.CifsVolumeId,
 			VpcId:                request.VpcId,
 			ZoneId:               request.ZoneId,
+			Tags:                 client.sdk.ToTagRequestList(request.Tags),
 		})
 
 	var statusCode int
@@ -55,8 +55,8 @@ func (client *Client) CreateEngine(ctx context.Context, request CreateEngineRequ
 	return result, statusCode, err
 }
 
-func (client *Client) ReadEngine(ctx context.Context, id string) (kubernetesengine2.ClusterV2Response, int, error) {
-	result, response, err := client.sdk.K8sEngineV2Api.DetailKubernetesEngineV2(ctx, client.config.ProjectId, id)
+func (client *Client) ReadEngine(ctx context.Context, id string) (kubernetesengine2.ClusterV4Response, int, error) {
+	result, response, err := client.sdk.K8sEngineV4Api.DetailKubernetesEngineV4(ctx, client.config.ProjectId, id)
 	var statusCode int
 	if response != nil {
 		statusCode = response.StatusCode
@@ -64,10 +64,21 @@ func (client *Client) ReadEngine(ctx context.Context, id string) (kubernetesengi
 	return result, statusCode, err
 }
 
-func (client *Client) UpdateEngine(ctx context.Context, id string, request UpdateEngineRequest) (kubernetesengine2.AsyncResponse, int, error) {
-	result, response, err := client.sdk.K8sEngineV2Api.UpdateKubernetesEngineV2(ctx, client.config.ProjectId, id, kubernetesengine2.ClusterUpdateV2Request{
-		K8sVersion:         request.K8sVersion,
-		PublicAclIpAddress: request.PublicAclIpAddress,
+func (client *Client) UpdatePublicEndpointAccessControlEngine(ctx context.Context, id string, request UpdatePublicEndpointAccessControlRequest) (kubernetesengine2.AsyncResponse, int, error) {
+	result, response, err := client.sdk.K8sEngineV3Api.UpdateKubernetesEnginePublicEndpointAccessControlV3(ctx, client.config.ProjectId, id, kubernetesengine2.ClusterPublicEndpointAccessV3UpdateRequest{
+		PublicEndpointAccessControlIp: request.PublicAclIpAddress,
+	})
+
+	var statusCode int
+	if response != nil {
+		statusCode = response.StatusCode
+	}
+	return result, statusCode, err
+}
+
+func (client *Client) UpgradeEngine(ctx context.Context, id string, request UpgradeRequest) (kubernetesengine2.AsyncResponse, int, error) {
+	result, response, err := client.sdk.K8sEngineV3Api.UpgradeKubernetesEngineVersionV3(ctx, client.config.ProjectId, id, kubernetesengine2.ClusterUpgradeV3Request{
+		UpgradeK8sVersion: request.K8sVersion,
 	})
 
 	var statusCode int
@@ -90,9 +101,8 @@ func (client *Client) UpdateLoggingEngine(ctx context.Context, id string, reques
 }
 
 func (client *Client) UpdateLoadBalancerEngine(ctx context.Context, id string, request UpdateEngineLoadBalancerRequest) (kubernetesengine2.AsyncResponse, int, error) {
-	result, response, err := client.sdk.K8sEngineV2Api.UpdateKubernetesEngineLoadBalancerV2(ctx, client.config.ProjectId, id, kubernetesengine2.ClusterLoadBalancerUpdateV2Request{
-		LoadBalancerEnabled: &request.LoadBalancerEnabled,
-		LbId:                request.LbId,
+	result, response, err := client.sdk.K8sEngineV3Api.UpdateKubernetesEngineLoadBalancerV3(ctx, client.config.ProjectId, id, kubernetesengine2.ClusterLoadBalancerUpdateV3Request{
+		LoadBalancerId: request.LbId,
 	})
 
 	var statusCode int
@@ -103,9 +113,8 @@ func (client *Client) UpdateLoadBalancerEngine(ctx context.Context, id string, r
 }
 
 func (client *Client) UpdateCifsVolumeEngine(ctx context.Context, id string, request UpdateEngineCifsVolumeRequest) (kubernetesengine2.AsyncResponse, int, error) {
-	result, response, err := client.sdk.K8sEngineV2Api.UpdateKubernetesEngineCifsVolumeV2(ctx, client.config.ProjectId, id, kubernetesengine2.ClusterCifsVolumeUpdateV2Request{
-		CifsVolumeIdEnabled: &request.CifsVolumeIdEnabled,
-		CifsVolumeId:        request.CifsVolumeId,
+	result, response, err := client.sdk.K8sEngineV3Api.UpdateKubernetesEngineCifsVolumeV3(ctx, client.config.ProjectId, id, kubernetesengine2.ClusterCifsVolumeUpdateV3Request{
+		CifsVolumeId: request.CifsVolumeId,
 	})
 
 	var statusCode int
@@ -116,17 +125,17 @@ func (client *Client) UpdateCifsVolumeEngine(ctx context.Context, id string, req
 }
 
 func (client *Client) UpdatePrivateAclEngine(ctx context.Context, id string, request UpdateEnginePrivateAclRequest) (kubernetesengine2.AsyncResponse, int, error) {
-	privateAclResources := make([]kubernetesengine2.PrivateEndpointAccessControlResourceVo, 0)
-	for _, resource := range request.PrivateAclResources {
-		privateAclResources = append(privateAclResources, kubernetesengine2.PrivateEndpointAccessControlResourceVo{
-			Id:    resource.Id,
-			Type_: resource.Type,
-			Value: resource.Value,
+	privateAclResources := make([]kubernetesengine2.PrivateEndpointAccessControlResourceV3Vo, 0)
+	for _, resource := range request.PrivateAclResourcesToUpdate {
+		privateAclResources = append(privateAclResources, kubernetesengine2.PrivateEndpointAccessControlResourceV3Vo{
+			ResourceId:   resource.ResourceId,
+			ResourceName: resource.ResourceValue,
+			ResourceType: resource.ResourceType,
 		})
 	}
 
-	result, response, err := client.sdk.K8sEngineV2Api.UpdateKubernetesEnginePrivateAclV2(ctx, client.config.ProjectId, id, kubernetesengine2.ClusterPrivateEndpointAccessControlUpdateV2Request{
-		PrivateAclResources: privateAclResources,
+	result, response, err := client.sdk.K8sEngineV3Api.UpdateKubernetesEnginePrivateAclV3(ctx, client.config.ProjectId, id, kubernetesengine2.ClusterPrivateEndpointAccessControlUpdateV3Request{
+		PrivateEndpointAccessControlResourceList: privateAclResources,
 	})
 
 	var statusCode int
@@ -155,18 +164,13 @@ func (client *Client) GetEngineList(ctx context.Context, request *kubernetesengi
 	return result, statusCode, err
 }
 
-func (client *Client) GetKubeConfig(ctx context.Context, id string) (string, int, error) {
-	response, err := client.sdk.K8sEngineV2Api.DownloadKubernetesEngineConfigV2(ctx, client.config.ProjectId, id, "public")
-	data, err := ioutil.ReadAll(response.Body)
-
+func (client *Client) GetKubeConfig(ctx context.Context, id string, kubeconfigType string) (string, int, error) {
+	result, _, err := client.sdk.K8sEngineV2Api.DownloadKubernetesEngineConfigV2(ctx, client.config.ProjectId, id, kubeconfigType)
 	if err != nil {
 		return "", -1, err
 	}
 	var statusCode int
-	if response != nil {
-		statusCode = response.StatusCode
-	}
-	return string(data), statusCode, err
+	return string(result), statusCode, err
 }
 
 func (client *Client) CheckUsableSubnet(ctx context.Context, subnetId string, vpcId string) (kubernetesengine2.CheckResponse, int, error) {
@@ -190,24 +194,25 @@ func (client *Client) GetEngineVersionList(ctx context.Context, request *kuberne
 }
 
 func (client *Client) CreateNodePool(ctx context.Context, engineId string, request CreateNodePoolRequest) (kubernetesengine2.AsyncResponse, int, error) {
-	result, response, err := client.sdk.NodePoolV2Api.CreateNodePoolV2(
+	result, response, err := client.sdk.NodePoolV4Api.CreateNodePoolV4(
 		ctx,
 		client.config.ProjectId,
 		engineId,
-		kubernetesengine2.NodePoolCreateV2Request{
-			AvailabilityZoneName: request.AvailabilityZoneName,
+		kubernetesengine2.NodePoolCreateV4Request{
 			AutoRecovery:         &request.AutoRecovery,
 			AutoScale:            &request.AutoScale,
-			ContractId:           request.ContractId,
+			AvailabilityZoneName: request.AvailabilityZoneName,
+			ContractName:         request.ContractName,
 			DesiredNodeCount:     request.DesiredNodeCount,
+			EncryptEnabled:       &request.EncryptEnabled,
 			ImageId:              request.ImageId,
 			MaxNodeCount:         request.MaxNodeCount,
 			MinNodeCount:         request.MinNodeCount,
 			NodePoolName:         request.NodePoolName,
-			ProductGroupId:       request.ProductGroupId,
-			ScaleId:              request.ScaleId,
-			ServiceLevelId:       request.ServiceLevelId,
-			StorageId:            request.StorageId,
+			ScaleName:            request.ScaleName,
+			ServerType:           request.ServerType,
+			ServiceLevelName:     request.ServiceLevelName,
+			StorageName:          request.StorageName,
 			StorageSize:          request.StorageSize,
 		})
 
@@ -218,8 +223,8 @@ func (client *Client) CreateNodePool(ctx context.Context, engineId string, reque
 	return result, statusCode, err
 }
 
-func (client *Client) ReadNodePool(ctx context.Context, engineId string, nodePoolId string) (kubernetesengine2.PageResponseOfNodePoolsV2Response, int, error) {
-	result, response, err := client.sdk.NodePoolV2Api.ListNodePoolsV2(ctx, client.config.ProjectId, engineId, &kubernetesengine2.NodePoolV2ApiListNodePoolsV2Opts{})
+func (client *Client) ReadNodePool(ctx context.Context, engineId string, nodePoolId string) (kubernetesengine2.NodePoolV2Response, int, error) {
+	result, response, err := client.sdk.NodePoolV2Api.DetailNodePoolV2(ctx, client.config.ProjectId, engineId, nodePoolId)
 
 	var statusCode int
 	if response != nil {
@@ -227,36 +232,25 @@ func (client *Client) ReadNodePool(ctx context.Context, engineId string, nodePoo
 	}
 	return result, statusCode, err
 }
-
-/* 상세 API에 NodePoolName이 없음
-func (client *Client) ReadNodePool(ctx context.Context, engineId string, nodePoolId string) (kubernetesengine2.ResourceNodePool, int, error) {
-	result, response, err := client.sdk.NodePoolV2ControllerApi.DetailNodePoolV2(ctx, client.config.ProjectId, engineId, nodePoolId)
-
-	var statusCode int
-	if response != nil {
-		statusCode = response.StatusCode
-	}
-	return result, statusCode, err
-}
-*/
 
 func (client *Client) UpdateNodePool(ctx context.Context, engineId string, nodePoolId string, request NodePoolUpdateRequest) (kubernetesengine2.AsyncResponse, int, error) {
-	result, response, err := client.sdk.NodePoolV2Api.UpdateNodePoolV2(ctx, client.config.ProjectId, engineId, nodePoolId, kubernetesengine2.NodePoolUpdateV2Request{
+	result, response, err := client.sdk.NodePoolV4Api.UpdateNodePoolV4(ctx, client.config.ProjectId, engineId, nodePoolId, kubernetesengine2.NodePoolUpdateV4Request{
 		AutoRecovery:     &request.AutoRecovery,
 		AutoScale:        &request.AutoScale,
-		ContractId:       request.ContractId,
 		DesiredNodeCount: request.DesiredNodeCount,
-		ImageId:          request.ImageId,
 		MaxNodeCount:     request.MaxNodeCount,
 		MinNodeCount:     request.MinNodeCount,
-		NodePoolName:     request.NodePoolName,
-		ProductGroupId:   request.ProductGroupId,
-		ScaleId:          request.ScaleId,
-		ServiceLevelId:   request.ServiceLevelId,
-		StorageId:        request.StorageId,
-		StorageSize:      request.StorageSize,
 	})
 
+	var statusCode int
+	if response != nil {
+		statusCode = response.StatusCode
+	}
+	return result, statusCode, err
+}
+
+func (client *Client) UpgradeNodePool(ctx context.Context, engineId string, nodePoolId string) (kubernetesengine2.AsyncResponse, int, error) {
+	result, response, err := client.sdk.NodePoolV2Api.UpgradeNodePoolV2(ctx, client.config.ProjectId, engineId, nodePoolId)
 	var statusCode int
 	if response != nil {
 		statusCode = response.StatusCode

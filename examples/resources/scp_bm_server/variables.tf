@@ -28,7 +28,8 @@ variable "password" {
 }
 
 variable "name" {
-  default = "terrabm1"
+  type = list(string)
+  default = ["terrabm1", "terrabm2"]
 }
 
 variable "ext_name" {
@@ -47,8 +48,47 @@ variable "memory" {
   default = 32
 }
 
-// 서버 시작(RUNNING) / 중지(STOPPED)를 위한 변수
-// 생성 시에는 "RUNNING"으로 세팅해야한다.
 variable "state" {
-  default = "STOPPED"
+  type = list(string)
+  default = ["RUNNING", "RUNNING"]
+}
+
+variable "ipv4" {
+  type = list(string)
+  default = ["222.222.0.2", "222.222.0.3"]
+}
+
+variable "use_dns" {
+  type = list(bool)
+  default = [false, false]
+}
+
+variable "hyper_threading" {
+  type = list(string)
+  default = ["N", "Y"]
+}
+
+variable "nat_enabled" {
+  type = list(bool)
+  default = [false, false]
+}
+
+variable "public_ip_id" {
+  type = list(string)
+  default = ["", ""]
+}
+
+variable "local_subnet_enabled" {
+  type = list(bool)
+  default = [false, false]
+}
+
+variable "local_subnet_id" {
+  type = list(string)
+  default = ["", ""]
+}
+
+variable "local_subnet_ipv4" {
+  type = list(string)
+  default = ["", ""]
 }

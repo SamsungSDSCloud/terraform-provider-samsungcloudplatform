@@ -19,7 +19,7 @@ type BmBlockStorageCreateRequest struct {
 	SnapshotCapacityRate int32
 	// Snapshot Schedule
 	SnapshotSchedule SnapshotSchedule
-	Tags             []TagRequest
+	Tags             map[string]interface{}
 }
 
 type SnapshotSchedule struct {

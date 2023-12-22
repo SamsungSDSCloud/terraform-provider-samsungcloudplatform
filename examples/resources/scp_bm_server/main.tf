@@ -13,26 +13,27 @@ data "scp_standard_images" "centos_image" {
 }
 
 resource "scp_bm_server" "server_001" {
-  bm_server_name = var.name
   admin_account   = var.id
   admin_password  = var.password
   cpu_count       = var.cpu
   memory_size_gb  = var.memory
   state           = var.state
   image_id        = data.scp_standard_images.centos_image.standard_images[0].id
-  vpc_id          = data.terraform_remote_state.vpc.outputs.id
-  subnet_id       = data.terraform_remote_state.subnet.outputs.id
-  ipv4 = "192.169.4.3"
-
+    vpc_id          = data.terraform_remote_state.vpc.outputs.id
+    subnet_id       = data.terraform_remote_state.subnet.outputs.id
   delete_protection = false
   contract_discount = "None"
   initial_script = ""
-  use_dns = false
-  public_ip_id = ""
-  use_hyper_threading = "N"
-  nat_enabled = false
-  local_subnet_enabled = false
-  local_subnet_ipv4 = ""
+
+  bm_server_name = var.name
+  ipv4 = var.ipv4
+  use_dns = var.use_dns
+  use_hyper_threading = var.hyper_threading
+  nat_enabled = var.nat_enabled
+  public_ip_id = var.public_ip_id
+  local_subnet_enabled = var.local_subnet_enabled
+  local_subnet_id = var.local_subnet_id
+  local_subnet_ipv4 = var.local_subnet_ipv4
 
   timeouts {
     create = "30m"

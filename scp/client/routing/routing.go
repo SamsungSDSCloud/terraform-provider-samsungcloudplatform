@@ -242,3 +242,105 @@ func (client *Client) GetDCRoutingRulesList(ctx context.Context, routingTableId 
 	result, _, err := client.sdkClient.DirectConnectRoutingRuleOpenApiControllerApi.ListDcRoutingRules(ctx, client.config.ProjectId, routingTableId, &options)
 	return result, err
 }
+
+//Transit Gateway
+
+func (client *Client) GetTgwRoutingTableList(ctx context.Context, request ListTgwRoutingTableRequest) (routing2.ListResponseOfTgwRoutingTableListResponse, error) {
+	result, _, err := client.sdkClient.TransitGatewayRoutingTableOpenApiControllerApi.ListTgwRoutingTables(ctx, client.config.ProjectId, &routing2.TransitGatewayRoutingTableOpenApiControllerApiListTgwRoutingTablesOpts{
+		RoutingTableId:             optional.NewString(request.RoutingTableId),
+		RoutingTableName:           optional.NewString(request.RoutingTableName),
+		TransitGatewayConnectionId: optional.NewString(request.TransitGatewayConnectionId),
+		CreatedBy:                  optional.NewString(request.CreatedBy),
+		Sort:                       optional.NewInterface(request.Sort),
+		Page:                       optional.NewInt32(0),
+		Size:                       optional.NewInt32(20),
+	})
+
+	return result, err
+}
+
+func (client *Client) GetTgwRoutingTableDetail(ctx context.Context, routingTableId string) (routing2.TgwRoutingTableDetailResponse, error) {
+	result, _, err := client.sdkClient.TransitGatewayRoutingTableOpenApiControllerApi.DetailTgwRoutingTables(ctx, client.config.ProjectId, routingTableId)
+	return result, err
+}
+
+func (client *Client) GetTgwRoutingRuleList(ctx context.Context, routingTableId string, request ListTgwRoutingRuleRequest) (routing2.ListResponseOfTgwRoutingRuleListResponse, error) {
+
+	result, _, err := client.sdkClient.TransitGatewayRoutingRuleOpenApiControllerApi.ListTgwRoutingRules(ctx, client.config.ProjectId, routingTableId, &routing2.TransitGatewayRoutingRuleOpenApiControllerApiListTgwRoutingRulesOpts{
+		DestinationNetworkCidr:   optional.NewString(request.DestinationNetworkCidr),
+		RoutingRuleId:            optional.NewString(request.RoutingRuleId),
+		SourceServiceInterfaceId: optional.NewString(request.SourceServiceInterfaceId),
+		Page:                     optional.NewInt32(0),
+		Size:                     optional.NewInt32(20),
+		Sort:                     optional.NewInterface(request.Sort),
+	})
+	return result, err
+}
+
+func (client *Client) GetTgwRoutingRuleByCidr(ctx context.Context, routingTableId string, destinationNetworkCidr string) (routing2.TgwRoutingRuleListResponse, string, error) {
+	result, _, err := client.sdkClient.TransitGatewayRoutingRuleOpenApiControllerApi.ListTgwRoutingRules(ctx, client.config.ProjectId, routingTableId, &routing2.TransitGatewayRoutingRuleOpenApiControllerApiListTgwRoutingRulesOpts{
+		DestinationNetworkCidr: optional.NewString(destinationNetworkCidr),
+		Page:                   optional.NewInt32(0),
+		Size:                   optional.NewInt32(20),
+	})
+
+	if err != nil {
+		return routing2.TgwRoutingRuleListResponse{}, "", err
+	}
+	if result.TotalCount > 1 {
+		return routing2.TgwRoutingRuleListResponse{}, "", err
+	}
+
+	return result.Contents[0], result.Contents[0].RoutingRuleState, err
+}
+
+func (client *Client) GetTgwRoutingRuleById(ctx context.Context, routingTableId string, routingRuleId string) (routing2.TgwRoutingRuleListResponse, string, error) {
+	result, _, err := client.sdkClient.TransitGatewayRoutingRuleOpenApiControllerApi.ListTgwRoutingRules(ctx, client.config.ProjectId, routingTableId, &routing2.TransitGatewayRoutingRuleOpenApiControllerApiListTgwRoutingRulesOpts{})
+
+	if err != nil {
+		return routing2.TgwRoutingRuleListResponse{}, "", err
+	}
+	for _, rule := range result.Contents {
+		if rule.RoutingRuleId == routingRuleId {
+			return rule, rule.RoutingRuleState, nil
+		}
+	}
+
+	return routing2.TgwRoutingRuleListResponse{}, "DELETED", nil
+}
+
+func (client *Client) GetTgwRoutingRoutes(ctx context.Context, routingTableId string) (routing2.ListResponseOfRoutingRuleRouteListResponse, error) {
+	result, _, err := client.sdkClient.TransitGatewayRoutingRuleOpenApiControllerApi.ListTgwRoutingRulesRoute(ctx, client.config.ProjectId, routingTableId)
+
+	return result, err
+}
+
+func (client *Client) CreateTgwRoutingRules(ctx context.Context, routingTableId string, request CreateRoutingRulesRequest) error {
+	var rules routing2.CreateRoutingRulesRequest
+	for _, rule := range request.RoutingRules {
+		rules.RoutingRules = append(rules.RoutingRules, routing2.RoutingRule{
+			DestinationNetworkCidr:     rule.DestinationNetworkCidr,
+			SourceServiceInterfaceId:   rule.SourceServiceInterfaceId,
+			SourceServiceInterfaceName: rule.SourceServiceInterfaceName,
+		})
+	}
+	_, _, err := client.sdkClient.TransitGatewayRoutingRuleOpenApiControllerApi.CreateTgwRoutingRules(ctx, client.config.ProjectId, routingTableId, rules)
+
+	return err
+}
+
+func (client *Client) DeleteTgwRoutingRules(ctx context.Context, routingTableId string, routingRuleId string) error {
+	var rules routing2.DeleteRoutingRulesRequest
+	rules.RoutingRuleIds = append(rules.RoutingRuleIds, routingRuleId)
+	_, _, err := client.sdkClient.TransitGatewayRoutingRuleOpenApiControllerApi.DeleteTgwRoutingRules(ctx, client.config.ProjectId, routingTableId, rules)
+	return err
+}
+
+func (client *Client) CheckDuplicationTgwRoutingRule(ctx context.Context, routingTableId string, destinationNetworkCidr string) (bool, error) {
+	result, _, err := client.sdkClient.TransitGatewayRoutingRuleOpenApiControllerApi.CheckDuplicationTgwRoutingRule(ctx, client.config.ProjectId, routingTableId, destinationNetworkCidr)
+	if result.Result == nil {
+		return false, err
+	}
+
+	return *result.Result, err
+}

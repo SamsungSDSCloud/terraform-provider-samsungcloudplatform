@@ -56,6 +56,7 @@ const (
 
 	ServicedGroupCompute       string = "COMPUTE"
 	ServicedForVirtualServer   string = "Virtual Server"
+	ServicedForGpuServer       string = "GPU Server"
 	ServicedForBaremetalServer string = "Baremetal Server"
 	ServicedGroupDatabase      string = "DATABASE"
 	ServicedForPostgresql      string = "PostgreSQL"

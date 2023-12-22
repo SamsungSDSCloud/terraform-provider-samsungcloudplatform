@@ -34,6 +34,7 @@ resource "scp_public_ip" "ip01" {
 ### Optional
 
 - `description` (String) Description of public IP
+- `tags` (Map of String)
 
 ### Read-Only
 

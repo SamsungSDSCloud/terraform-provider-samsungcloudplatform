@@ -21,13 +21,9 @@ resource "scp_iam_role" "my_role01" {
     user_srns = [var.srn]
   }
 
-  tags {
-    tag_key = "tk01"
-    tag_value = "tv01"
-  }
-  tags {
-    tag_key = "tk02"
-    tag_value = "tv02"
+  tags = {
+    tk01 = "tv01"
+    tk02 = "tv02"
   }
 
   description = ""
@@ -45,7 +41,7 @@ resource "scp_iam_role" "my_role01" {
 
 - `description` (String) Description
 - `policy_ids` (Set of String) List of policy IDs
-- `tags` (Block List) Tag list (see [below for nested schema](#nestedblock--tags))
+- `tags` (Map of String)
 - `trust_principals` (Block Set) Performing subjects (see [below for nested schema](#nestedblock--trust_principals))
 
 ### Read-Only
@@ -63,18 +59,6 @@ resource "scp_iam_role" "my_role01" {
 - `role_policy_count` (Number) Role's policy count
 - `role_srn` (String) Role's SRN
 - `session_time` (Number) Session time
-
-<a id="nestedblock--tags"></a>
-### Nested Schema for `tags`
-
-Required:
-
-- `tag_key` (String) Tag key
-
-Optional:
-
-- `tag_value` (String) Tag value
-
 
 <a id="nestedblock--trust_principals"></a>
 ### Nested Schema for `trust_principals`
