@@ -28,7 +28,7 @@ func (client *Client) GetBareMetalBlockStorageDetail(ctx context.Context, blockS
 	return result, statusCode, err
 }
 
-func (client *Client) GetBareMetalBlockStorages(ctx context.Context) (baremetalblockstorage.ListResponseOfBmBlockStorageResponse, int, error) {
+func (client *Client) GetBareMetalBlockStorages(ctx context.Context) (baremetalblockstorage.ListResponseBmBlockStorageResponse, int, error) {
 	result, c, err := client.sdkClient.BmBlockStorageControllerApi.ListBareMetalBlockStorages(ctx, client.config.ProjectId, &baremetalblockstorage.BmBlockStorageControllerApiListBareMetalBlockStoragesOpts{
 		Page: optional.NewInt32(0),
 		Size: optional.NewInt32(10000),
@@ -44,17 +44,17 @@ func (client *Client) CreateBareMetalBlockStorage(ctx context.Context, request B
 	snapshotSchedule := baremetalblockstorage.SnapshotSchedule{
 		DayOfWeek: request.SnapshotSchedule.DayOfWeek,
 		Frequency: request.SnapshotSchedule.Frequency,
-		Hour:      request.SnapshotSchedule.Hour,
+		Hour:      &request.SnapshotSchedule.Hour,
 	}
 	result, c, err := client.sdkClient.BmBlockStorageControllerApi.CreateBareMetalBlockStorage(ctx, client.config.ProjectId, baremetalblockstorage.BmBlockStorageCreateRequest{
 		BareMetalBlockStorageName: request.BareMetalBlockStorageName,
-		BareMetalBlockStorageSize: request.BareMetalBlockStorageSize,
+		BareMetalBlockStorageSize: &request.BareMetalBlockStorageSize,
 		BareMetalServerIds:        request.BareMetalServerIds,
 		EncryptionEnabled:         &request.EncryptionEnabled,
 		IsSnapshotPolicy:          &request.IsSnapshotPolicy,
 		ProductId:                 request.ProductId,
 		ServiceZoneId:             request.ServiceZoneId,
-		SnapshotCapacityRate:      request.SnapshotCapacityRate,
+		SnapshotCapacityRate:      &request.SnapshotCapacityRate,
 		SnapshotSchedule:          &snapshotSchedule,
 		Tags:                      client.sdkClient.ToTagRequestList(request.Tags),
 	})
@@ -96,7 +96,7 @@ func (client *Client) DeleteBareMetalBlockStorage(ctx context.Context, storageId
 	return result, statusCode, err
 }
 
-func (client *Client) GetBareMetalBlockStorageScheduleList(ctx context.Context, blockStorageId string) (baremetalblockstorage.ListResponseOfBmBlockStorageSnapshotScheduleResponse, int, error) {
+func (client *Client) GetBareMetalBlockStorageScheduleList(ctx context.Context, blockStorageId string) (baremetalblockstorage.ListResponseBmBlockStorageSnapshotScheduleResponse, int, error) {
 	result, c, err := client.sdkClient.BareMetalBlockStorageSnapshotScheduleOpenApiV1Api.ListBareMetalBlockStorageSnapshotScheduleV1(ctx, client.config.ProjectId, blockStorageId)
 	var statusCode int
 	if c != nil {
@@ -109,7 +109,7 @@ func (client *Client) CreateBareMetalBlockStorageSchedule(ctx context.Context, b
 	snapshotSchedule := baremetalblockstorage.SnapshotSchedule{
 		DayOfWeek: schedule.DayOfWeek,
 		Frequency: schedule.Frequency,
-		Hour:      schedule.Hour,
+		Hour:      &schedule.Hour,
 	}
 	result, c, err := client.sdkClient.BareMetalBlockStorageSnapshotScheduleOpenApiV1Api.CreateBareMetalBlockStorageSnapshotScheduleV1(ctx, client.config.ProjectId, blockStorageId, baremetalblockstorage.BmBlockStorageSnapshotScheduleRequest{
 		SnapshotSchedule: &snapshotSchedule,
@@ -125,7 +125,7 @@ func (client *Client) UpdateBareMetalBlockStorageSchedule(ctx context.Context, b
 	snapshotSchedule := baremetalblockstorage.SnapshotSchedule{
 		DayOfWeek: schedule.DayOfWeek,
 		Frequency: schedule.Frequency,
-		Hour:      schedule.Hour,
+		Hour:      &schedule.Hour,
 	}
 	result, c, err := client.sdkClient.BareMetalBlockStorageSnapshotScheduleOpenApiV1Api.UpdateBareMetalBlockStorageSnapshotScheduleV1(ctx, client.config.ProjectId, blockStorageId, baremetalblockstorage.BmBlockStorageSnapshotScheduleRequest{
 		SnapshotSchedule: &snapshotSchedule,
@@ -146,7 +146,7 @@ func (client *Client) DeleteBareMetalBlockStorageSchedule(ctx context.Context, b
 	return result, statusCode, err
 }
 
-func (client *Client) GetBareMetalBlockStorageSnapshotList(ctx context.Context, blockStorageId string) (baremetalblockstorage.ListResponseOfBmBlockStorageSnapshotsResponse, int, error) {
+func (client *Client) GetBareMetalBlockStorageSnapshotList(ctx context.Context, blockStorageId string) (baremetalblockstorage.ListResponseBmBlockStorageSnapshotsResponse, int, error) {
 	result, c, err := client.sdkClient.BareMetalBlockStorageOpenApiV1Api.ListBareMetalBlockStorageSnapshotsV1(ctx, client.config.ProjectId, blockStorageId)
 	var statusCode int
 	if c != nil {
@@ -167,7 +167,7 @@ func (client *Client) CreateBareMetalBlockStorageSnapshot(ctx context.Context, b
 func (client *Client) CreateBareMetalBlockStorageSnapshotAttribute(ctx context.Context, blockStorageId string, isSnapshotPolicy string, snapshotCapacityRate int32) (baremetalblockstorage.BmBlockStorageSnapshotsAttributeResponse, int, error) {
 	result, c, err := client.sdkClient.BareMetalBlockStorageOpenApiV1Api.CreateBareMetalBlockStorageSnapshotAttribute(ctx, client.config.ProjectId, blockStorageId, baremetalblockstorage.BmBlockStorageSnapshotAttributeRequest{
 		IsSnapshotPolicy:     isSnapshotPolicy,
-		SnapshotCapacityRate: snapshotCapacityRate,
+		SnapshotCapacityRate: &snapshotCapacityRate,
 	})
 	var statusCode int
 	if c != nil {
@@ -188,7 +188,7 @@ func (client *Client) RestoreBareMetalBlockStorageSnapshot(ctx context.Context, 
 func (client *Client) UpdateBareMetalBlockStorageSnapshotAttribute(ctx context.Context, blockStorageId string, isSnapshotPolicy string, snapshotCapacityRate int32) (baremetalblockstorage.BmBlockStorageSnapshotsAttributeResponse, int, error) {
 	result, c, err := client.sdkClient.BareMetalBlockStorageOpenApiV1Api.UpdateBareMetalBlockStorageSnapshotAttribute(ctx, client.config.ProjectId, blockStorageId, baremetalblockstorage.BmBlockStorageSnapshotAttributeRequest{
 		IsSnapshotPolicy:     isSnapshotPolicy,
-		SnapshotCapacityRate: snapshotCapacityRate,
+		SnapshotCapacityRate: &snapshotCapacityRate,
 	})
 	var statusCode int
 	if c != nil {

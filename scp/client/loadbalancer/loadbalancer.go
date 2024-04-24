@@ -82,7 +82,7 @@ func (client *Client) UpdateLoadBalancerDescription(ctx context.Context, loadBal
 	return result, err
 }
 
-func (client *Client) GetLoadBalancerList(ctx context.Context, request *loadbalancer2.LoadBalancerOpenApiControllerApiGetLoadBalancerListOpts) (loadbalancer2.ListResponseOfLbResponse, int, error) {
+func (client *Client) GetLoadBalancerList(ctx context.Context, request *loadbalancer2.LoadBalancerOpenApiControllerApiGetLoadBalancerListOpts) (loadbalancer2.ListResponseLbResponse, int, error) {
 	result, c, err := client.sdkClient.LoadBalancerOpenApiControllerApi.GetLoadBalancerList(ctx, client.config.ProjectId, request)
 	var statusCode int
 	if c != nil {
@@ -91,7 +91,7 @@ func (client *Client) GetLoadBalancerList(ctx context.Context, request *loadbala
 	return result, statusCode, err
 }
 
-func (client *Client) GetLoadBalancerServiceConnectableToAsgList(ctx context.Context, vpcId string) (loadbalancer2.ListResponseOfLbServiceForAsgResponse, int, error) {
+func (client *Client) GetLoadBalancerServiceConnectableToAsgList(ctx context.Context, vpcId string) (loadbalancer2.ListResponseLbServiceForAsgResponse, int, error) {
 	result, c, err := client.sdkClient.LbServiceOpenApiControllerApi.GetAvailableLoadBalancerServiceListForAsg(ctx, client.config.ProjectId, vpcId)
 	var statusCode int
 	if c != nil {
@@ -100,7 +100,7 @@ func (client *Client) GetLoadBalancerServiceConnectableToAsgList(ctx context.Con
 	return result, statusCode, err
 }
 
-func (client *Client) GetLoadBalancerServiceConnectedToAsgList(ctx context.Context, autoScalingGroupId string) (loadbalancer2.ListResponseOfLbServiceForAsgResponse, int, error) {
+func (client *Client) GetLoadBalancerServiceConnectedToAsgList(ctx context.Context, autoScalingGroupId string) (loadbalancer2.ListResponseLbServiceForAsgResponse, int, error) {
 	result, c, err := client.sdkClient.LbServiceOpenApiControllerApi.GetConnectedLoadBalancerServiceListForAsg(ctx, client.config.ProjectId, autoScalingGroupId)
 	var statusCode int
 	if c != nil {
@@ -122,7 +122,8 @@ func (client *Client) CheckLbProfileName(ctx context.Context, loadBalancerId str
 	}
 }
 
-func (client *Client) CreateLbProfile(ctx context.Context, loadBalancerId string, layerType string, category string, name string, pfType string, protocol string, redirectType string, requestHeaderSize int, responseHeaderSize int, responseTimeout int, sessionTimeout int, xforwardedFor string, tags map[string]interface{}) (loadbalancer2.AsyncResponse, error) {	attr := loadbalancer2.LbProfileAttrCreateRequest{
+func (client *Client) CreateLbProfile(ctx context.Context, loadBalancerId string, layerType string, category string, name string, pfType string, protocol string, redirectType string, requestHeaderSize int, responseHeaderSize int, responseTimeout int, sessionTimeout int, xforwardedFor string, tags map[string]interface{}) (loadbalancer2.AsyncResponse, error) {
+	attr := loadbalancer2.LbProfileAttrCreateRequest{
 		RedirectType:       redirectType,
 		RequestHeaderSize:  int32(requestHeaderSize),
 		ResponseHeaderSize: int32(responseHeaderSize),
@@ -153,7 +154,7 @@ func (client *Client) GetLbProfile(ctx context.Context, lbProfileId string, load
 	return result, statusCode, err
 }
 
-func (client *Client) GetLbProfileList(ctx context.Context, loadBalancerId string, request *loadbalancer2.LbProfileOpenApiControllerApiGetLoadBalancerProfileListOpts) (loadbalancer2.ListResponseOfLbProfileResponse, int, error) {
+func (client *Client) GetLbProfileList(ctx context.Context, loadBalancerId string, request *loadbalancer2.LbProfileOpenApiControllerApiGetLoadBalancerProfileListOpts) (loadbalancer2.ListResponseLbProfileResponse, int, error) {
 	result, c, err := client.sdkClient.LbProfileOpenApiControllerApi.GetLoadBalancerProfileList(ctx, client.config.ProjectId, loadBalancerId, request)
 	var statusCode int
 	if c != nil {
@@ -236,7 +237,7 @@ func (client *Client) DeleteLbServerGroup(ctx context.Context, lbServerGroupId s
 	return result, err
 }
 
-func (client *Client) GetLbServerGroupList(ctx context.Context, loadBalancerId string, request *loadbalancer2.LbServerGroupOpenApiControllerApiGetLoadBalancerServerGroupListOpts) (loadbalancer2.ListResponseOfLbServerGroupResponse, int, error) {
+func (client *Client) GetLbServerGroupList(ctx context.Context, loadBalancerId string, request *loadbalancer2.LbServerGroupOpenApiControllerApiGetLoadBalancerServerGroupListOpts) (loadbalancer2.ListResponseLbServerGroupResponse, int, error) {
 	result, c, err := client.sdkClient.LbServerGroupOpenApiControllerApi.GetLoadBalancerServerGroupList(ctx, client.config.ProjectId, loadBalancerId, request)
 	var statusCode int
 	if c != nil {
@@ -261,7 +262,7 @@ func (client *Client) CheckLbServiceNameDuplicated(ctx context.Context, loadBala
 	}
 }
 
-func (client *Client) CheckLbServiceIpPortDuplicated(ctx context.Context, loadBalancerId string, serviceIp string, servicePort string) (loadbalancer2.ListResponseOfLbServiceSubSo, int, error) {
+func (client *Client) CheckLbServiceIpPortDuplicated(ctx context.Context, loadBalancerId string, serviceIp string, servicePort string) (loadbalancer2.ListResponseLbServiceSubSo, int, error) {
 	result, c, err := client.sdkClient.LbServiceOpenApiControllerApi.CheckLoadBalancerServiceIpPort(ctx, client.config.ProjectId, loadBalancerId, serviceIp, servicePort)
 	var statusCode int
 	if c != nil {
@@ -356,7 +357,7 @@ func (client *Client) UpdateLbRules(ctx context.Context, lbServiceId string, loa
 	return result, err
 }
 
-func (client *Client) GetLbServiceList(ctx context.Context, loadBalancerId string, request *loadbalancer2.LbServiceOpenApiControllerApiGetLoadBalancerServiceListOpts) (loadbalancer2.ListResponseOfLbServiceResponse, int, error) {
+func (client *Client) GetLbServiceList(ctx context.Context, loadBalancerId string, request *loadbalancer2.LbServiceOpenApiControllerApiGetLoadBalancerServiceListOpts) (loadbalancer2.ListResponseLbServiceResponse, int, error) {
 	result, c, err := client.sdkClient.LbServiceOpenApiControllerApi.GetLoadBalancerServiceList(ctx, client.config.ProjectId, loadBalancerId, request)
 	var statusCode int
 	if c != nil {
@@ -365,7 +366,7 @@ func (client *Client) GetLbServiceList(ctx context.Context, loadBalancerId strin
 	return result, statusCode, err
 }
 
-func (client *Client) GetLbServiceIpList(ctx context.Context, loadBalancerId string, request *loadbalancer2.LbServiceOpenApiControllerApiGetLoadBalancerServiceIpListOpts) (loadbalancer2.ListResponseOfLbServiceIpResponse, int, error) {
+func (client *Client) GetLbServiceIpList(ctx context.Context, loadBalancerId string, request *loadbalancer2.LbServiceOpenApiControllerApiGetLoadBalancerServiceIpListOpts) (loadbalancer2.ListResponseLbServiceIpResponse, int, error) {
 	result, c, err := client.sdkClient.LbServiceOpenApiControllerApi.GetLoadBalancerServiceIpList(ctx, client.config.ProjectId, loadBalancerId, request)
 	var statusCode int
 	if c != nil {

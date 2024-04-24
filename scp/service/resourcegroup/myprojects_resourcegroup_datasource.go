@@ -2,7 +2,7 @@ package resourcegroup
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/resourcegroup"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
@@ -105,11 +105,11 @@ func dataSourceMyProjectsResourceGroupRead(ctx context.Context, rd *schema.Resou
 	rd.Set("created_by_id", result.CreatedById)
 	rd.Set("created_by_name", result.CreatedByName)
 	rd.Set("created_by_email", result.CreatedByEmail)
-	rd.Set("created_dt", result.CreatedDt.String())
+	rd.Set("created_dt", result.CreatedDt)
 	rd.Set("modified_by_id", result.ModifiedById)
 	rd.Set("modified_by_name", result.ModifiedByName)
 	rd.Set("modified_by_email", result.ModifiedByEmail)
-	rd.Set("modified_dt", result.ModifiedDt.String())
+	rd.Set("modified_dt", result.ModifiedDt)
 
 	var tags common.HclSetObject
 	for _, tag := range result.TargetResourceTags {

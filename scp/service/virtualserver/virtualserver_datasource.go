@@ -2,7 +2,7 @@ package virtualserver
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/virtualserver"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
@@ -62,6 +62,7 @@ func datasourceElem() *schema.Resource {
 			"image_id":                    {Type: schema.TypeString, Computed: true, Description: "Image Id"},
 			"initial_script_content":      {Type: schema.TypeString, Computed: true, Description: "Initial Script Content"},
 			"ip":                          {Type: schema.TypeString, Computed: true, Description: "Ip"},
+			"is_dr":                       {Type: schema.TypeBool, Computed: true, Description: "Is Dr"},
 			"next_contract_end_date":      {Type: schema.TypeString, Computed: true, Description: "Next Contract End Date"},
 			"next_contract_id":            {Type: schema.TypeString, Computed: true, Description: "Next Contract Id"},
 			"nic_ids":                     {Type: schema.TypeList, Computed: true, Elem: &schema.Schema{Type: schema.TypeString, Description: "Nic Id"}, Description: "Nic Id List"},
@@ -84,12 +85,13 @@ func datasourceElem() *schema.Resource {
 			"service_zone_id":      {Type: schema.TypeString, Computed: true, Description: "Service Zone Id"},
 			"serviced_for":         {Type: schema.TypeString, Computed: true, Description: "Serviced For"},
 			"serviced_group_for":   {Type: schema.TypeString, Computed: true, Description: "Serviced Group For"},
+			"virtual_server_dr_id": {Type: schema.TypeString, Computed: true, Description: "Virtual Server Dr Id"},
 			"virtual_server_id":    {Type: schema.TypeString, Computed: true, Description: "Virtual Server Id"},
 			"virtual_server_name":  {Type: schema.TypeString, Computed: true, Description: "Virtual Server Name"},
 			"virtual_server_state": {Type: schema.TypeString, Computed: true, Description: "Virtual Server State"},
 			"vpc_id":               {Type: schema.TypeString, Computed: true, Description: "Vpc Id"},
 			"created_by":           {Type: schema.TypeString, Computed: true, Description: "Created By"},
-			"created_dt":           {Type: schema.TypeString, Computed: true, Description: "Created By"},
+			"created_dt":           {Type: schema.TypeString, Computed: true, Description: "Created Date"},
 			"modified_by":          {Type: schema.TypeString, Computed: true, Description: "Modified By"},
 			"modified_dt":          {Type: schema.TypeString, Computed: true, Description: "Modified Date"},
 		},
@@ -187,7 +189,19 @@ func getContentFromDetailVirtualServerApi(ctx context.Context, inst *client.Inst
 		return nil, err
 	}
 	content := getContentMap(detailResponse)
-	return content, err
+	validContentMap := getContentMapMatchedWithSchemaAttr(content)
+	return validContentMap, err
+}
+
+func getContentMapMatchedWithSchemaAttr(content map[string]interface{}) map[string]interface{} {
+	resourceData := datasourceElem()
+	validContentMap := map[string]interface{}{}
+	for key, value := range content {
+		if _, ok := resourceData.Schema[key]; ok {
+			validContentMap[key] = value
+		}
+	}
+	return validContentMap
 }
 
 func getContentMap(responses virtualserver2.DetailVirtualServerV3Response) map[string]interface{} {

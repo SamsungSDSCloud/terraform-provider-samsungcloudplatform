@@ -60,7 +60,7 @@ func (client *Client) RemovePlacementGroupMember(ctx context.Context, placementG
 	return err
 }
 
-func (client *Client) ListPlacementGroups(ctx context.Context, request ListPlacementGroupsRequestParam) (placementgroup.PageResponseV2OfPlacementGroupsResponse, error) {
+func (client *Client) ListPlacementGroups(ctx context.Context, request ListPlacementGroupsRequestParam) (placementgroup.PageResponseV2PlacementGroupsResponse, error) {
 	result, _, err := client.sdk.PlacementGroupV1Api.ListPlacementGroups1(ctx, client.config.ProjectId, &placementgroup.PlacementGroupV1ApiListPlacementGroups1Opts{
 		PlacementGroupName:      optional.NewString(request.PlacementGroupName),
 		PlacementGroupStateList: optional.NewInterface(request.PlacementGroupStateList),

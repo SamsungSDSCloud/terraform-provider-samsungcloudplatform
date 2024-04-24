@@ -2,7 +2,7 @@ package internetgateway
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	internetgateway2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/internet-gateway2"
@@ -42,7 +42,7 @@ func DatasourceInternetGateways() *schema.Resource {
 func dataSourceList(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	responses, _, err := inst.Client.InternetGateway.GetInternetGatewayList(ctx, &internetgateway2.InternetGatewayV2ControllerV2ApiListInternetGateways1Opts{
+	responses, _, err := inst.Client.InternetGateway.GetInternetGatewayList(ctx, &internetgateway2.InternetGatewayV2ControllerV2ApiListInternetGatewaysOpts{
 		VpcId:               optional.NewString(rd.Get("vpc_id").(string)),
 		InternetGatewayId:   optional.NewString(rd.Get("internet_gateway_id").(string)),
 		InternetGatewayName: optional.NewString(rd.Get("internet_gateway_name").(string)),

@@ -5,7 +5,13 @@ import (
 	"crypto/x509"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/autoscaling"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/baremetal"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/baremetalvdc"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/database/epas"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/database/mariadb"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/database/mysql"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/database/postgresql"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/database/redis"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/database/rediscluster"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/database/sqlserver"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/directconnect"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/dns"
@@ -79,6 +85,7 @@ type SCPClient struct {
 	VirtualServer  *virtualserver.Client
 	ServerGroup    *servergroup.Client
 	BareMetal      *baremetal.Client
+	BareMetalVdc   *baremetalvdc.Client
 	KeyPair        *keypair.Client
 	PlacementGroup *placementgroup.Client
 	AutoScaling    *autoscaling.Client
@@ -91,8 +98,13 @@ type SCPClient struct {
 	Backup                *backup.Client
 
 	// Database
-	Postgresql *postgresql.Client
-	SqlServer  *sqlserver.Client
+	Epas         *epas.Client
+	Postgresql   *postgresql.Client
+	Mariadb      *mariadb.Client
+	Sqlserver    *sqlserver.Client
+	Mysql        *mysql.Client
+	Redis        *redis.Client
+	RedisCluster *rediscluster.Client
 
 	// Misc.
 	Project       *project.Client
@@ -200,6 +212,7 @@ func NewSCPClient(providerConfig *Config) (*SCPClient, error) {
 		VirtualServer:  virtualserver.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		ServerGroup:    servergroup.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		BareMetal:      baremetal.NewClient(NewDefaultConfig(providerConfig, "baremetal")),
+		BareMetalVdc:   baremetalvdc.NewClient(NewDefaultConfig(providerConfig, "baremetal")),
 		KeyPair:        keypair.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		PlacementGroup: placementgroup.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		AutoScaling:    autoscaling.NewClient(NewDefaultConfig(providerConfig, "oss2")),
@@ -212,8 +225,13 @@ func NewSCPClient(providerConfig *Config) (*SCPClient, error) {
 		Backup:                backup.NewClient(NewDefaultConfig(providerConfig, "")),
 
 		// Database
-		Postgresql: postgresql.NewClient(NewDefaultConfig(providerConfig, "oss2")),
-		SqlServer:  sqlserver.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		Epas:         epas.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		Postgresql:   postgresql.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		Mariadb:      mariadb.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		Sqlserver:    sqlserver.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		Mysql:        mysql.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		Redis:        redis.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		RedisCluster: rediscluster.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 
 		// Common.
 		Project:       project.NewClient(NewDefaultConfig(providerConfig, "project")),

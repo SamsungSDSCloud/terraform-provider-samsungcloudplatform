@@ -2,7 +2,7 @@ package transitgateway
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	transitgateway2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/transit-gateway2"
@@ -38,7 +38,7 @@ func DataSourceTransitGateways() *schema.Resource {
 func dataSourceList(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	responses, _, err := inst.Client.TransitGateway.GetTransitGatewayList(ctx, &transitgateway2.TransitGatewayOpenApiControllerApiListTransitGateways3Opts{
+	responses, _, err := inst.Client.TransitGateway.GetTransitGatewayList(ctx, &transitgateway2.TransitGatewayOpenApiControllerApiListTransitGatewaysOpts{
 		TransitGatewayId:   optional.NewString(rd.Get("transit_gateway_id").(string)),
 		TransitGatewayName: optional.NewString(rd.Get("transit_gateway_name").(string)),
 		CreatedBy:          optional.NewString(rd.Get("created_by").(string)),

@@ -3,7 +3,7 @@ package bmblockstorage
 import (
 	"context"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/bmblockstorage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
@@ -34,14 +34,12 @@ func ResourceBmBlockStorage() *schema.Resource {
 			"name": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ForceNew:         true,
 				Description:      "The block storage name to create. (3 to 28 characters with -)",
 				ValidateDiagFunc: common.ValidateName3to28Dash,
 			},
 			"storage_size_gb": {
 				Type:             schema.TypeInt,
 				Required:         true,
-				ForceNew:         true,
 				Description:      "The storage size(GB) of the block storage to create. (10 to  16384 GB)",
 				ValidateDiagFunc: validateStorageSize10to16384,
 			},
@@ -57,19 +55,16 @@ func ResourceBmBlockStorage() *schema.Resource {
 			"product_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
 				Description: "You can use by selecting SSD or HDD based storage.",
 			},
 			"encrypted": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				ForceNew:    true,
 				Description: "Encrypt the volume to be created and create it. When encryption is applied, performance degradation of around 10% occurs.",
 			},
 			"snapshot_policy": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				ForceNew:    true,
 				Description: "Use an additional 100-300% of the Block Storage capacity you created. If auto-creation is set, snapshots are created and saved automatically according to the specified cycle. You can restore using the saved snapshot.",
 			},
 			"snapshot_capacity_rate": {
@@ -81,7 +76,6 @@ func ResourceBmBlockStorage() *schema.Resource {
 			"snap_shot_schedule": {
 				Type:     schema.TypeMap,
 				Optional: true,
-				ForceNew: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -91,6 +85,35 @@ func ResourceBmBlockStorage() *schema.Resource {
 			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a BM Block Storage resource.",
+		CustomizeDiff: func(ctx context.Context, diff *schema.ResourceDiff, i interface{}) error {
+			if diff.Id() != "" {
+				if diff.HasChanges("bm_server_ids") {
+					return nil
+				}
+				if diff.HasChange("name") {
+					return fmt.Errorf("name can't be modified")
+				}
+				if diff.HasChange("product_name") {
+					return fmt.Errorf("product_name can't be modified")
+				}
+				if diff.HasChange("storage_size_gb") {
+					return fmt.Errorf("storage_size_gb can't be modified")
+				}
+				if diff.HasChange("encrypted") {
+					return fmt.Errorf("encrypted can't be modified")
+				}
+				if diff.HasChange("snapshot_policy") {
+					return fmt.Errorf("snapshot_policy can't be modified")
+				}
+				if diff.HasChange("snapshot_capacity_rate") {
+					return fmt.Errorf("snapshot_capacity_rate can't be modified")
+				}
+				if diff.HasChange("snap_shot_schedule") {
+					return fmt.Errorf("snap_shot_schedule can't be modified")
+				}
+			}
+			return nil
+		},
 	}
 }
 
@@ -143,32 +166,49 @@ func validateSnapShotSchedule(v interface{}, path cty.Path) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	value := v.(map[string]interface{})
-
-	dayOfWeek := value["day_of_week"].(string)
-	frequency := value["frequency"].(string)
-	hour, _ := strconv.Atoi(value["hour"].(string))
-
-	if !regexp.MustCompile("^(|SUN|MON|TUE|WED|THU|FRI|SAT)$").MatchString(dayOfWeek) {
+	if value == nil {
+		return diags
+	}
+	if value["day_of_week"] != nil {
+		dayOfWeek := value["day_of_week"].(string)
+		if !regexp.MustCompile("^(|SUN|MON|TUE|WED|THU|FRI|SAT)$").MatchString(dayOfWeek) {
+			diags = append(diags, diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       fmt.Sprintf("value must be SUN|MON|TUE|WED|THU|FRI|SAT"),
+				AttributePath: path,
+			})
+		}
+	}
+	if value["frequency"] != nil {
+		frequency := value["frequency"].(string)
+		if !regexp.MustCompile("^(NONE|DAILY|WEEKLY)$").MatchString(frequency) {
+			diags = append(diags, diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       fmt.Sprintf("value must be NONE|DAILY|WEEKLY"),
+				AttributePath: path,
+			})
+		}
+	} else {
 		diags = append(diags, diag.Diagnostic{
 			Severity:      diag.Error,
-			Summary:       fmt.Sprintf("value must be SUN|MON|TUE|WED|THU|FRI|SAT"),
+			Summary:       fmt.Sprintf("frequency is empty"),
 			AttributePath: path,
 		})
 	}
-
-	if !regexp.MustCompile("^(NONE|DAILY|WEEKLY)$").MatchString(frequency) {
+	if value["hour"] != nil {
+		hour, _ := strconv.Atoi(value["hour"].(string))
+		err := common.CheckInt32Range(int32(hour), 0, 23)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       fmt.Sprintf("hour must be between 0 and 23"),
+				AttributePath: path,
+			})
+		}
+	} else {
 		diags = append(diags, diag.Diagnostic{
 			Severity:      diag.Error,
-			Summary:       fmt.Sprintf("value must be NONE|DAILY|WEEKLY"),
-			AttributePath: path,
-		})
-	}
-
-	err := common.CheckInt32Range(int32(hour), 0, 23)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity:      diag.Error,
-			Summary:       fmt.Sprintf("hour must be between 0 and 23"),
+			Summary:       fmt.Sprintf("hour is empty"),
 			AttributePath: path,
 		})
 	}
@@ -184,14 +224,40 @@ func createBmBlockStorage(ctx context.Context, data *schema.ResourceData, meta i
 		baremetalServerIds = append(baremetalServerIds, baremetalServerId.(string))
 	}
 
+	snapshotPolicy := data.Get("snapshot_policy").(bool)
+
 	snapshotScheduleInfo := data.Get("snap_shot_schedule").(map[string]interface{})
 
 	snapshotSchedule := bmblockstorage.SnapshotSchedule{}
 
 	if len(snapshotScheduleInfo) != 0 {
 
-		snapshotSchedule.DayOfWeek = snapshotScheduleInfo["day_of_week"].(string)
+		if !snapshotPolicy {
+			return diag.Errorf("If Snapshot Policy is false, Snapshot Schedule value should be empty.")
+		}
+
 		snapshotSchedule.Frequency = snapshotScheduleInfo["frequency"].(string)
+		if snapshotScheduleInfo["day_of_week"] != nil {
+			snapshotSchedule.DayOfWeek = snapshotScheduleInfo["day_of_week"].(string)
+		} else {
+			snapshotSchedule.DayOfWeek = ""
+		}
+
+		if len(snapshotSchedule.Frequency) <= 0 {
+			return diag.Errorf("Snapshot schedule frequency is empty.")
+		}
+
+		if strings.ToUpper(snapshotSchedule.Frequency) != "NONE" && snapshotScheduleInfo["hour"] == nil {
+			return diag.Errorf("Snapshot schedule hour is empty.")
+		}
+
+		if strings.ToUpper(snapshotSchedule.Frequency) == "WEEKLY" && len(snapshotSchedule.DayOfWeek) <= 0 {
+			return diag.Errorf("Snapshot schedule day of week is empty.")
+		}
+
+		if strings.ToUpper(snapshotSchedule.Frequency) == "DAILY" && len(snapshotSchedule.DayOfWeek) > 0 {
+			return diag.Errorf("Snapshot schedule day of week is unnecessary.")
+		}
 
 		if snapshotScheduleInfo["hour"] != nil {
 
@@ -259,7 +325,6 @@ func readBmBlockStorage(ctx context.Context, data *schema.ResourceData, meta int
 	data.Set("name", serverInfo.BareMetalBlockStorageName)
 	data.Set("storage_size_gb", serverInfo.BareMetalBlockStorageSize)
 	data.Set("encrypted", serverInfo.EncryptionEnabled)
-	data.Set("storage_size_gb", serverInfo.BareMetalBlockStorageSize)
 
 	snapshotInfo, _, err := inst.Client.BareMetalBlockStorage.GetBareMetalBlockStorageSnapshotList(ctx, data.Id())
 

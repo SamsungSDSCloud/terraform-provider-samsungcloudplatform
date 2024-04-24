@@ -20,7 +20,7 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) GetPublicIps(ctx context.Context, param *publicip2.PublicIpOpenApiV3ControllerApiListPublicIpsV3Opts) (publicip2.ListResponseOfDetailPublicIpResponse, error) {
+func (client *Client) GetPublicIps(ctx context.Context, param *publicip2.PublicIpOpenApiV3ControllerApiListPublicIpsV3Opts) (publicip2.ListResponseDetailPublicIpResponse, error) {
 	result, _, err := client.sdkClient.PublicIpOpenApiV3ControllerApi.ListPublicIpsV3(ctx, client.config.ProjectId, param)
 	return result, err
 }

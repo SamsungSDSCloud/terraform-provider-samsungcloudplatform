@@ -34,7 +34,7 @@ resource "scp_internet_gateway" "my_igw" {
 
 ### Required
 
-- `igw_type` (String) Internet-Gateway Type. One of SHARED , DEDICATED, SHARED_GROUP
+- `igw_type` (String) Internet-Gateway Type. One of SHARED , DEDICATED, SHARED_GROUP, SECURE
 - `vpc_id` (String) Target VPC id
 
 ### Optional

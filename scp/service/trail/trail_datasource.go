@@ -2,7 +2,7 @@ package trail
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	loggingaudit2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/logging-audit"
@@ -101,7 +101,7 @@ func datasourceTrailsRead(ctx context.Context, rd *schema.ResourceData, meta int
 	return nil
 }
 
-func convertTrailListToHclSet(trail loggingaudit2.PageResponseV2OfTrailResponse) common.HclSetObject {
+func convertTrailListToHclSet(trail loggingaudit2.PageResponseV2TrailResponse) common.HclSetObject {
 	var trailList common.HclSetObject
 	for _, tr := range trail.Contents {
 		if len(tr.TrailId) == 0 {

@@ -19,7 +19,7 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) GetFirewallList(ctx context.Context, vpcId string, targetId string, firewallName string) (firewall2.ListResponseOfFirewallListItemResponse, int, error) {
+func (client *Client) GetFirewallList(ctx context.Context, vpcId string, targetId string, firewallName string) (firewall2.ListResponseFirewallListItemResponse, int, error) {
 	var optVpcId optional.String
 	if len(vpcId) > 0 {
 		optVpcId = optional.NewString(vpcId)
@@ -191,7 +191,7 @@ func (client *Client) DeleteFirewallLogStorage(ctx context.Context, logStorageId
 	return err
 }
 
-func (client *Client) ListFirewallLogStorages(ctx context.Context, vpcId string) (firewall2.ListResponseOfFirewallLogStorageDetailResponse, int, error) {
+func (client *Client) ListFirewallLogStorages(ctx context.Context, vpcId string) (firewall2.ListResponseFirewallLogStorageDetailResponse, int, error) {
 	result, c, err := client.sdkClient.FirewallLogStorageV2Api.ListFirewallLogStoragesV2(ctx, client.config.ProjectId, vpcId, &firewall2.FirewallLogStorageV2ApiListFirewallLogStoragesV2Opts{
 		LogStorageType: optional.NewString("FIREWALL"),
 	})

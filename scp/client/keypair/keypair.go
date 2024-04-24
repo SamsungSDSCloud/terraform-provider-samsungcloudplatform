@@ -48,7 +48,7 @@ func (client *Client) GetKeyPair(ctx context.Context, keyPairId string) (keypair
 	return result, statusCode, err
 }
 
-func (client *Client) ListKeyPairs(ctx context.Context, request ListKeyPairsRequestParam) (keypair.ListResponseOfKeyPairV1Response, error) {
+func (client *Client) ListKeyPairs(ctx context.Context, request ListKeyPairsRequestParam) (keypair.ListResponseKeyPairV1Response, error) {
 	result, _, err := client.sdkClient.KeyPairV1Api.ListKeyPairs(ctx, client.config.ProjectId, &keypair.KeyPairV1ApiListKeyPairsOpts{
 		KeyPairName: optional.NewString(request.KeyPairName),
 		CreatedBy:   optional.NewString(request.CreatedBy),

@@ -154,7 +154,7 @@ func (client *Client) DeleteEngine(ctx context.Context, id string) (int, error) 
 	return statusCode, err
 }
 
-func (client *Client) GetEngineList(ctx context.Context, request *kubernetesengine2.K8sEngineV2ApiListKubernetesEnginesV2Opts) (kubernetesengine2.PageResponseOfClustersV2Response, int, error) {
+func (client *Client) GetEngineList(ctx context.Context, request *kubernetesengine2.K8sEngineV2ApiListKubernetesEnginesV2Opts) (kubernetesengine2.PageResponseClustersV2Response, int, error) {
 	result, response, err := client.sdk.K8sEngineV2Api.ListKubernetesEnginesV2(ctx, client.config.ProjectId, request)
 
 	var statusCode int
@@ -173,6 +173,16 @@ func (client *Client) GetKubeConfig(ctx context.Context, id string, kubeconfigTy
 	return string(result), statusCode, err
 }
 
+func (client *Client) CheckDuplicatedKubernetesEngineName(ctx context.Context, kubernetesEngineName string) (bool, int, error) {
+	result, response, err := client.sdk.K8sEngineV2Api.CheckKubernetesEngineNameV2(ctx, client.config.ProjectId, kubernetesEngineName)
+
+	var statusCode int
+	if response != nil {
+		statusCode = response.StatusCode
+	}
+	return result, statusCode, err
+}
+
 func (client *Client) CheckUsableSubnet(ctx context.Context, subnetId string, vpcId string) (kubernetesengine2.CheckResponse, int, error) {
 	result, response, err := client.sdk.K8sEngineV2Api.CheckUsableSubnetV2(ctx, client.config.ProjectId, subnetId, vpcId)
 
@@ -183,7 +193,7 @@ func (client *Client) CheckUsableSubnet(ctx context.Context, subnetId string, vp
 	return result, statusCode, err
 }
 
-func (client *Client) GetEngineVersionList(ctx context.Context, request *kubernetesengine2.K8sTemplateV2ApiListKubernetesVersionV21Opts) (kubernetesengine2.PageResponseOfK8sVersionWithProjectIdResponse, int, error) {
+func (client *Client) GetEngineVersionList(ctx context.Context, request *kubernetesengine2.K8sTemplateV2ApiListKubernetesVersionV21Opts) (kubernetesengine2.PageResponseK8sVersionWithProjectIdResponse, int, error) {
 	result, response, err := client.sdk.K8sTemplateV2Api.ListKubernetesVersionV21(ctx, client.config.ProjectId, request)
 
 	var statusCode int
@@ -267,7 +277,7 @@ func (client *Client) DeleteNodePool(ctx context.Context, engineId string, nodeP
 	return statusCode, err
 }
 
-func (client *Client) GetNodePoolList(ctx context.Context, kubernetesEngineId string, request *kubernetesengine2.NodePoolV2ApiListNodePoolsV2Opts) (kubernetesengine2.PageResponseOfNodePoolsV2Response, int, error) {
+func (client *Client) GetNodePoolList(ctx context.Context, kubernetesEngineId string, request *kubernetesengine2.NodePoolV2ApiListNodePoolsV2Opts) (kubernetesengine2.PageResponseNodePoolsV2Response, int, error) {
 	result, response, err := client.sdk.NodePoolV2Api.ListNodePoolsV2(ctx, client.config.ProjectId, kubernetesEngineId, request)
 
 	var statusCode int

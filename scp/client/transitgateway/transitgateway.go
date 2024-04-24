@@ -21,7 +21,7 @@ func NewClient(config *sdk.Configuration) *Client {
 // Transit Gateway --------------------------->
 
 func (client *Client) GetTransitGatewayInfo(ctx context.Context, transitGatewayId string) (transitgateway2.TransitGatewayDetailResponse, int, error) {
-	result, c, err := client.sdkClient.TransitGatewayOpenApiControllerApi.DetailTransitGateway2(ctx, client.config.ProjectId, transitGatewayId)
+	result, c, err := client.sdkClient.TransitGatewayOpenApiControllerApi.DetailTransitGateway(ctx, client.config.ProjectId, transitGatewayId)
 	var statusCode int
 	if c != nil {
 		statusCode = c.StatusCode
@@ -29,8 +29,8 @@ func (client *Client) GetTransitGatewayInfo(ctx context.Context, transitGatewayI
 	return result, statusCode, err
 }
 
-func (client *Client) GetTransitGatewayList(ctx context.Context, request *transitgateway2.TransitGatewayOpenApiControllerApiListTransitGateways3Opts) (transitgateway2.ListResponseOfTransitGatewayListItemResponse, int, error) {
-	result, c, err := client.sdkClient.TransitGatewayOpenApiControllerApi.ListTransitGateways3(ctx, client.config.ProjectId, request)
+func (client *Client) GetTransitGatewayList(ctx context.Context, request *transitgateway2.TransitGatewayOpenApiControllerApiListTransitGatewaysOpts) (transitgateway2.ListResponseTransitGatewayListItemResponse, int, error) {
+	result, c, err := client.sdkClient.TransitGatewayOpenApiControllerApi.ListTransitGateways(ctx, client.config.ProjectId, request)
 	var statusCode int
 	if c != nil {
 		statusCode = c.StatusCode
@@ -84,8 +84,8 @@ func (client *Client) GetTransitGatewayConnectionInfo(ctx context.Context, trans
 
 }
 
-func (client *Client) GetTransitGatewayConnectionList(ctx context.Context, request *transitgateway2.TransitGatewayConnectionOpenApiControllerApiListTransitGatewayConnections1Opts) (transitgateway2.ListResponseOfTransitGatewayConnectionListItemResponse, int, error) {
-	result, c, err := client.sdkClient.TransitGatewayConnectionOpenApiControllerApi.ListTransitGatewayConnections1(ctx, client.config.ProjectId, request)
+func (client *Client) GetTransitGatewayConnectionList(ctx context.Context, request *transitgateway2.TransitGatewayConnectionOpenApiControllerApiListTransitGatewayConnectionsOpts) (transitgateway2.ListResponseTransitGatewayConnectionListItemResponse, int, error) {
+	result, c, err := client.sdkClient.TransitGatewayConnectionOpenApiControllerApi.ListTransitGatewayConnections(ctx, client.config.ProjectId, request)
 
 	var statusCode int
 	if c != nil {

@@ -30,7 +30,7 @@ func (client *Client) CreateBackup(ctx context.Context, request CreateBackupRequ
 		})
 	}
 
-	result, _, err := client.sdkClient.BackupOpenApiV5Api.CreateBackup2(ctx, client.config.ProjectId,
+	result, _, err := client.sdkClient.BackupOperateOpenApiApi.CreateBackup2(ctx, client.config.ProjectId,
 		backup2.BackupCreateV5Request{
 			AzCode:                     request.AzCode,
 			BackupDrZoneId:             request.BackupDrZoneId,
@@ -54,7 +54,7 @@ func (client *Client) CreateBackup(ctx context.Context, request CreateBackupRequ
 }
 
 func (client *Client) ReadBackup(ctx context.Context, backupId string) (backup2.DetailBackupV4Response, int, error) {
-	result, c, err := client.sdkClient.BackupSearchOpenApiV4Api.DetailBackup1(ctx, client.config.ProjectId, backupId)
+	result, c, err := client.sdkClient.BackupSearchOpenApiApi.DetailBackup(ctx, client.config.ProjectId, backupId)
 	return result, c.StatusCode, err
 }
 
@@ -62,18 +62,18 @@ func (client *Client) UpdateBackupDr(ctx context.Context, rd *schema.ResourceDat
 	result, _, err := client.sdkClient.BackupDrOpenApiV2Api.CancelBackupDrRelationship(ctx, client.config.ProjectId, rd.Get("backup_dr_id").(string))
 	return result, err
 }
-func (client *Client) ReadBackupList(ctx context.Context, request backup2.BackupSearchOpenApiV3ApiListBackups1Opts) (backup2.ListResponseOfBackupV3Response, error) {
-	result, _, err := client.sdkClient.BackupSearchOpenApiV3Api.ListBackups1(ctx, client.config.ProjectId, &request)
+func (client *Client) ReadBackupList(ctx context.Context, request backup2.BackupSearchOpenApiApiListBackupsOpts) (backup2.ListResponseBackupV3Response, error) {
+	result, _, err := client.sdkClient.BackupSearchOpenApiApi.ListBackups(ctx, client.config.ProjectId, &request)
 	return result, err
 }
 
 func (client *Client) DeleteBackup(ctx context.Context, backupId string) (backup2.AsyncResponse, error) {
-	result, _, err := client.sdkClient.BackupOpenApiV2Api.DeleteBackup(ctx, client.config.ProjectId, backupId)
+	result, _, err := client.sdkClient.BackupOperateOpenApiApi.DeleteBackup(ctx, client.config.ProjectId, backupId)
 	return result, err
 }
 
-func (client *Client) ReadBackupScheduleList(ctx context.Context, backupId string, request backup2.BackupSearchOpenApiV2ApiListSchedulesOpts) (backup2.ListResponseOfBackupSchedulesResponse, error) {
-	result, _, err := client.sdkClient.BackupSearchOpenApiV2Api.ListSchedules(ctx, client.config.ProjectId, backupId, &request)
+func (client *Client) ReadBackupScheduleList(ctx context.Context, backupId string, request backup2.BackupSearchOpenApiApiListSchedulesOpts) (backup2.ListResponseBackupSchedulesResponse, error) {
+	result, _, err := client.sdkClient.BackupSearchOpenApiApi.ListSchedules(ctx, client.config.ProjectId, backupId, &request)
 	return result, err
 }
 
@@ -88,7 +88,7 @@ func (client *Client) UpdateBackupSchedule(ctx context.Context, backupId string,
 		})
 	}
 
-	result, _, err := client.sdkClient.BackupOpenApiV3Api.UpdateBackupSchedule1(
+	result, _, err := client.sdkClient.BackupOperateOpenApiApi.UpdateBackupSchedule1(
 		ctx,
 		client.config.ProjectId,
 		backupId,

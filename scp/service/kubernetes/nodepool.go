@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/kubernetesengine"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
@@ -179,7 +179,7 @@ func createNodePool(ctx context.Context, data *schema.ResourceData, meta interfa
 	inst := meta.(*client.Instance)
 
 	engineId := data.Get("engine_id").(string)
-	scaleName := data.Get("storage_name").(string)
+	scaleName := data.Get("scale_name").(string)
 	var serverType string
 
 	if strings.HasPrefix(scaleName, "h") {

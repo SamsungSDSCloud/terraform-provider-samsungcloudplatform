@@ -36,7 +36,7 @@ func (client *Client) CreateResourceGroup(ctx context.Context, request ResourceG
 	return result, statusCode, err
 }
 
-func (client *Client) GetResourceGroupList(ctx context.Context, request ListResourceGroupRequest) (resourcegroup.PageResponseV2OfResourceGroupsResponse, error) {
+func (client *Client) GetResourceGroupList(ctx context.Context, request ListResourceGroupRequest) (resourcegroup.RgPageResponseResourceGroupsResponse, error) {
 	result, _, err := client.sdkClient.ResourceGroupControllerApi.ListResourceGroups(ctx, client.config.ProjectId, &resourcegroup.ResourceGroupControllerApiListResourceGroupsOpts{
 		CreatedById:       optional.NewString(request.CreatedById),
 		ModifiedByEmail:   optional.NewString(request.ModifiedByEmail),
@@ -48,7 +48,7 @@ func (client *Client) GetResourceGroupList(ctx context.Context, request ListReso
 	return result, err
 }
 
-func (client *Client) GetResourceGroupResourcesList(ctx context.Context, resourceGroupId string, request ListResourceGroupResourcesRequest) (resourcegroup.PageResponseV2OfResourcesResponse, error) {
+func (client *Client) GetResourceGroupResourcesList(ctx context.Context, resourceGroupId string, request ListResourceGroupResourcesRequest) (resourcegroup.RgPageResponseResourcesResponse, error) {
 	result, _, err := client.sdkClient.ResourceGroupControllerApi.ListResourceGroupResources(ctx, client.config.ProjectId, resourceGroupId, &resourcegroup.ResourceGroupControllerApiListResourceGroupResourcesOpts{
 		CreatedById:  optional.NewString(request.CreatedById),
 		ModifiedById: optional.NewString(request.ModifiedById),
@@ -85,7 +85,7 @@ func (client *Client) DeleteResourceGroups(ctx context.Context, resourceGroupIds
 	return err
 }
 
-func (client *Client) GetResources(ctx context.Context, request ListResourceRequest) (resourcegroup.PageResponseV2OfResourcesResponse, error) {
+func (client *Client) GetResources(ctx context.Context, request ListResourceRequest) (resourcegroup.RgPageResponseResourcesResponse, error) {
 	result, _, err := client.sdkClient.ResourceControllerApi.ListResources(ctx, client.config.ProjectId, &resourcegroup.ResourceControllerApiListResourcesOpts{
 		CreatedById:         optional.NewString(request.CreatedById),
 		DisplayServiceNames: optional.NewInterface(common.ToStringList(request.DisplayServiceNames)),
@@ -138,7 +138,7 @@ func (client *Client) GetServiceTypes(ctx context.Context, serviceType string) (
 	return result, err
 }
 
-func (client *Client) GetResourceGroupListInMyProjects(ctx context.Context, projectIds []interface{}, request ListResourceGroupRequest) (resourcegroup.PageResponseV2OfMyProjectsResourceGroupsResponse, error) {
+func (client *Client) GetResourceGroupListInMyProjects(ctx context.Context, projectIds []interface{}, request ListResourceGroupRequest) (resourcegroup.RgPageResponseMyProjectsResourceGroupsResponse, error) {
 	result, _, err := client.sdkClient.MyProjectResourceGroupControllerApi.ListMyProjectsResourceGroups(ctx, &resourcegroup.MyProjectResourceGroupControllerApiListMyProjectsResourceGroupsOpts{
 		CreatedById:       optional.NewString(request.CreatedById),
 		ModifiedByEmail:   optional.NewString(request.ModifiedByEmail),
@@ -156,7 +156,7 @@ func (client *Client) GetResourceGroupInMyProjects(ctx context.Context, resource
 	return result, err
 }
 
-func (client *Client) GetResourceGroupResourcesInMyProjects(ctx context.Context, resourceGroupId string, request ListResourceGroupResourcesRequest) (resourcegroup.PageResponseV2OfResourcesResponse, error) {
+func (client *Client) GetResourceGroupResourcesInMyProjects(ctx context.Context, resourceGroupId string, request ListResourceGroupResourcesRequest) (resourcegroup.RgPageResponseResourcesResponse, error) {
 	result, _, err := client.sdkClient.MyProjectResourceGroupControllerApi.ListMyProjectsResourceGroupResources(ctx, resourceGroupId, &resourcegroup.MyProjectResourceGroupControllerApiListMyProjectsResourceGroupResourcesOpts{
 		CreatedById:  optional.NewString(request.CreatedById),
 		ModifiedById: optional.NewString(request.ModifiedById),
@@ -184,7 +184,7 @@ func toTagRequestList(list []interface{}) []resourcegroup.Tag {
 	return result
 }
 
-func (client *Client) GetMyProjectResources(ctx context.Context, projectIds []string, request ListResourceRequest) (resourcegroup.PageResponseV2OfMyProjectsResourcesResponse, error) {
+func (client *Client) GetMyProjectResources(ctx context.Context, projectIds []string, request ListResourceRequest) (resourcegroup.RgPageResponseMyProjectsResourcesResponse, error) {
 	result, _, err := client.sdkClient.MyProjectResourceControllerApi.ListMyProjectsResources(ctx, &resourcegroup.MyProjectResourceControllerApiListMyProjectsResourcesOpts{
 		CreatedById:         optional.NewString(request.CreatedById),
 		DisplayServiceNames: optional.NewInterface(common.ToStringList(request.DisplayServiceNames)),

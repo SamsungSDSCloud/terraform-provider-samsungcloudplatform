@@ -2,6 +2,7 @@ package database_common
 
 import (
 	"github.com/hashicorp/go-cty/cty"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -10,66 +11,125 @@ func initPath(v string) cty.Path {
 	return path
 }
 
-func TestValidServerState(t *testing.T) {
-	t.Parallel()
+func TestValidateIntegerInRange(t *testing.T) {
+	validateFunc := ValidateIntegerInRange(10, 20)
 
-	path := initPath("Server state")
-
-	validState := []string{
-		"RUNNING",
-		"STOPPED",
+	// Define test cases
+	tests := []struct {
+		name          string
+		input         int
+		expectedError bool
+	}{
+		{"valid value", 10, false},
+		{"valid value", 20, false},
+		{"invalid value", 9, true},
+		{"invalid value", 21, true},
+		{"invalid value", 0, true},
+		{"invalid value", -10, true},
 	}
 
-	for _, v := range validState {
-		if ValidServerState(v, path).HasError() {
-			t.Error(path, " should be a valid state: ", v)
-		}
-	}
+	// Run tests
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			diags := validateFunc(tc.input, initPath("testValidateIntegerInRange"))
 
-	invalidState := []string{
-		"abc",
-		"RUNNINGS",
-		"running",
-		"12355",
-	}
-
-	for _, v := range invalidState {
-		if !ValidServerState(v, path).HasError() {
-			t.Error(path, " should be a invalid state: ", v)
-		}
+			if tc.expectedError {
+				assert.NotEmpty(t, diags, "Expected an error but got none")
+			} else {
+				assert.Empty(t, diags, "Expected no error but got some")
+			}
+		})
 	}
 }
 
-func TestValidateContractPeriod(t *testing.T) {
-	t.Parallel()
+func TestValidateIntegerGreaterEqualThan(t *testing.T) {
+	validateFunc := ValidateIntegerGreaterEqualThan(10)
 
-	ctyPath := initPath("Contract Period")
-
-	validState := []string{
-		"None",
-		"1 Year",
-		"3 Year",
+	// Define test cases
+	tests := []struct {
+		name          string
+		input         int
+		expectedError bool
+	}{
+		{"valid value", 10, false},
+		{"valid value", 15, false},
+		{"invalid value", 9, true},
+		{"invalid value", 0, true},
 	}
 
-	for _, v := range validState {
-		if ValidateContractPeriod(v, ctyPath).HasError() {
-			t.Error(ctyPath, " should be a valid state: ", v)
-		}
+	// Run tests
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			diags := validateFunc(tc.input, initPath("testValidateIntegerGreaterEqualThan"))
+
+			if tc.expectedError {
+				assert.NotEmpty(t, diags, "Expected an error but got none")
+			} else {
+				assert.Empty(t, diags, "Expected no error but got some")
+			}
+		})
+	}
+}
+
+func TestValidateIntegerLessEqualThan(t *testing.T) {
+	validateFunc := ValidateIntegerLessEqualThan(10)
+
+	// Define test cases
+	tests := []struct {
+		name          string
+		input         int
+		expectedError bool
+	}{
+		{"valid value", 10, false},
+		{"valid value", 5, false},
+		{"invalid value", 11, true},
+		{"invalid value", 10000, true},
 	}
 
-	invalidState := []string{
-		"NONE",
-		"1-Year",
-		"5 Year",
-		"한글",
+	// Run tests
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			diags := validateFunc(tc.input, initPath("testValidateIntegerGreaterEqualThan"))
+
+			if tc.expectedError {
+				assert.NotEmpty(t, diags, "Expected an error but got none")
+			} else {
+				assert.Empty(t, diags, "Expected no error but got some")
+			}
+		})
+	}
+}
+
+func TestValidateStringInOptions(t *testing.T) {
+	validateFunc := ValidateStringInOptions("option1", "option2", "option3")
+
+	// Define test cases
+	tests := []struct {
+		name          string
+		input         string
+		expectedError bool
+	}{
+		{"valid value", "option1", false},
+		{"valid value", "option2", false},
+		{"valid value", "option3", false},
+		{"invalid value", "option", true},
+		{"invalid value", "", true},
+		{"invalid value", "option33", true},
+		{"invalid value", "AZ1", true},
 	}
 
-	for _, v := range invalidState {
-		if !ValidateContractPeriod(v, ctyPath).HasError() {
-			t.Error(ctyPath, " should be a invalid state: ", v)
-		}
-	}
+	// Run tests
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			diags := validateFunc(tc.input, initPath("testStringInOption"))
 
+			if tc.expectedError {
+				assert.NotEmpty(t, diags, "Expected an error but got none")
+			} else {
+				assert.Empty(t, diags, "Expected no error but got some")
+			}
+		})
+	}
 }
 
 func TestValidateBackupRetentionPeriod(t *testing.T) {
@@ -165,68 +225,6 @@ func TestValidatePortNumber(t *testing.T) {
 	}
 }
 
-func TestValidateBlockStorageType(t *testing.T) {
-	t.Parallel()
-
-	path := initPath("Block Storage Type")
-
-	validState := []string{
-		"SSD",
-		"HDD",
-	}
-
-	for _, v := range validState {
-		if ValidateBlockStorageType(v, path).HasError() {
-			t.Error(path, " should be a valid state: ", v)
-		}
-	}
-
-	invalidState := []string{
-		"SDS",
-		"SSSD",
-		"running",
-		"12355",
-	}
-
-	for _, v := range invalidState {
-		if !ValidateBlockStorageType(v, path).HasError() {
-			t.Error(path, " should be a invalid state: ", v)
-		}
-	}
-}
-
-func TestValidateBlockStorageRoleType(t *testing.T) {
-	t.Parallel()
-
-	path := initPath("Block Storage Role Type")
-
-	validState := []string{
-		"DATA",
-		"ARCHIVE",
-		"TEMP",
-		"BACKUP",
-	}
-
-	for _, v := range validState {
-		if ValidateBlockStorageRoleType(v, path).HasError() {
-			t.Error(path, " should be a valid state: ", v)
-		}
-	}
-
-	invalidState := []string{
-		"DATE",
-		"TMP",
-		"Database",
-		"12355",
-	}
-
-	for _, v := range invalidState {
-		if !ValidateBlockStorageRoleType(v, path).HasError() {
-			t.Error(path, " should be a invalid state: ", v)
-		}
-	}
-}
-
 func TestValidateBlockStorageSize(t *testing.T) {
 	t.Parallel()
 
@@ -251,36 +249,6 @@ func TestValidateBlockStorageSize(t *testing.T) {
 	for _, v := range invalidState {
 		if !ValidateBlockStorageSize(v, ctyPath).HasError() {
 			t.Error(ctyPath, " should be a invalid state: ", v)
-		}
-	}
-}
-
-func TestValidateAvailabilityZone(t *testing.T) {
-	t.Parallel()
-
-	path := initPath("Block Storage Type")
-
-	validState := []string{
-		"AZ1",
-		"AZ2",
-	}
-
-	for _, v := range validState {
-		if ValidateAvailabilityZone(v, path).HasError() {
-			t.Error(path, " should be a valid state: ", v)
-		}
-	}
-
-	invalidState := []string{
-		"AZ3",
-		"AZ0",
-		"AZ",
-		"12355",
-	}
-
-	for _, v := range invalidState {
-		if !ValidateAvailabilityZone(v, path).HasError() {
-			t.Error(path, " should be a invalid state: ", v)
 		}
 	}
 }
@@ -318,30 +286,34 @@ func TestValidate3to20LowercaseNumberDashAndStartLowercase(t *testing.T) {
 	}
 }
 
-func TestValidateServerRoleType(t *testing.T) {
+func TestValidate3to15LowercaseNumberDashAndStartLowercase(t *testing.T) {
 	t.Parallel()
 
 	path := initPath("Block Storage Type")
 
 	validState := []string{
-		"ACTIVE",
-		"STANDBY",
+		"sampleserver1",
+		"sampleservsampl",
+		"abc",
+		"a00000-------",
 	}
 
 	for _, v := range validState {
-		if ValidateServerRoleType(v, path).HasError() {
+		if Validate3to15LowercaseNumberDashAndStartLowercase(v, path).HasError() {
 			t.Error(path, " should be a valid state: ", v)
 		}
 	}
 
 	invalidState := []string{
-		"TIVE",
-		"ACTIVE0",
-		"########",
+		"ab",
+		"0sampleserver",
+		"Sampleserver",
+		"sampleservsample",
+		"abc#$%",
 	}
 
 	for _, v := range invalidState {
-		if !ValidateServerRoleType(v, path).HasError() {
+		if !Validate3to15LowercaseNumberDashAndStartLowercase(v, path).HasError() {
 			t.Error(path, " should be a invalid state: ", v)
 		}
 	}

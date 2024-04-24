@@ -30,8 +30,7 @@ resource "scp_virtual_server" "server_001" {
   virtual_server_name = var.name
   key_pair_id = data.terraform_remote_state.key_pair.outputs.id
 
-  cpu_count       = var.cpu
-  memory_size_gb  = var.memory
+  server_type = var.server-type
   image_id        = data.scp_standard_image.centos_image.id
   vpc_id          = data.terraform_remote_state.vpc.outputs.id
   subnet_id       = data.terraform_remote_state.subnet.outputs.id
@@ -96,6 +95,7 @@ resource "scp_virtual_server" "server_001" {
 - `os_storage_encrypted` (Boolean) Enable encryption feature in OS(Boot) storage. (WARNING) This option can not be changed after creation.
 - `placement_group_id` (String) Placement Group Id
 - `public_ip_id` (String) Public IP id of this virtual server. Public-IP must be a valid public-ip resource which is attached to the VPC.
+- `role_id` (String) Role Id
 - `server_group_id` (String) Server Group Id for Anti-affinity
 - `server_type` (String) Server Type (s1v1m2,..)
 - `tags` (Map of String)

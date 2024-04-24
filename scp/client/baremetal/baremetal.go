@@ -19,7 +19,7 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) GetBareMetalServers(ctx context.Context, serverName, ipAddress string) (baremetal.ListResponseOfBareMetalServerResponse, int, error) {
+func (client *Client) GetBareMetalServers(ctx context.Context, serverName, ipAddress string) (baremetal.ListResponseBareMetalServerResponse, int, error) {
 	result, c, err := client.sdkClient.BareMetalServerSimpleTaskOpenApiControllerApi.ListBareMetalServers(ctx, client.config.ProjectId, &baremetal.BareMetalServerSimpleTaskOpenApiControllerApiListBareMetalServersOpts{
 		BareMetalServerName: optional.NewString(serverName),
 		IpAddress:           optional.NewString(ipAddress),
@@ -54,10 +54,10 @@ func (client *Client) CreateBareMetalServer(ctx context.Context, request BMServe
 		}
 		blockStorages = append(blockStorages, ab)
 	}
-	serverDetails := make([]baremetal.BareMetalServerDetailsRequest, 0)
+	serverDetails := make([]baremetal.BmServerDetailsRequest, 0)
 
 	for index, _ := range request.ServerDetails {
-		serverDetail := baremetal.BareMetalServerDetailsRequest{
+		serverDetail := baremetal.BmServerDetailsRequest{
 			BareMetalLocalSubnetEnabled:   &request.ServerDetails[index].BareMetalLocalSubnetEnabled,
 			BareMetalLocalSubnetId:        request.ServerDetails[index].BareMetalLocalSubnetId,
 			BareMetalLocalSubnetIpAddress: request.ServerDetails[index].BareMetalLocalSubnetIpAddress,
@@ -162,7 +162,7 @@ func (client *Client) DisableBMNat(ctx context.Context, serverId string) (bareme
 }
 
 func (client *Client) StopBareMetalServer(ctx context.Context, request BMStartStopRequest) (baremetal.AsyncResponse, error) {
-	result, _, err := client.sdkClient.BareMetalServerLongRunningTaskOpenApiV2ControllerApi.StopBareMetalServer1(ctx, client.config.ProjectId, baremetal.BareMetalServerStartStopRequest{
+	result, _, err := client.sdkClient.BareMetalServerLongRunningTaskOpenApiV2ControllerApi.StopBareMetalServerV2(ctx, client.config.ProjectId, baremetal.BareMetalServerStartStopRequest{
 		BareMetalServerIds: request.BareMetalServerIds,
 	})
 
@@ -170,7 +170,7 @@ func (client *Client) StopBareMetalServer(ctx context.Context, request BMStartSt
 }
 
 func (client *Client) StartBareMetalServer(ctx context.Context, request BMStartStopRequest) (baremetal.AsyncResponse, error) {
-	result, _, err := client.sdkClient.BareMetalServerLongRunningTaskOpenApiV2ControllerApi.StartBareMetalServer1(ctx, client.config.ProjectId, baremetal.BareMetalServerStartStopRequest{
+	result, _, err := client.sdkClient.BareMetalServerLongRunningTaskOpenApiV2ControllerApi.StartBareMetalServerV2(ctx, client.config.ProjectId, baremetal.BareMetalServerStartStopRequest{
 		BareMetalServerIds: request.BareMetalServerIds,
 	})
 

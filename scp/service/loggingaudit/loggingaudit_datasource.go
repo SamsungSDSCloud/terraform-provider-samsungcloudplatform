@@ -2,7 +2,7 @@ package loggingaudit
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	loggingaudit2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/logging-audit"
@@ -205,7 +205,7 @@ func datasourceLoggingAuditsRead(ctx context.Context, rd *schema.ResourceData, m
 	return nil
 }
 
-func convertTrailListToHclSet(logs loggingaudit2.PageResponseV2OfLoggingsResponse) common.HclSetObject {
+func convertTrailListToHclSet(logs loggingaudit2.PageResponseV2LoggingsResponse) common.HclSetObject {
 	var logList common.HclSetObject
 	for _, log := range logs.Contents {
 		if len(log.Id) == 0 {

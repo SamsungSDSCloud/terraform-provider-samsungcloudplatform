@@ -41,6 +41,7 @@ output "output_scp_auto_scaling_group1" {
 - `desired_server_count` (Number) Desired server count
 - `desired_server_count_editable` (Boolean) Desired server count editable
 - `dns_enabled` (Boolean) DNS enabled
+- `file_storage_id` (String) File Storage ID
 - `id` (String) The ID of this resource.
 - `is_terminating` (Boolean) Is terminating
 - `lc_id` (String) Launch Configuration ID

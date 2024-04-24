@@ -1,6 +1,7 @@
 package common
 
 import (
+	"errors"
 	"fmt"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -455,7 +456,7 @@ func ValidateName3to20AlphaOnly(v interface{}, path cty.Path) diag.Diagnostics {
 	return diags
 }
 
-func ValidateName1to15AlphaOnlyStartsWithCapitalLetter(v interface{}, path cty.Path) diag.Diagnostics {
+func ValidateName1to15AlphaOnlyStartsWithUpperCase(v interface{}, path cty.Path) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	// Get attribute key
@@ -476,7 +477,7 @@ func ValidateName1to15AlphaOnlyStartsWithCapitalLetter(v interface{}, path cty.P
 	}
 
 	// Check characters
-	if !regexp.MustCompile("[A-Z][a-zA-Z]+$").MatchString(value) {
+	if !regexp.MustCompile("[A-Z][a-zA-Z]*$").MatchString(value) {
 		diags = append(diags, diag.Diagnostic{
 			Severity:      diag.Error,
 			Summary:       fmt.Sprintf("Attribute %q must contain only the alphabet and begin with a capital letter", attrKey),
@@ -1041,6 +1042,30 @@ func ValidateIpv4(v interface{}, path cty.Path) diag.Diagnostics {
 	return diags
 }
 
+func ValidateIpv4WithEmptyValue(v interface{}, path cty.Path) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	value := v.(string)
+
+	if len(value) == 0 {
+		return diags
+	}
+
+	trial := net.ParseIP(value)
+	if trial.To4() == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q is not IP address", attrKey),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
 func ValidateThatVmStateOnlyHasRunningOrStopped(v interface{}, path cty.Path) diag.Diagnostics {
 
 	var diags diag.Diagnostics
@@ -1071,6 +1096,109 @@ func ValidateContractDesc(v interface{}, path cty.Path) diag.Diagnostics {
 	value := v.(string)
 
 	if !regexp.MustCompile("None|1 Year|3 Year").MatchString(value) {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Only 'None' or '1 Year' or '3 Year' value of Attribute %q is allowed ", attrKey),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
+func ValidateName3to20LowerAlphaAndNumberOnly(v interface{}, path cty.Path) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// Get attribute key
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	// Get value
+	value := v.(string)
+
+	// Check name length
+	err := checkStringLength(value, 3, 20)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q has errors : %s", attrKey, err.Error()),
+			AttributePath: path,
+		})
+	}
+
+	// Check characters
+	if !regexp.MustCompile("^[a-z0-9]+$").MatchString(value) {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q must contain only lower case letters and numbers", attrKey),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
+func ValidateName3to28AlphaNumberDash(v interface{}, path cty.Path) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// Get attribute key
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	// Get value
+	value := v.(string)
+
+	// Check name length
+	err := checkStringLength(value, 3, 28)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q has errors : %s", attrKey, err.Error()),
+			AttributePath: path,
+		})
+	}
+
+	// Check characters
+	if !regexp.MustCompile("^[a-z][a-z0-9-]+[a-z0-9]$").MatchString(value) {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       fmt.Sprintf("Attribute %q must start with a lowercase, and enter using lowercase, number, and -. However, it does not end with -.", attrKey),
+			AttributePath: path,
+		})
+	}
+
+	return diags
+}
+
+func ValidateServerNameInWindowImage(list HclListObject) error {
+
+	for _, itemObject := range list {
+		item := itemObject.(HclKeyValueObject)
+		v, ok := item["name"]
+
+		if !ok {
+			return errors.New("There is no name attribute")
+		}
+
+		if len(v.(string)) > 15 {
+			return errors.New("Servers using Windows must be 3 to 15 characters long. ")
+		}
+
+	}
+
+	return nil
+}
+
+func ValidateContract(v interface{}, path cty.Path) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
+	attr := path[len(path)-1].(cty.GetAttrStep)
+	attrKey := attr.Name
+
+	value := v.(string)
+
+	if !regexp.MustCompile("^(None|1 Year|3 Year)$").MatchString(value) {
 		diags = append(diags, diag.Diagnostic{
 			Severity:      diag.Error,
 			Summary:       fmt.Sprintf("Only 'None' or '1 Year' or '3 Year' value of Attribute %q is allowed ", attrKey),

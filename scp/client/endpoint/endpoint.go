@@ -34,7 +34,7 @@ func (client *Client) UpdateEndpoint(ctx context.Context, endpointId string, des
 	return result, err
 }
 
-func (client *Client) GetEndpointList(ctx context.Context, request *endpoint2.EndpointOpenApiControllerApiListEndpointOpts) (endpoint2.ListResponseOfEndpointResponse, int, error) {
+func (client *Client) GetEndpointList(ctx context.Context, request *endpoint2.EndpointOpenApiControllerApiListEndpointOpts) (endpoint2.ListResponseEndpointResponse, int, error) {
 	result, c, err := client.sdkClient.EndpointOpenApiControllerApi.ListEndpoint(ctx, client.config.ProjectId, request)
 	var statusCode int
 	if c != nil {

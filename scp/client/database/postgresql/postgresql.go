@@ -28,7 +28,7 @@ func (client *Client) CreatePostgresqlCluster(ctx context.Context, request postg
 	return result, statusCode, err
 }
 
-func (client *Client) ListPostgresqlClusters(ctx context.Context, request *postgresql.PostgresqlSearchApiListPostgresqlClustersOpts) (postgresql.ListResponseOfPostgresqlClusterListItemResponse, int, error) {
+func (client *Client) ListPostgresqlClusters(ctx context.Context, request *postgresql.PostgresqlSearchApiListPostgresqlClustersOpts) (postgresql.ListResponsePostgresqlClusterListItemResponse, int, error) {
 	result, c, err := client.sdkClient.PostgresqlSearchApi.ListPostgresqlClusters(ctx, client.config.ProjectId, request)
 	var statusCode int
 	if c != nil {

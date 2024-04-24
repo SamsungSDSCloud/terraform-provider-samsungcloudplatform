@@ -4,22 +4,33 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	time "time"
 )
 
 type HclKeyValueObject = map[string]interface{}
 type HclSetObject = []HclKeyValueObject
 type HclListObject = []interface{}
 
-type BlockStorage struct {
+type ConvertedStruct struct {
+	//BlockStorage
 	BlockStorageRoleType string
 	BlockStorageSize     int
 	BlockStorageType     string
-}
+	BlockStorageGroupId  string
 
-type PostgresqlServer struct {
+	//Server
 	AvailabilityZoneName string
-	PostgresqlServerName string
 	ServerRoleType       string
+	EpasServerName       string
+	PostgresqlServerName string
+	MariadbServerName    string
+	SqlserverServerName  string
+	MysqlServerName      string
+	RedisServerName      string
+	NatPublicIpId        string
+	NatPublicIpAddress   string
+	RedisSentinelPort    int
+	CreatedDt            time.Time
 }
 
 func Contains(valueSlice []string, value string) bool {
@@ -31,42 +42,31 @@ func Contains(valueSlice []string, value string) bool {
 	return false
 }
 
-//TODO convert 함수를 하나로 합칠수 있을지 고민
-func ConvertBlockStorageList(list HclListObject) []BlockStorage {
-	var result []BlockStorage
-	for _, itemObject := range list {
-		item := itemObject.(HclKeyValueObject)
-		var info BlockStorage
-		if v, ok := item["block_storage_role_type"]; ok {
-			info.BlockStorageRoleType = v.(string)
-		}
-		if v, ok := item["block_storage_size"]; ok {
-			info.BlockStorageSize = v.(int)
-		}
-		if v, ok := item["block_storage_type"]; ok {
-			info.BlockStorageType = v.(string)
-		}
-		result = append(result, info)
-	}
-	return result
-}
+func ConvertObjectSliceToStructSlice(list HclListObject) []ConvertedStruct {
+	result := make([]ConvertedStruct, 0)
 
-func ConvertServerList(list HclListObject) []PostgresqlServer {
-	var result []PostgresqlServer
-	for _, itemObject := range list {
-		item := itemObject.(HclKeyValueObject)
-		var info PostgresqlServer
-		if v, ok := item["availability_zone_name"]; ok {
-			info.AvailabilityZoneName = v.(string)
+	for _, item := range list {
+		if data, ok := item.(HclKeyValueObject); ok {
+			convertedStruct := ConvertedStruct{}
+
+			for key, value := range data {
+				if value == "" {
+					continue
+				}
+				fieldName := SnakeToCamel(key)
+				field := reflect.ValueOf(&convertedStruct).Elem().FieldByName(fieldName)
+				switch v := value.(type) {
+				case string:
+					field.SetString(v)
+				case int:
+					field.SetInt(int64(v))
+				}
+			}
+
+			result = append(result, convertedStruct)
 		}
-		if v, ok := item["postgresql_server_name"]; ok {
-			info.PostgresqlServerName = v.(string)
-		}
-		if v, ok := item["server_role_type"]; ok {
-			info.ServerRoleType = v.(string)
-		}
-		result = append(result, info)
 	}
+
 	return result
 }
 
@@ -83,6 +83,8 @@ func MapToObjectWithCamel(m map[string]interface{}, obj interface{}) error {
 				field.SetInt(int64(v.(int)))
 			case reflect.Bool:
 				field.SetBool(v.(bool))
+			case reflect.Slice:
+				field.Set(reflect.ValueOf(ConvertToList(v.([]interface{}))))
 			}
 		}
 	}
@@ -96,6 +98,14 @@ func ConvertSecurityGroupIdList(securityGroupIds []interface{}) []string {
 		securityGroupIdList[i] = valueIpv4.(string)
 	}
 	return securityGroupIdList
+}
+
+func ConvertToList(sourceList []interface{}) []string {
+	targetList := make([]string, len(sourceList))
+	for i, source := range sourceList {
+		targetList[i] = source.(string)
+	}
+	return targetList
 }
 
 func SnakeToCamel(s string) string {

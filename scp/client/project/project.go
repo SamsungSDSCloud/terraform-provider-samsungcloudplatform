@@ -21,12 +21,12 @@ func NewClient(config *sdk.Configuration) *Client {
 }
 
 func (client *Client) GetProjectInfo(ctx context.Context) (project.ProjectDetailResponseV3, error) {
-	result, _, err := client.sdkClient.ProjectV3ControllerApi.DetailProject1(ctx, client.config.ProjectId, client.config.ProjectId)
+	result, _, err := client.sdkClient.ProjectV3ControllerApi.DetailProject(ctx, client.config.ProjectId, client.config.ProjectId)
 	return result, err
 }
 
-func (client *Client) GetProjectList(ctx context.Context, request ListProjectRequest) (project.PageResponseV2OfProjectResponseV3, error) {
-	result, _, err := client.sdkClient.ProjectV3ControllerApi.ListProjects1(ctx, &project.ProjectV3ControllerApiListProjects1Opts{
+func (client *Client) GetProjectList(ctx context.Context, request ListProjectRequest) (project.PageResponseV2ProjectResponseV3, error) {
+	result, _, err := client.sdkClient.ProjectV3ControllerApi.ListProjects(ctx, &project.ProjectV3ControllerApiListProjectsOpts{
 		AccountName:          optional.NewString(request.AccountName),
 		BillYearMonth:        optional.NewString(request.BillYearMonth),
 		IsBillingInfoDemand:  optional.NewBool(request.IsBillingInfoDemand),
@@ -41,12 +41,12 @@ func (client *Client) GetProjectList(ctx context.Context, request ListProjectReq
 	return result, err
 }
 
-func (client *Client) GetAccountList(ctx context.Context) (project.ListResponseV2OfAccountResponseV3, error) {
+func (client *Client) GetAccountList(ctx context.Context) (project.ListResponseV2AccountResponseV3, error) {
 	result, _, err := client.sdkClient.AccountV3ControllerApi.ListAccountsByMyProject(ctx)
 	return result, err
 }
 
-func (client *Client) GetProductResourceList(ctx context.Context, productCategoryId optional.String) (project.ProjectResponseOfProductCategoryResource, error) {
+func (client *Client) GetProductResourceList(ctx context.Context, productCategoryId optional.String) (project.ProjectResponseProductCategoryResource, error) {
 	result, _, err := client.sdkClient.ProjectControllerV2Api.ListProductResources(ctx, &project.ProjectControllerV2ApiListProductResourcesOpts{
 		ProductCategoryId: productCategoryId,
 	})
@@ -54,13 +54,13 @@ func (client *Client) GetProductResourceList(ctx context.Context, productCategor
 	return result, err
 }
 
-func (client *Client) GetProjectZoneList(ctx context.Context, projectId string) (project.ListResponseV2OfZoneResponseV3, error) {
+func (client *Client) GetProjectZoneList(ctx context.Context, projectId string) (project.ListResponseV2ZoneResponseV3, error) {
 	result, _, err := client.sdkClient.ZoneV3ControllerApi.ListServiceZonesOfProject(ctx, client.config.ProjectId, projectId)
 
 	return result, err
 }
 
-func (client *Client) GetProjectProductsList(ctx context.Context, projectId string, code optional.String) (project.ProjectResponseOfProductCategoryV2, error) {
+func (client *Client) GetProjectProductsList(ctx context.Context, projectId string, code optional.String) (project.ProjectResponseProductCategoryV2, error) {
 	result, _, err := client.sdkClient.ProjectControllerV2Api.ListProjectProducts(ctx, client.config.ProjectId, projectId, &project.ProjectControllerV2ApiListProjectProductsOpts{
 		LanguageCode: code,
 	})
@@ -68,7 +68,7 @@ func (client *Client) GetProjectProductsList(ctx context.Context, projectId stri
 	return result, err
 }
 
-func (client *Client) GetProjectProductResourcesList(ctx context.Context, projectId string, productCategoryId optional.String) (project.ProjectResponseOfProductCategoryResource, error) {
+func (client *Client) GetProjectProductResourcesList(ctx context.Context, projectId string, productCategoryId optional.String) (project.ProjectResponseProductCategoryResource, error) {
 	result, _, err := client.sdkClient.ProjectControllerV2Api.ListProjectProductResources(ctx, client.config.ProjectId, projectId, &project.ProjectControllerV2ApiListProjectProductResourcesOpts{
 		ProductCategoryId: productCategoryId,
 	})

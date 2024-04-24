@@ -40,7 +40,7 @@ func (client *Client) GetSubnet(ctx context.Context, subnetId string) (subnet2.S
 	return result, statusCode, err
 }
 
-func (client *Client) GetSubnetList(ctx context.Context, request *subnet2.SubnetOpenApiControllerApiListSubnetV2Opts) (subnet2.ListResponseOfSubnetListItemResVo, int, error) {
+func (client *Client) GetSubnetList(ctx context.Context, request *subnet2.SubnetOpenApiControllerApiListSubnetV2Opts) (subnet2.ListResponseSubnetListItemResVo, int, error) {
 	result, c, err := client.sdkClient.SubnetOpenApiControllerApi.ListSubnetV2(ctx, client.config.ProjectId, request)
 	var statusCode int
 	if c != nil {
@@ -49,7 +49,7 @@ func (client *Client) GetSubnetList(ctx context.Context, request *subnet2.Subnet
 	return result, statusCode, err
 }
 
-func (client *Client) GetSubnetResourcesV2List(ctx context.Context, subnetId string, request *subnet2.SubnetVipOpenApiControllerApiListSubnetResourcesV2Opts) (subnet2.ListResponseOfSubnetResourceIpListItemResVo, int, error) {
+func (client *Client) GetSubnetResourcesV2List(ctx context.Context, subnetId string, request *subnet2.SubnetVipOpenApiControllerApiListSubnetResourcesV2Opts) (subnet2.ListResponseSubnetResourceIpListItemResVo, int, error) {
 	result, c, err := client.sdkClient.SubnetVipOpenApiControllerApi.ListSubnetResourcesV2(ctx, client.config.ProjectId, subnetId, request)
 	var statusCode int
 	if c != nil {
@@ -58,7 +58,7 @@ func (client *Client) GetSubnetResourcesV2List(ctx context.Context, subnetId str
 	return result, statusCode, err
 }
 
-func (client *Client) GetSubnetVipV2List(ctx context.Context, subnetId string, request *subnet2.SubnetVipOpenApiControllerApiListSubnetVipsV2Opts) (subnet2.ListResponseOfSubnetVirtualIpListItemResVo, int, error) {
+func (client *Client) GetSubnetVipV2List(ctx context.Context, subnetId string, request *subnet2.SubnetVipOpenApiControllerApiListSubnetVipsV2Opts) (subnet2.ListResponseSubnetVirtualIpListItemResVo, int, error) {
 	result, c, err := client.sdkClient.SubnetVipOpenApiControllerApi.ListSubnetVipsV2(ctx, client.config.ProjectId, subnetId, request)
 	var statusCode int
 	if c != nil {
@@ -120,7 +120,7 @@ func (client *Client) CheckAvailableSubnetIp(ctx context.Context, subnetId strin
 	return result, err
 }
 
-func (client *Client) GetSubnetAvailableVipV2List(ctx context.Context, subnetId string, request *subnet2.SubnetVipOpenApiControllerApiListAvailableVipsV2Opts) (subnet2.ListResponseOfSubnetVirtualIpAvailableListItemResVo, error) {
+func (client *Client) GetSubnetAvailableVipV2List(ctx context.Context, subnetId string, request *subnet2.SubnetVipOpenApiControllerApiListAvailableVipsV2Opts) (subnet2.ListResponseSubnetVirtualIpAvailableListItemResVo, error) {
 	result, _, err := client.sdkClient.SubnetVipOpenApiControllerApi.ListAvailableVipsV2(ctx, client.config.ProjectId, subnetId, request)
 	return result, err
 }

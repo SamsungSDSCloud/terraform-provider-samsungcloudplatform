@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	securitygroup2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/security-group2"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -47,7 +47,7 @@ func resourceSecurityGroupLogStorageCreate(ctx context.Context, rd *schema.Resou
 	vpcId := rd.Get("vpc_id").(string)
 	obsBucketId := rd.Get("obs_bucket_id").(string)
 
-	SecurityGroupLogStorageCreatRequest := securitygroup2.SecurityGroupLogStorageCreatRequest{
+	SecurityGroupLogStorageCreatRequest := securitygroup2.SecurityGroupLogStorageCreateRequest{
 		ObsBucketId: obsBucketId,
 		VpcId:       vpcId,
 	}

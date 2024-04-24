@@ -62,8 +62,8 @@ func (client *Client) DeleteInternetGateway(ctx context.Context, internetGateway
 	return result, statusCode, err
 }
 
-func (client *Client) GetInternetGatewayList(ctx context.Context, request *internetgateway2.InternetGatewayV2ControllerV2ApiListInternetGateways1Opts) (internetgateway2.ListResponseOfInternetGatewayListItemResponse, int, error) {
-	result, c, err := client.sdkClient.InternetGatewayV2ControllerV2Api.ListInternetGateways1(ctx, client.config.ProjectId, request)
+func (client *Client) GetInternetGatewayList(ctx context.Context, request *internetgateway2.InternetGatewayV2ControllerV2ApiListInternetGatewaysOpts) (internetgateway2.ListResponseInternetGatewayListItemResponse, int, error) {
+	result, c, err := client.sdkClient.InternetGatewayV2ControllerV2Api.ListInternetGateways(ctx, client.config.ProjectId, request)
 	var statusCode int
 	if c != nil {
 		statusCode = c.StatusCode

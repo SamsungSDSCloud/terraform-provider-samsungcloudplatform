@@ -18,13 +18,13 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) ReadObjectStorageList(ctx context.Context, serviceZoneId string, request objectstorage.ObjectStorageV4ControllerApiListObjectStorage4Opts) (objectstorage.ListResponseOfObjectStorageListV4Response, error) {
-	result, _, err := client.sdkClient.ObjectStorageV4ControllerApi.ListObjectStorage4(ctx, client.config.ProjectId, serviceZoneId, &request)
+func (client *Client) ReadObjectStorageList(ctx context.Context, serviceZoneId string, request objectstorage.ObjectStorageV4ControllerApiListObjectStorageOpts) (objectstorage.ListResponseObjectStorageListV4Response, error) {
+	result, _, err := client.sdkClient.ObjectStorageV4ControllerApi.ListObjectStorage(ctx, client.config.ProjectId, serviceZoneId, &request)
 	return result, err
 }
 
 func (client *Client) CheckBucketName(ctx context.Context, objectStorageId string, objectStorageBucketName string) (bool, error) {
-	result, _, err := client.sdkClient.ObjectStorageBucketV4ControllerApi.CheckObjectStorageBucketDuplication1(ctx, client.config.ProjectId, objectStorageBucketName, objectStorageId)
+	result, _, err := client.sdkClient.ObjectStorageBucketV4ControllerApi.CheckObjectStorageBucketDuplication(ctx, client.config.ProjectId, objectStorageBucketName, objectStorageId)
 	if err != nil || result.Result == nil {
 		return true, err
 	}
@@ -62,7 +62,7 @@ func (client *Client) CreateBucket(ctx context.Context, request CreateBucketRequ
 }
 
 func (client *Client) ReadBucket(ctx context.Context, objectStorageBucketId string) (objectstorage.ObjectStorageBucketDetailV4Response, int, error) {
-	result, c, err := client.sdkClient.ObjectStorageBucketV4ControllerApi.DetailObjectStorageBucket1(ctx, client.config.ProjectId, objectStorageBucketId)
+	result, c, err := client.sdkClient.ObjectStorageBucketV4ControllerApi.DetailObjectStorageBucket(ctx, client.config.ProjectId, objectStorageBucketId)
 	var statusCode int
 	if c != nil {
 		statusCode = c.StatusCode
@@ -70,8 +70,8 @@ func (client *Client) ReadBucket(ctx context.Context, objectStorageBucketId stri
 	return result, statusCode, err
 }
 
-func (client *Client) ReadBucketList(ctx context.Context, request objectstorage.ObjectStorageBucketV4ControllerApiListObjectStorageBuckets2Opts) (objectstorage.ListResponseOfObjectStorageBucketListV4Response, error) {
-	result, _, err := client.sdkClient.ObjectStorageBucketV4ControllerApi.ListObjectStorageBuckets2(ctx, client.config.ProjectId, &request)
+func (client *Client) ReadBucketList(ctx context.Context, request objectstorage.ObjectStorageBucketV4ControllerApiListObjectStorageBucketsOpts) (objectstorage.ListResponseObjectStorageBucketListV4Response, error) {
+	result, _, err := client.sdkClient.ObjectStorageBucketV4ControllerApi.ListObjectStorageBuckets(ctx, client.config.ProjectId, &request)
 	return result, err
 }
 
@@ -81,7 +81,7 @@ func (client *Client) DeleteBucket(ctx context.Context, objectStorageBucketId st
 }
 
 func (client *Client) UpdateVersioning(ctx context.Context, objectStorageBucketId string, versionEnabled bool) (objectstorage.ObjectStorageBucketDetailV4Response, error) {
-	result, _, err := client.sdkClient.ObjectStorageBucketV4ControllerApi.UpdateObjectStorageBucketVersionEnabled1(ctx, client.config.ProjectId, objectStorageBucketId,
+	result, _, err := client.sdkClient.ObjectStorageBucketV4ControllerApi.UpdateObjectStorageBucketVersionEnabled(ctx, client.config.ProjectId, objectStorageBucketId,
 		objectstorage.ObjectStorageBucketVersionUpdateV4Request{
 			ObjectStorageBucketVersionEnabled: &versionEnabled,
 		})
@@ -97,7 +97,7 @@ func (client *Client) UpdateBucketEncryption(ctx context.Context, objectStorageB
 }
 
 func (client *Client) UpdateBucketDr(ctx context.Context, objectStorageBucketId string, drEnabled bool, syncBucketId string) error {
-	_, _, err := client.sdkClient.ObjectStorageDrV4ControllerApi.UpdateObjectStorageBucketDrEnabled1(ctx, client.config.ProjectId, objectStorageBucketId, objectstorage.ObjectStorageBucketDrUpdateV4Request{
+	_, _, err := client.sdkClient.ObjectStorageDrV4ControllerApi.UpdateObjectStorageBucketDrEnabled(ctx, client.config.ProjectId, objectStorageBucketId, objectstorage.ObjectStorageBucketDrUpdateV4Request{
 		ObjectStorageBucketDrEnabled: &drEnabled,
 		SyncObjectStorageBucketId:    syncBucketId,
 	})

@@ -2,7 +2,7 @@ package publicip
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
@@ -47,11 +47,12 @@ func ResourceVpcPublicIp() *schema.Resource {
 			"uplink_type": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Public IP uplinkType ('INTERNET'|'DEDICATED_INTERNET'|'SHARED_GROUP')",
+				Description: "Public IP uplinkType ('INTERNET'|'DEDICATED_INTERNET'|'SHARED_GROUP'|'SECURE_INTERNET')",
 				ValidateFunc: validation.StringInSlice([]string{
 					"INTERNET",
 					"DEDICATED_INTERNET",
 					"SHARED_GROUP",
+					"SECURE_INTERNET",
 				}, false),
 			},
 			"tags": tfTags.TagsSchema(),

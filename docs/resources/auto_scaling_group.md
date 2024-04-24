@@ -55,6 +55,7 @@ resource "scp_auto_scaling_group" "my_asg" {
 ### Optional
 
 - `availability_zone_name` (String) Availability zone name
+- `file_storage_id` (String) File Storage ID
 - `multi_availability_zone_enabled` (Boolean) Enable multi availability zone feature for this Auto-Scaling Group.
 - `tags` (Map of String)
 

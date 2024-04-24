@@ -15,8 +15,7 @@ resource "scp_virtual_server" "server_001" {
   virtual_server_name = var.name
   key_pair_id = data.terraform_remote_state.key_pair.outputs.id
 
-  cpu_count       = var.cpu
-  memory_size_gb  = var.memory
+  server_type = var.server-type
   image_id        = data.scp_standard_image.centos_image.id
   vpc_id          = data.terraform_remote_state.vpc.outputs.id
   subnet_id       = data.terraform_remote_state.subnet.outputs.id

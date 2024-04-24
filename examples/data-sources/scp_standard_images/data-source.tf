@@ -14,10 +14,10 @@ data "scp_standard_images" "my_standard_images2" {
   service       = "Virtual Server"
   region        = data.scp_region.region.location
 
-  # Apply filter for 'image_name' regex value "CentOS 7.2"
+  # Apply filter for 'image_name' regex value "CentOS 7.8"
   filter {
     name   = "image_name"
-    values = ["CentOS 7.2"]
+    values = ["CentOS 7.8"]
   }
 }
 

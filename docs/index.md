@@ -13,7 +13,7 @@ The provider needs to be configured with the proper credentials before it can be
 terraform {
   required_providers {
     scp = {
-      version = "3.1.0"
+      version = "3.5.0"
       source  = "SamsungSDSCloud/samsungcloudplatform"
     }
   }
@@ -71,3 +71,7 @@ Insert following parameters in `.scp/credentials.json` file
     "secret-key": "XXXXXXXXXXXXXXXX"
 }
 ```
+
+## Open-source Software Notice
+
+[OSS Notice Link](https://github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/blob/release-scp-v3.5.0/OpenSourceNotice.docx)

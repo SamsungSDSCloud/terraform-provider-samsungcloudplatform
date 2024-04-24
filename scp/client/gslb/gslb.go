@@ -63,7 +63,7 @@ func (client *Client) GetGslb(ctx context.Context, gslbId string) (gslb2.GslbSer
 	return result, statusCode, err
 }
 
-func (client *Client) GetGslbResource(ctx context.Context, gslbId string) (gslb2.ListResponseOfGslbResourceMappingResponse, error) {
+func (client *Client) GetGslbResource(ctx context.Context, gslbId string) (gslb2.ListResponseGslbResourceMappingResponse, error) {
 	result, _, err := client.sdkClient.GslbOpenApiV2ControllerApi.ListGslbResources(ctx, client.config.ProjectId, gslbId, nil)
 	return result, err
 }
@@ -108,7 +108,7 @@ func (client *Client) DeleteGslb(ctx context.Context, gslbId string) (gslb2.Asyn
 	return result, statusCode, err
 }
 
-func (client *Client) GetGslbList(ctx context.Context, request *gslb2.GslbOpenApiV2ControllerApiListGslbsOpts) (gslb2.ListResponseOfGslbServiceListItemResponse, int, error) {
+func (client *Client) GetGslbList(ctx context.Context, request *gslb2.GslbOpenApiV2ControllerApiListGslbsOpts) (gslb2.ListResponseGslbServiceListItemResponse, int, error) {
 	result, c, err := client.sdkClient.GslbOpenApiV2ControllerApi.ListGslbs(ctx, client.config.ProjectId, request)
 	var statusCode int
 	if c != nil {

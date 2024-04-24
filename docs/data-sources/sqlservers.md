@@ -26,18 +26,14 @@ output "output_my_scp_sqlservers" {
 
 ### Optional
 
-- `created_by` (String) Creator.
-- `db_name` (String) Database name.
 - `page` (Number) Page start number from which to get the list.
-- `region` (String) Region.
-- `server_group_name` (String) Server group name.
 - `size` (Number) Size to get list.
-- `sort` (List of String) Sorting conditions
-- `virtual_server_name` (String) Virtual server name.
+- `sort` (String) Sort
+- `sqlserver_cluster_name` (String) Database name.
 
 ### Read-Only
 
-- `contents` (Block List) Microsoft SQL server list (see [below for nested schema](#nestedblock--contents))
+- `contents` (Block List) MS SQL Server list (see [below for nested schema](#nestedblock--contents))
 - `id` (String) The ID of this resource.
 - `total_count` (Number)
 
@@ -46,49 +42,15 @@ output "output_my_scp_sqlservers" {
 
 Read-Only:
 
-- `created_by` (String) The person who created the resource.
+- `block_id` (String) Block ID.
+- `created_by` (String) The person who created the resource
 - `created_dt` (String) Creation date
-- `db_name` (String) Database name.
 - `modified_by` (String) The person who modified the resource
 - `modified_dt` (String) Modification date
-- `region` (String) Region.
-- `server_group_id` (String) Server group id.
-- `server_group_name` (String) Server group name.
-- `server_group_state` (String) Server group tate.
-- `virtual_servers` (List of Object) List of virtual servers. (see [below for nested schema](#nestedatt--contents--virtual_servers))
-
-<a id="nestedatt--contents--virtual_servers"></a>
-### Nested Schema for `contents.virtual_servers`
-
-Read-Only:
-
-- `created_by` (String)
-- `created_dt` (String)
-- `data_block_storage_spec` (String)
-- `database_state` (String)
-- `modified_by` (String)
-- `modified_dt` (String)
-- `region` (String)
-- `software` (Set of Object) (see [below for nested schema](#nestedobjatt--contents--virtual_servers--software))
-- `virtual_server_id` (String)
-- `virtual_server_name` (String)
-
-<a id="nestedobjatt--contents--virtual_servers--software"></a>
-### Nested Schema for `contents.virtual_servers.software`
-
-Read-Only:
-
-- `created_by` (String)
-- `created_dt` (String)
-- `modified_by` (String)
-- `modified_dt` (String)
-- `software_category` (String)
-- `software_id` (String)
-- `software_name` (String)
-- `software_properties` (List of String)
-- `software_service_state` (String)
-- `software_state` (String)
-- `software_type` (String)
-- `software_version` (String)
+- `project_id` (String) Project ID.
+- `service_zone_id` (String) Service Zone ID
+- `sqlserver_cluster_id` (String) MS SQL Server Cluster ID
+- `sqlserver_cluster_name` (String) MS SQL Server Cluster Name
+- `sqlserver_cluster_state` (String) MS SQL Server Cluster State
 
 

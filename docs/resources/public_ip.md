@@ -29,7 +29,7 @@ resource "scp_public_ip" "ip01" {
 ### Required
 
 - `region` (String) Region name
-- `uplink_type` (String) Public IP uplinkType ('INTERNET'|'DEDICATED_INTERNET'|'SHARED_GROUP')
+- `uplink_type` (String) Public IP uplinkType ('INTERNET'|'DEDICATED_INTERNET'|'SHARED_GROUP'|'SECURE_INTERNET')
 
 ### Optional
 

@@ -2,7 +2,7 @@ package natgateway
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	natgateway2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/nat-gateway2"
 	"github.com/antihax/optional"
 
@@ -43,7 +43,7 @@ func DatasourceNatGateways() *schema.Resource {
 func dataSourceList(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	responses, _, err := inst.Client.NatGateway.ListNatGateway(ctx, &natgateway2.NatGatewayV2ControllerV2ApiListNatGateways1Opts{
+	responses, _, err := inst.Client.NatGateway.ListNatGateway(ctx, &natgateway2.NatGatewayV2ControllerV2ApiListNatGatewaysOpts{
 		VpcId:          optional.NewString(rd.Get("vpc_id").(string)),
 		SubnetId:       optional.NewString(rd.Get("subnet_id").(string)),
 		NatGatewayId:   optional.NewString(rd.Get("nat_gateway_id").(string)),

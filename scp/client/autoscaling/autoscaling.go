@@ -37,7 +37,7 @@ func (client *Client) GetAutoScalingGroupDetail(ctx context.Context, asgId strin
 	return result, statusCode, err
 }
 
-func (client *Client) GetAutoScalingGroupList(ctx context.Context, request *autoscaling2.AutoScalingGroupV2ApiGetAsgListV2Opts) (autoscaling2.ListResponseOfAutoScalingGroupResponse, int, error) {
+func (client *Client) GetAutoScalingGroupList(ctx context.Context, request *autoscaling2.AutoScalingGroupV2ApiGetAsgListV2Opts) (autoscaling2.ListResponseAutoScalingGroupResponse, int, error) {
 	result, c, err := client.sdkClient.AutoScalingGroupV2Api.GetAsgListV2(ctx, client.config.ProjectId, request)
 	var statusCode int
 	if c != nil {
@@ -82,7 +82,7 @@ func (client *Client) DeleteAutoScalingGroup(ctx context.Context, asgId string) 
 	return statusCode, err
 }
 
-func (client *Client) GetLaunchConfigurationList(ctx context.Context, request *autoscaling2.AsgLaunchConfigurationV2ApiGetLaunchConfigListV2Opts) (autoscaling2.ListResponseOfLaunchConfigListItemResponse, int, error) {
+func (client *Client) GetLaunchConfigurationList(ctx context.Context, request *autoscaling2.AsgLaunchConfigurationV2ApiGetLaunchConfigListV2Opts) (autoscaling2.ListResponseLaunchConfigListItemResponse, int, error) {
 	result, c, err := client.sdkClient.AsgLaunchConfigurationV2Api.GetLaunchConfigListV2(ctx, client.config.ProjectId, request)
 	var statusCode int
 	if c != nil {
@@ -137,7 +137,7 @@ func (client *Client) GetAutoScalingGroupPolicyDetail(ctx context.Context, asgId
 	return result, statusCode, err
 }
 
-func (client *Client) GetAutoScalingGroupPolicyList(ctx context.Context, asgId string, request *autoscaling2.AsgPolicyV2ApiGetAsgPolicyListV2Opts) (autoscaling2.ListResponseOfAsgPolicyResponse, int, error) {
+func (client *Client) GetAutoScalingGroupPolicyList(ctx context.Context, asgId string, request *autoscaling2.AsgPolicyV2ApiGetAsgPolicyListV2Opts) (autoscaling2.ListResponseAsgPolicyResponse, int, error) {
 	result, c, err := client.sdkClient.AsgPolicyV2Api.GetAsgPolicyListV2(ctx, client.config.ProjectId, asgId, request)
 	var statusCode int
 	if c != nil {
@@ -162,4 +162,13 @@ func (client *Client) DeleteAutoScalingGroupPolicy(ctx context.Context, asgId st
 		statusCode = c.StatusCode
 	}
 	return statusCode, err
+}
+
+func (client *Client) GetAutoScalingGroupVirtualServerList(ctx context.Context, asgId string, request *autoscaling2.AsgVirtualServerV2ApiGetAsgVirtualServerListV2Opts) (autoscaling2.PageResponseV2AsgVirtualServerListItemResponse, int, error) {
+	result, c, err := client.sdkClient.AsgVirtualServerV2Api.GetAsgVirtualServerListV2(ctx, client.config.ProjectId, asgId, request)
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
 }

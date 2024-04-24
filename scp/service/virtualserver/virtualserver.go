@@ -3,7 +3,7 @@ package virtualserver
 import (
 	"context"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/blockstorage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/virtualserver"
@@ -253,6 +253,11 @@ func ResourceVirtualServer() *schema.Resource {
 				Description: "Availability Zone Name",
 			},
 			"tags": tfTags.TagsSchema(),
+			"role_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Role Id",
+			},
 		},
 		Description: "Provides a Virtual Server resource.",
 	}
@@ -339,6 +344,7 @@ func resourceVirtualServerCreate(ctx context.Context, rd *schema.ResourceData, m
 
 	keyPairId := rd.Get("key_pair_id").(string)
 	placementGroupId := rd.Get("placement_group_id").(string)
+	roleId := rd.Get("role_id").(string)
 
 	if adminPassword == "" && keyPairId == "" {
 		return diag.Errorf("Either admin_password or key_pair_id must be specified.")
@@ -529,7 +535,6 @@ func resourceVirtualServerCreate(ctx context.Context, rd *schema.ResourceData, m
 			}
 		}
 	}
-
 	initialScriptShell := "bash"
 	if isOsWindows {
 		initialScriptShell = "pwsh"
@@ -574,6 +579,7 @@ func resourceVirtualServerCreate(ctx context.Context, rd *schema.ResourceData, m
 		Tags:                 rd.Get("tags").(map[string]interface{}),
 		KeyPairId:            keyPairId,
 		PlacementGroupId:     placementGroupId,
+		RoleId:               roleId,
 	}
 	var createResponse virtualserver2.AsyncResponse
 	if keyPairId != "" {
@@ -714,40 +720,19 @@ func getImageInfo(ctx context.Context, serviceZoneId string, imageId string, met
 		return false, false, "", err
 	}
 
-	if imageType == "STANDARD" {
-		standardImages, err := inst.Client.Image.GetStandardImageList(ctx, serviceZoneId, image.ActiveState, common.ServicedGroupCompute, common.ServicedForVirtualServer)
+	if imageType == "CUSTOM" {
+		isOsWindows, targetProductGroupId, err = getCustomImageInfo(ctx, serviceZoneId, imageId, common.ServicedForVirtualServer, inst)
 		if err != nil {
 			return false, false, "", err
 		}
-		targetProductGroupId, isOsWindows = getProductGroupIdFromStandardImageResponse(standardImages, imageId)
 		if targetProductGroupId == "" {
-			standardGpuImages, err := inst.Client.Image.GetStandardImageList(ctx, serviceZoneId, image.ActiveState, common.ServicedGroupCompute, common.ServicedForGpuServer)
-			if err != nil {
-				return false, false, "", err
-			}
-			targetProductGroupId, isOsWindows = getProductGroupIdFromStandardImageResponse(standardGpuImages, imageId)
+			isOsWindows, targetProductGroupId, err = getCustomImageInfo(ctx, serviceZoneId, imageId, common.ServicedForGpuServer, inst)
 			if targetProductGroupId != "" {
 				isGpuImage = true
 			}
 		}
-	} else if imageType == "CUSTOM" {
-		customImages, err := inst.Client.CustomImage.GetCustomImageList(ctx, image2.CustomImageV2ApiListCustomImagesOpts{
-			ImageState:       optional.NewString(image.ActiveState),
-			ServicedGroupFor: optional.NewString(common.ServicedGroupCompute),
-			ServicedFor:      optional.NewString(common.ServicedForVirtualServer),
-			ServiceZoneId:    optional.NewString(serviceZoneId),
-		})
 		if err != nil {
 			return false, false, "", err
-		}
-
-		for _, c := range customImages.Contents {
-			if c.ImageId == imageId {
-				targetProductGroupId = c.ProductGroupId
-				if c.OsType == common.OsTypeWindows {
-					isOsWindows = true
-				}
-			}
 		}
 	} else if imageType == "MIGRATION" {
 		migrationImages, err := inst.Client.MigrationImage.GetMigrationImageList(ctx, image2.MigrationImageV2ApiListMigrationImagesOpts{
@@ -771,12 +756,52 @@ func getImageInfo(ctx context.Context, serviceZoneId string, imageId string, met
 				}
 			}
 		}
+	} else {
+		standardImages, err := inst.Client.Image.GetStandardImageList(ctx, serviceZoneId, image.ActiveState, common.ServicedGroupCompute, common.ServicedForVirtualServer)
+		if err != nil {
+			return false, false, "", err
+		}
+		targetProductGroupId, isOsWindows = getProductGroupIdFromStandardImageResponse(standardImages, imageId)
+		if targetProductGroupId == "" {
+			standardGpuImages, err := inst.Client.Image.GetStandardImageList(ctx, serviceZoneId, image.ActiveState, common.ServicedGroupCompute, common.ServicedForGpuServer)
+			if err != nil {
+				return false, false, "", err
+			}
+			targetProductGroupId, isOsWindows = getProductGroupIdFromStandardImageResponse(standardGpuImages, imageId)
+			if targetProductGroupId != "" {
+				isGpuImage = true
+			}
+		}
 	}
 
 	return isOsWindows, isGpuImage, targetProductGroupId, err
 }
 
-func getProductGroupIdFromStandardImageResponse(standardImages image2.ListResponseOfStandardImageResponse, imageId string) (string, bool) {
+func getCustomImageInfo(ctx context.Context, serviceZoneId string, imageId string, ServicedFor string, inst *client.Instance) (bool, string, error) {
+	customImages, err := inst.Client.CustomImage.GetCustomImageList(ctx, image2.CustomImageV2ApiListCustomImagesOpts{
+		ImageState:       optional.NewString(image.ActiveState),
+		ServicedGroupFor: optional.NewString(common.ServicedGroupCompute),
+		ServicedFor:      optional.NewString(ServicedFor),
+		ServiceZoneId:    optional.NewString(serviceZoneId),
+	})
+	if err != nil {
+		return false, "", err
+	}
+
+	var isOsWindows, targetProductGroupId = false, ""
+
+	for _, c := range customImages.Contents {
+		if c.ImageId == imageId {
+			targetProductGroupId = c.ProductGroupId
+			if c.OsType == common.OsTypeWindows {
+				isOsWindows = true
+			}
+		}
+	}
+	return isOsWindows, targetProductGroupId, err
+}
+
+func getProductGroupIdFromStandardImageResponse(standardImages image2.ListResponseStandardImageResponse, imageId string) (string, bool) {
 	var isOsWindows = false
 	var targetProductGroupId string
 	for _, c := range standardImages.Contents {
@@ -1034,6 +1059,7 @@ func resourceVirtualServerRead(ctx context.Context, rd *schema.ResourceData, met
 	rd.Set("state", virtualServerInfo.VirtualServerState)
 	rd.Set("key_pair_id", virtualServerInfo.KeyPairId)
 	rd.Set("placement_group_id", virtualServerInfo.PlacementGroupId)
+	rd.Set("role_id", virtualServerInfo.RoleId)
 
 	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
@@ -1203,7 +1229,7 @@ func resourceVirtualServerUpdate(ctx context.Context, rd *schema.ResourceData, m
 
 	if rd.HasChanges("local_subnet") {
 
-		var nicInfoList virtualserver2.ListResponseOfNicResponse
+		var nicInfoList virtualserver2.ListResponseNicResponse
 		nicInfoList, err = inst.Client.VirtualServer.GetNicList(ctx, rd.Id())
 		if err != nil {
 			return
@@ -1288,7 +1314,7 @@ func resourceVirtualServerUpdate(ctx context.Context, rd *schema.ResourceData, m
 
 	if rd.HasChanges("public_ip_id") || rd.HasChanges("nat_enabled") {
 
-		var nicInfoList virtualserver2.ListResponseOfNicResponse
+		var nicInfoList virtualserver2.ListResponseNicResponse
 		nicInfoList, err = inst.Client.VirtualServer.GetNicList(ctx, rd.Id())
 		if err != nil {
 			return
@@ -1512,6 +1538,22 @@ func resourceVirtualServerUpdate(ctx context.Context, rd *schema.ResourceData, m
 			VmState = common.RunningState
 		}
 		err = WaitForVirtualServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{VmState}, true)
+		if err != nil {
+			return
+		}
+	}
+
+	if rd.HasChanges("role_id") {
+		roleId := rd.Get("role_id").(string)
+		if roleId == "" {
+			_, _, err = inst.Client.VirtualServer.DeleteRole(ctx, virtualServerInfo.VirtualServerId)
+		} else {
+			_, _, err = inst.Client.VirtualServer.UpdateRole(ctx, virtualServerInfo.VirtualServerId, roleId)
+		}
+		if err != nil {
+			return
+		}
+		err = WaitForVirtualServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
 		if err != nil {
 			return
 		}

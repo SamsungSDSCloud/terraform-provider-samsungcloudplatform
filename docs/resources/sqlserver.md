@@ -14,6 +14,15 @@ Provide Microsoft SQL Server resource.
 
 ```terraform
 data "scp_region" "region" {
+  filter {
+    name = "location"
+    values = ["KR-WEST-2"]
+  }
+}
+
+data "scp_obs_storages" "obs_storage" {
+  service_zone_id     = data.scp_region.region.id
+  object_storage_name = "demo_object_storage_name"
 }
 
 data "scp_standard_image" "mssql_2019_enterprise_eng_image" {
@@ -28,46 +37,58 @@ data "scp_standard_image" "mssql_2019_enterprise_eng_image" {
 }
 
 resource "scp_sqlserver" "my_ms_sql" {
+  subnet_id = "SUBNET-12345678"
+  security_group_ids = ["FIREWALL_SECURITY_GROUP-12345678", "FIREWALL_SECURITY_GROUP-87654321"]
+  service_zone_id = data.scp_region.region.id
+
+  sqlserver_servers = [
+    {
+      sqlserver_server_name = "sqlserver-pri"
+      server_role_type = "PRIMARY"
+    },
+    {
+      sqlserver_server_name = "sqlserver-sec"
+      server_role_type = "SECONDARY"
+    }
+  ]
+
   image_id = data.scp_standard_image.mssql_2019_enterprise_eng_image.id
+  audit_enabled = true
+  contract_period = "1 Year"
+  next_contract_period = "None"
+  nat_enabled = false
+  nat_public_ip_id = null
+  postgresql_cluster_name = "sqlservercluster"
+  postgresql_cluster_state = "RUNNING"
 
-  server_group_name = "mssqlsvgr"
-  virtual_server_name_prefix = "mssqlvs"
+  database_service_name = "MSsql"
+  database_collation = "SQL_Latin1_General_CP1_CI_AS"
+  license = "AAAAA-BBBBB-CCCCC-DDDDD-EEEEE"
+  database_names = ["mssql_db","mssql_db2","mssql_db3"]
+  database_port = 2866
+  database_user_name = "dbuser"
+  database_user_password = "pa$$w0rd"
 
-  vpc_id = data.terraform_remote_state.vpc.outputs.id
-  subnet_id = data.terraform_remote_state.subnet.outputs.id
-  security_group_ids = [data.terraform_remote_state.security-group.outputs.id]
-
-  db_service_name = "Dbsvcname"
-  db_name = "dba"
-  db_user_id = var.id
-  db_user_password = var.password
-  db_port = 9548
-
-  license_key = var.license
-
-  cpu_count = var.cpu
-  memory_size_gb = var.memory
-
-  contract_discount = "None"
-
+  encryption_enabled = true
+  server_type = "db1v2m4"
   timezone = "Asia/Seoul"
 
-  db_collation = "Korean_Wansung_CS_AS"
+  block_storages = [
+    {
+      block_storage_type = "SSD"
+      block_storage_size = 10
+    }
+  ]
 
-  data_block_storage_size_gb = 100
-  encrypt_enabled = false
-
-  additional_block_storages {
-    storage_usage = "DATA"
-    storage_size_gb = 10
-  }
-
-  additional_db = ["dbb"]
-
-  backup {
-    backup_retention_day = 7
-    backup_start_hour = 23
-  }
+  backup = [
+    {
+      object_storage_id = data.scp_obs_storages.obs_storage.contents[0].object_storage_id
+      archive_backup_schedule_frequency = "30M"
+      backup_retention_period = "15D"
+      backup_start_hour = 7
+      full_backup_day_of_week = "MONDAY"
+    }
+  ]
 }
 ```
 
@@ -76,51 +97,68 @@ resource "scp_sqlserver" "my_ms_sql" {
 
 ### Required
 
-- `additional_db` (List of String) Names of additional database.
-- `contract_discount` (String) Contract : None, 1-year, 3-year
-- `cpu_count` (Number) CPU core count (2, 4, 8,..)
-- `data_block_storage_size_gb` (Number) Data Block Storage size in gigabytes.
-- `data_disk_type` (String) Data storage disk type. (SSD, HDD)
-- `db_name` (String) Name of database.
-- `db_port` (Number) Port number of database.
-- `db_service_name` (String) Name of SQL server database service. (Starts with a capital letter, 1 to 15 alphabet only)
-- `db_user_id` (String) User account id. (2 to 20 alpha-numerics)
-- `db_user_password` (String) User account password
-- `encrypt_enabled` (Boolean)
+- `audit_enabled` (Boolean) Whether to use database audit logging.
+- `block_storages` (Block List, Min: 1) block storage. (It can't be deleted.) (see [below for nested schema](#nestedblock--block_storages))
+- `contract_period` (String) Contract : None, 1-year, 3-year
+- `database_collation` (String) Commands that specify how to sort and compare data
+- `database_names` (List of String) Database Name List
+- `database_port` (Number) Port number of this database. (1024 to 65535)
+- `database_service_name` (String) MS SQL Server Database Service name
+- `database_user_name` (String) User account id of database. (2 to 20 alpha-numerics)
+- `database_user_password` (String, Sensitive) User account password of database.
+- `encryption_enabled` (Boolean) Whether to use storage encryption.
 - `image_id` (String) SQL Server standard image id.
-- `license_key` (String) License key.
-- `memory_size_gb` (Number) Memory size in gigabytes(4, 8, 16,..)
-- `security_group_ids` (List of String) Security-Group ids of this sql server group. Each security-group must be a valid security-group resource which is attached to the VPC.
-- `server_group_name` (String) Name of database cluster. (3 to 20 characters only)
-- `subnet_id` (String) Subnet ID.
+- `license` (String, Sensitive) License key.
+- `security_group_ids` (List of String) Security-Group ids of this MS SQL Server DB. Each security-group must be a valid security-group resource which is attached to the VPC.
+- `server_type` (String) Whether to use storage encryption.
+- `service_zone_id` (String) Service Zone Id
+- `sqlserver_cluster_name` (String) Name of database cluster. (3 to 20 characters only)
+- `sqlserver_cluster_state` (String) MS SQL Server cluster state
+- `sqlserver_servers` (Block List, Min: 1) MS SQL Server servers (HA configuration when entering two server specifications) (see [below for nested schema](#nestedblock--sqlserver_servers))
+- `subnet_id` (String) Subnet id of this database server. Subnet must be a valid subnet resource which is attached to the VPC.
 - `timezone` (String) Timezone setting of this database.
-- `virtual_server_name_prefix` (String) Prefix of virtual server. (3 to 13 alpha-numerics with dash)
-- `vpc_id` (String) VPC ID.
 
 ### Optional
 
-- `additional_block_storages` (Block List) Additional block storages. (see [below for nested schema](#nestedblock--additional_block_storages))
 - `backup` (Block Set, Max: 1) (see [below for nested schema](#nestedblock--backup))
-- `db_collation` (String) Commands that specify how to sort and compare data
-- `high_availability` (Block Set, Max: 1) (see [below for nested schema](#nestedblock--high_availability))
+- `nat_enabled` (Boolean) Whether to use nat.
+- `nat_public_ip_id` (String) Public IP for NAT. If it is null, it is automatically allocated.
+- `next_contract_period` (String) Next contract : None, 1-year, 3-year
+- `sqlserver_active_directory` (Block Set) MS SQL Server Active directory (see [below for nested schema](#nestedblock--sqlserver_active_directory))
 - `tags` (Map of String)
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
-- `cluster_vip` (String) Cluster virtual IP.
-- `external_vip` (String) External virtual IP.
 - `id` (String) The ID of this resource.
-- `vip` (String) Virtual IP.
+- `nat_ip_address` (String) nat ip address
+- `virtual_ip_address` (String) virtual ip address
+- `vpc_id` (String) vpc id
 
-<a id="nestedblock--additional_block_storages"></a>
-### Nested Schema for `additional_block_storages`
+<a id="nestedblock--block_storages"></a>
+### Nested Schema for `block_storages`
 
 Required:
 
-- `product_name` (String) Storage product name. (only SSD)
-- `storage_size_gb` (Number) Default data storage size in gigabytes. (10~7,168 GB)
-- `storage_usage` (String) Storage usage. (DATA, ARCHIVE)
+- `block_storage_size` (Number) Block Storage Size (10 to 7168)
+- `block_storage_type` (String) Storage product name. (SSD|HDD)
+
+Read-Only:
+
+- `block_storage_group_id` (String) Block storage group id
+
+
+<a id="nestedblock--sqlserver_servers"></a>
+### Nested Schema for `sqlserver_servers`
+
+Required:
+
+- `server_role_type` (String) Server role type Enter 'ACTIVE' for a single server configuration. (ACTIVE | PRIMARY | SECONDARY)",
+- `sqlserver_server_name` (String) MS SQL Server database server names. (3 to 15 lowercase and number with dash and the first character should be an lowercase letter.)
+
+Optional:
+
+- `availability_zone_name` (String) Availability Zone Name. (AZ1 | AZ2)
 
 
 <a id="nestedblock--backup"></a>
@@ -128,30 +166,27 @@ Required:
 
 Required:
 
-- `backup_retention_day` (Number) Backup File Retention Day.(7 <= day <= 35)
+- `archive_backup_schedule_frequency` (String) Backup File Schedule Frequency.(5M, 10M, 30M, 1H)
+- `backup_retention_period` (String) Backup File Retention Day.(7D <= day <= 35D)
 - `backup_start_hour` (Number) The time at which the backup starts. (from 0 to 23)
+- `full_backup_day_of_week` (String) Full backup schedule(Day). (MONDAY to SUNDAY)
 
 Optional:
-
-- `backup_method` (String) Backup Method (s3api|cdp)
-
-Read-Only:
 
 - `object_storage_id` (String) Object storage ID where backup files will be stored.
 
 
-<a id="nestedblock--high_availability"></a>
-### Nested Schema for `high_availability`
+<a id="nestedblock--sqlserver_active_directory"></a>
+### Nested Schema for `sqlserver_active_directory`
 
 Optional:
 
-- `active_availability_zone_name` (String) Active Availability Zone Name
-- `active_server_ip` (String) Static IP to assign to the ACTIVE server.
-- `reserved_nat_ip_id` (String) ID of Reserved Virtual NAT IP.
-- `standby_availability_zone_name` (String) Standby Availability Zone Name
-- `standby_server_ip` (String) Static IP to assign to the STANDBy server.
-- `use_vip_nat` (Boolean) use Virtual IP NAT.
-- `virtual_ip` (String) Virtual IP for database cluster access.
+- `ad_server_user_id` (String) Active Directory Server User ID
+- `ad_server_user_password` (String, Sensitive) Active Directory Server User password
+- `dns_server_ips` (List of String) Active Directory DNS Server IPs
+- `domain_name` (String) Active Directory Domain name
+- `domain_net_bios_name` (String) Active Directory NetBios name
+- `failover_cluster_name` (String) Active Directory Failover Cluster name
 
 
 <a id="nestedblock--timeouts"></a>

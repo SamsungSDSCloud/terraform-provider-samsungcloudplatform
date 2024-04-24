@@ -1,7 +1,7 @@
 data "scp_region" "region" {
   filter {
     name = "location"
-    values = ["KR-EAST-1"]
+    values = ["KR-WEST-2"]
   }
 }
 
@@ -27,7 +27,7 @@ resource "scp_postgresql" "demo_db" {
   service_zone_id = data.scp_region.region.id
 
   postgresql_servers {
-    postgresql_server_name = "demoserver-01"
+    postgresql_server_name = "demopost-01"
     server_role_type = "ACTIVE"
   }
 
@@ -35,9 +35,9 @@ resource "scp_postgresql" "demo_db" {
   audit_enabled = true
   contract_period = "1 Year"
   next_contract_period = "None"
-  nat_enabled = false
+  nat_enabled = true
   nat_public_ip_id = null
-  postgresql_cluster_name = "democluster"
+  postgresql_cluster_name = "demopostcluster"
   postgresql_cluster_state = "RUNNING"
 
   database_encoding = "UTF8"
@@ -57,7 +57,7 @@ resource "scp_postgresql" "demo_db" {
     block_storage_size = 10
   }
 
-  backup  {
+  backup {
     object_storage_id = data.scp_obs_storages.obs_storage.contents[0].object_storage_id
     archive_backup_schedule_frequency = "30M"
     backup_retention_period = "15D"

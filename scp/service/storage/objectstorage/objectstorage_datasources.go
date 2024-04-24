@@ -2,7 +2,7 @@ package objectstorage
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/antihax/optional"
 	"time"
 
@@ -65,7 +65,7 @@ func datasourceObjectStoragesRead(ctx context.Context, rd *schema.ResourceData, 
 		sort = optional.NewInterface(v.([]interface{}))
 	}
 
-	responses, err := inst.Client.ObjectStorage.ReadObjectStorageList(ctx, rd.Get("service_zone_id").(string), objectstorage.ObjectStorageV4ControllerApiListObjectStorage4Opts{
+	responses, err := inst.Client.ObjectStorage.ReadObjectStorageList(ctx, rd.Get("service_zone_id").(string), objectstorage.ObjectStorageV4ControllerApiListObjectStorageOpts{
 		IsMultiAvailabilityZone: isMultiAvailabilityZone,
 		ObjectStorageName:       objectStorageName,
 		Page:                    page,
@@ -203,7 +203,7 @@ func datasourceObjectStorageBucketsRead(ctx context.Context, rd *schema.Resource
 		sort = optional.NewInterface(v.([]interface{}))
 	}
 
-	responses, err := inst.Client.ObjectStorage.ReadBucketList(ctx, objectstorage.ObjectStorageBucketV4ControllerApiListObjectStorageBuckets2Opts{
+	responses, err := inst.Client.ObjectStorage.ReadBucketList(ctx, objectstorage.ObjectStorageBucketV4ControllerApiListObjectStorageBucketsOpts{
 		ObjectStorageSystemBucketEnabled: objectStorageSystemBucketEnabled,
 		ObjectStorageId:                  objectStorageId,
 		ObjectStorageBucketName:          objectStorageBucketName,

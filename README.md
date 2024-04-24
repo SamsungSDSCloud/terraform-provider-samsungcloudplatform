@@ -5,9 +5,7 @@
 - `docs` : Auto-generated documentation
 - `examples` : Example scp terraform files for testing & documentation
 - `internal` : (OLD) User profile management
-- `out` : Build binary output directory
 - `scp` : SCP terraform provider source code
-- `scripts` : Utility script files
 - `tools` : Tool modules
 
 ## Build Requirements
@@ -105,7 +103,7 @@ Run plugin with debug mode
 
 ## License
 
-Copyright 2022. Samsung SDS Co., Ltd. All rights reserved.
+Copyright 2024. Samsung SDS Co., Ltd. All rights reserved.
 
 See [LICENSE](LICENSE) for details.
 

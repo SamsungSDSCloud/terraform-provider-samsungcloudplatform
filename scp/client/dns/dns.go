@@ -137,7 +137,7 @@ func (client *Client) DeleteDnsRecord(ctx context.Context, dnsDomainId string, d
 	return result, statusCode, err
 }
 
-func (client *Client) GetDnsDomainList(ctx context.Context, request *dns2.DnsOpenApiV2ControllerApiListDnsDomainOpts) (dns2.ListResponseOfDnsDomainServiceListItemResponse, int, error) {
+func (client *Client) GetDnsDomainList(ctx context.Context, request *dns2.DnsOpenApiV2ControllerApiListDnsDomainOpts) (dns2.ListResponseDnsDomainServiceListItemResponse, int, error) {
 	result, c, err := client.sdkClient.DnsOpenApiV2ControllerApi.ListDnsDomain(ctx, client.config.ProjectId, request)
 	var statusCode int
 	if c != nil {
@@ -146,7 +146,7 @@ func (client *Client) GetDnsDomainList(ctx context.Context, request *dns2.DnsOpe
 	return result, statusCode, err
 }
 
-func (client *Client) GetDnsRecordList(ctx context.Context, dnsDomainId string, request *dns2.DnsOpenApiV2ControllerApiListDnsRecordOpts) (dns2.ListResponseOfDnsDomainRecordListItemResponse, int, error) {
+func (client *Client) GetDnsRecordList(ctx context.Context, dnsDomainId string, request *dns2.DnsOpenApiV2ControllerApiListDnsRecordOpts) (dns2.ListResponseDnsDomainRecordListItemResponse, int, error) {
 	//fmt.Printf("GetDnsRecordList-request: %+v\n", request)
 	result, c, err := client.sdkClient.DnsOpenApiV2ControllerApi.ListDnsRecord(ctx, client.config.ProjectId, dnsDomainId, request)
 

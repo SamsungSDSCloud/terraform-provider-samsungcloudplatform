@@ -2,7 +2,7 @@ package dns
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/dns2"
@@ -83,7 +83,7 @@ func dataSourceDnsRecordElem() *schema.Resource {
 	}
 }
 
-func convertDnsRecordListToHclSet(recordResponse dns2.ListResponseOfDnsDomainRecordListItemResponse) common.HclSetObject {
+func convertDnsRecordListToHclSet(recordResponse dns2.ListResponseDnsDomainRecordListItemResponse) common.HclSetObject {
 	var recordList common.HclSetObject
 	for _, record := range recordResponse.Contents {
 		if len(record.DnsRecordId) == 0 {

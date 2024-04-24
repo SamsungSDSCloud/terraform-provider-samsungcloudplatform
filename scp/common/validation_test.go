@@ -87,3 +87,35 @@ func TestValidateVPCDescription(t *testing.T) {
 		t.Error("over 50 characters are not allowed")
 	}
 }
+
+func TestValidateName1to15AlphaOnlyStartsWithUpperCase(t *testing.T) {
+	t.Parallel()
+
+	path := cty.Path{cty.GetAttrStep{Name: "MS SQL Server DB Service Name Validation"}}
+
+	validName := []string{
+		"M",
+		"MSsql",
+		"MSSQL",
+		"Abcdefghijklmno",
+	}
+
+	for _, v := range validName {
+		if ValidateName1to15AlphaOnlyStartsWithUpperCase(v, path).HasError() {
+			t.Error(path, " valid name: ", v)
+		}
+	}
+
+	invalidName := []string{
+		"m",
+		"mssql",
+		"abcdefghijklmnop",
+		"abc#$%",
+	}
+
+	for _, v := range invalidName {
+		if !ValidateName1to15AlphaOnlyStartsWithUpperCase(v, path).HasError() {
+			t.Error(path, " invalid name: ", v)
+		}
+	}
+}

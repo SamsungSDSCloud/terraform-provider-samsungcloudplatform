@@ -3,7 +3,7 @@ package autoscaling
 import (
 	"context"
 	"errors"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/autoscaling/autoscaling_common"
@@ -104,6 +104,12 @@ func ResourceAutoScalingGroup() *schema.Resource {
 				Optional:    true,
 				ForceNew:    true,
 				Description: "Enable multi availability zone feature for this Auto-Scaling Group.",
+			},
+			"file_storage_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "File Storage ID",
 			},
 			"asg_id": {
 				Type:        schema.TypeString,
@@ -260,6 +266,7 @@ func resourceAutoScalingGroupCreate(ctx context.Context, rd *schema.ResourceData
 	vpcInfoReq.LocalSubnetId = vpcInfo["local_subnet_id"].(string)
 	natEnabled := vpcInfo["nat_enabled"].(bool)
 	vpcInfoReq.NatEnabled = &natEnabled
+	fileStorageId := rd.Get("file_storage_id").(string)
 
 	// Validation
 	validateServerCount(minServerCount, desiredServerCount, maxServerCount)
@@ -288,6 +295,7 @@ func resourceAutoScalingGroupCreate(ctx context.Context, rd *schema.ResourceData
 		SecurityGroupIds:             securityGroupIds,
 		ServerNamePrefix:             rd.Get("server_name_prefix").(string),
 		VpcInfo:                      &vpcInfoReq,
+		FileStorageId:                fileStorageId,
 	}
 	result, _, err := inst.Client.AutoScaling.CreateAutoScalingGroup(ctx, createRequest, rd.Get("tags").(map[string]interface{}))
 	if err != nil {

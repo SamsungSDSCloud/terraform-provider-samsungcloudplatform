@@ -21,7 +21,7 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) GetVpcRoutingTableList(ctx context.Context) (routing2.ListResponseOfVpcRoutingTableListResponse, error) {
+func (client *Client) GetVpcRoutingTableList(ctx context.Context) (routing2.ListResponseVpcRoutingTableListResponse, error) {
 	result, _, err := client.sdkClient.VpcRoutingTableOpenApiControllerApi.ListVpcRoutingTables(ctx, client.config.ProjectId, &routing2.VpcRoutingTableOpenApiControllerApiListVpcRoutingTablesOpts{
 		Size: optional.NewInt32(20),
 		Page: optional.NewInt32(0),
@@ -29,7 +29,7 @@ func (client *Client) GetVpcRoutingTableList(ctx context.Context) (routing2.List
 	return result, err
 }
 
-func (client *Client) GetVpcRoutingTableListV2(ctx context.Context, request ListVpcRoutingTableRequest) (routing2.ListResponseOfVpcRoutingTableListResponse, error) {
+func (client *Client) GetVpcRoutingTableListV2(ctx context.Context, request ListVpcRoutingTableRequest) (routing2.ListResponseVpcRoutingTableListResponse, error) {
 	result, _, err := client.sdkClient.VpcRoutingTableOpenApiControllerApi.ListVpcRoutingTables(ctx, client.config.ProjectId, &routing2.VpcRoutingTableOpenApiControllerApiListVpcRoutingTablesOpts{
 		RoutingTableId:   optional.NewString(request.RoutingTableId),
 		RoutingTableName: optional.NewString(request.RoutingTableName),
@@ -42,7 +42,7 @@ func (client *Client) GetVpcRoutingTableListV2(ctx context.Context, request List
 	return result, err
 }
 
-func (client *Client) GetVpcRoutingTableListByVpcId(ctx context.Context, vpcId string) (routing2.ListResponseOfVpcRoutingTableListResponse, error) {
+func (client *Client) GetVpcRoutingTableListByVpcId(ctx context.Context, vpcId string) (routing2.ListResponseVpcRoutingTableListResponse, error) {
 	result, _, err := client.sdkClient.VpcRoutingTableOpenApiControllerApi.ListVpcRoutingTables(ctx, client.config.ProjectId, &routing2.VpcRoutingTableOpenApiControllerApiListVpcRoutingTablesOpts{
 		VpcId: optional.NewString(vpcId),
 	})
@@ -54,12 +54,12 @@ func (client *Client) GetVpcRoutingTableDetail(ctx context.Context, routingTable
 	return result, err
 }
 
-func (client *Client) GetVpcRoutingRulesRoute(ctx context.Context, routingTableId string) (routing2.ListResponseOfRoutingRuleRouteListResponse, error) {
+func (client *Client) GetVpcRoutingRulesRoute(ctx context.Context, routingTableId string) (routing2.ListResponseRoutingRuleRouteListResponse, error) {
 	result, _, err := client.sdkClient.VpcRoutingRuleOpenApiControllerApi.ListVpcRoutingRulesRoute(ctx, client.config.ProjectId, routingTableId)
 	return result, err
 }
 
-func (client *Client) GetVpcRoutingRulesList(ctx context.Context, routingTableId string, request ListVpcRoutingRulesRequest) (routing2.ListResponseOfVpcRoutingRuleListResponse, error) {
+func (client *Client) GetVpcRoutingRulesList(ctx context.Context, routingTableId string, request ListVpcRoutingRulesRequest) (routing2.ListResponseVpcRoutingRuleListResponse, error) {
 	options := routing2.VpcRoutingRuleOpenApiControllerApiListVpcRoutingRulesOpts{
 		DestinationNetworkCidr:   optional.NewString(request.DestinationNetworkCidr),
 		RoutingRuleId:            optional.NewString(request.RoutingRuleId),
@@ -146,7 +146,7 @@ func (client *Client) SplitRoutingRuleId(ruleId string) (routingTableId, routing
 }
 
 // DirectConnect
-func (client *Client) GetDCRoutingTableList(ctx context.Context, routingTableId string, routingTableName string, directConnectConnectionId string, createdBy string) (routing2.ListResponseOfDcRoutingTableListResponse, error) {
+func (client *Client) GetDCRoutingTableList(ctx context.Context, routingTableId string, routingTableName string, directConnectConnectionId string, createdBy string) (routing2.ListResponseDcRoutingTableListResponse, error) {
 	result, _, err := client.sdkClient.DirectConnectRoutingTableOpenApiControllerApi.ListDcRoutingTables(ctx, client.config.ProjectId, &routing2.DirectConnectRoutingTableOpenApiControllerApiListDcRoutingTablesOpts{
 		RoutingTableId:            optional.NewString(routingTableId),
 		RoutingTableName:          optional.NewString(routingTableName),
@@ -158,7 +158,7 @@ func (client *Client) GetDCRoutingTableList(ctx context.Context, routingTableId 
 	return result, err
 }
 
-func (client *Client) GetDCRoutingRulesRoute(ctx context.Context, routingTableId string) (routing2.ListResponseOfRoutingRuleRouteListResponse, error) {
+func (client *Client) GetDCRoutingRulesRoute(ctx context.Context, routingTableId string) (routing2.ListResponseRoutingRuleRouteListResponse, error) {
 	result, _, err := client.sdkClient.DirectConnectRoutingRuleOpenApiControllerApi.ListDcRoutingRulesRoute(ctx, client.config.ProjectId, routingTableId)
 	return result, err
 }
@@ -226,7 +226,7 @@ func (client *Client) CheckDCDuplicationRoutingRule(ctx context.Context, routing
 	return *result.Result, err
 }
 
-func (client *Client) GetDCRoutingRulesList(ctx context.Context, routingTableId string, request ListVpcRoutingRulesRequest) (routing2.ListResponseOfDcRoutingRuleListResponse, error) {
+func (client *Client) GetDCRoutingRulesList(ctx context.Context, routingTableId string, request ListVpcRoutingRulesRequest) (routing2.ListResponseDcRoutingRuleListResponse, error) {
 	options := routing2.DirectConnectRoutingRuleOpenApiControllerApiListDcRoutingRulesOpts{
 		DestinationNetworkCidr:   optional.NewString(request.DestinationNetworkCidr),
 		RoutingRuleId:            optional.NewString(request.RoutingRuleId),
@@ -245,7 +245,7 @@ func (client *Client) GetDCRoutingRulesList(ctx context.Context, routingTableId 
 
 //Transit Gateway
 
-func (client *Client) GetTgwRoutingTableList(ctx context.Context, request ListTgwRoutingTableRequest) (routing2.ListResponseOfTgwRoutingTableListResponse, error) {
+func (client *Client) GetTgwRoutingTableList(ctx context.Context, request ListTgwRoutingTableRequest) (routing2.ListResponseTgwRoutingTableListResponse, error) {
 	result, _, err := client.sdkClient.TransitGatewayRoutingTableOpenApiControllerApi.ListTgwRoutingTables(ctx, client.config.ProjectId, &routing2.TransitGatewayRoutingTableOpenApiControllerApiListTgwRoutingTablesOpts{
 		RoutingTableId:             optional.NewString(request.RoutingTableId),
 		RoutingTableName:           optional.NewString(request.RoutingTableName),
@@ -264,7 +264,7 @@ func (client *Client) GetTgwRoutingTableDetail(ctx context.Context, routingTable
 	return result, err
 }
 
-func (client *Client) GetTgwRoutingRuleList(ctx context.Context, routingTableId string, request ListTgwRoutingRuleRequest) (routing2.ListResponseOfTgwRoutingRuleListResponse, error) {
+func (client *Client) GetTgwRoutingRuleList(ctx context.Context, routingTableId string, request ListTgwRoutingRuleRequest) (routing2.ListResponseTgwRoutingRuleListResponse, error) {
 
 	result, _, err := client.sdkClient.TransitGatewayRoutingRuleOpenApiControllerApi.ListTgwRoutingRules(ctx, client.config.ProjectId, routingTableId, &routing2.TransitGatewayRoutingRuleOpenApiControllerApiListTgwRoutingRulesOpts{
 		DestinationNetworkCidr:   optional.NewString(request.DestinationNetworkCidr),
@@ -309,7 +309,7 @@ func (client *Client) GetTgwRoutingRuleById(ctx context.Context, routingTableId 
 	return routing2.TgwRoutingRuleListResponse{}, "DELETED", nil
 }
 
-func (client *Client) GetTgwRoutingRoutes(ctx context.Context, routingTableId string) (routing2.ListResponseOfRoutingRuleRouteListResponse, error) {
+func (client *Client) GetTgwRoutingRoutes(ctx context.Context, routingTableId string) (routing2.ListResponseRoutingRuleRouteListResponse, error) {
 	result, _, err := client.sdkClient.TransitGatewayRoutingRuleOpenApiControllerApi.ListTgwRoutingRulesRoute(ctx, client.config.ProjectId, routingTableId)
 
 	return result, err

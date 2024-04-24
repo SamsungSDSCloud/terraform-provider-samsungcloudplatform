@@ -85,6 +85,7 @@ type CreateRequest struct {
 	Tags                 map[string]interface{}
 	KeyPairId            string
 	PlacementGroupId     string
+	RoleId               string
 }
 
 type ListVirtualServersRequestParam struct {

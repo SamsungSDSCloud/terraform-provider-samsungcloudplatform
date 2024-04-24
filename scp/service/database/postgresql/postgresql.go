@@ -3,7 +3,7 @@ package postgresql
 import (
 	"context"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/database/database_common"
@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"log"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -27,6 +28,7 @@ func ResourcePostgresql() *schema.Resource {
 		ReadContext:   resourcePostgresqlRead,
 		UpdateContext: resourcePostgresqlUpdate,
 		DeleteContext: resourcePostgresqlDelete,
+		CustomizeDiff: resourcePostgresqlDiff,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -39,26 +41,24 @@ func ResourcePostgresql() *schema.Resource {
 			"audit_enabled": {
 				Type:        schema.TypeBool,
 				Required:    true,
-				ForceNew:    true,
 				Description: "Whether to use database audit logging.",
 			},
 			"contract_period": {
 				Type:             schema.TypeString,
 				Required:         true,
-				Description:      "Contract (None|1-year|3-year)",
-				ValidateDiagFunc: database_common.ValidateContractPeriod,
+				Description:      "Contract (None|1 Year|3 Year)",
+				ValidateDiagFunc: database_common.ValidateStringInOptions("None", database_common.OneYear, database_common.ThreeYear),
 			},
 			"next_contract_period": {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Default:          "None",
-				Description:      "Next contract (None|1-year|3-year)",
-				ValidateDiagFunc: database_common.ValidateContractPeriod,
+				Description:      "Next contract (None|1 Year|3 Year)",
+				ValidateDiagFunc: database_common.ValidateStringInOptions("None", database_common.OneYear, database_common.ThreeYear),
 			},
 			"image_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "Postgresql virtual server image id.",
 			},
 			"nat_enabled": {
@@ -74,7 +74,6 @@ func ResourcePostgresql() *schema.Resource {
 			"postgresql_cluster_name": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ForceNew:         true,
 				Description:      "Name of database cluster. (3 to 20 characters only)",
 				ValidateDiagFunc: common.ValidateName3to20AlphaOnly,
 			},
@@ -82,40 +81,35 @@ func ResourcePostgresql() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				Description:      "postgresql cluster state (RUNNING|STOPPED)",
-				ValidateDiagFunc: database_common.ValidServerState,
+				ValidateDiagFunc: database_common.ValidateStringInOptions("RUNNING", "STOPPED"),
 			},
 			"database_encoding": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ForceNew:         true,
 				Description:      "Postgresql encoding. (Only 'UTF8' for now)",
-				ValidateDiagFunc: database_common.ValidateSameValue("UTF8"),
+				ValidateDiagFunc: database_common.ValidateStringInOptions("UTF8"),
 			},
 			"database_locale": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ForceNew:         true,
 				Description:      "Postgresql locale. (Only 'C' for now)",
-				ValidateDiagFunc: database_common.ValidateSameValue("C"),
+				ValidateDiagFunc: database_common.ValidateStringInOptions("C"),
 			},
 			"database_name": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ForceNew:         true,
 				Description:      "Name of database. (only English alphabets or numbers between 3 and 20 characters)",
 				ValidateDiagFunc: database_common.ValidateAlphaNumeric3to20,
 			},
 			"database_port": {
 				Type:             schema.TypeInt,
 				Required:         true,
-				ForceNew:         true,
 				Description:      "Port number of database. (1024 to 65535)",
-				ValidateDiagFunc: database_common.ValidatePortNumber,
+				ValidateDiagFunc: database_common.ValidateIntegerInRange(1024, 65535),
 			},
 			"database_user_name": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ForceNew:         true,
 				Description:      "User account id of database. (2 to 20 lowercase alphabets)",
 				ValidateDiagFunc: common.ValidateName2to20LowerAlphaOnly,
 			},
@@ -123,7 +117,6 @@ func ResourcePostgresql() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				Sensitive:        true,
-				ForceNew:         true,
 				Description:      "User account password of database.",
 				ValidateDiagFunc: common.ValidatePassword8to30WithSpecialsExceptQuotes,
 			},
@@ -137,19 +130,24 @@ func ResourcePostgresql() *schema.Resource {
 							Type:             schema.TypeString,
 							Required:         true,
 							Description:      "Storage product name. (SSD|HDD)",
-							ValidateDiagFunc: database_common.ValidateBlockStorageType,
+							ValidateDiagFunc: database_common.ValidateStringInOptions("SSD", "HDD"),
 						},
 						"block_storage_role_type": {
 							Type:             schema.TypeString,
 							Required:         true,
 							Description:      "Storage usage. (DATA|ARCHIVE|TEMP|BACKUP)",
-							ValidateDiagFunc: database_common.ValidateBlockStorageRoleType,
+							ValidateDiagFunc: database_common.ValidateStringInOptions("DATA", "ARCHIVE", "TEMP", "BACKUP"),
 						},
 						"block_storage_size": {
 							Type:             schema.TypeInt,
 							Required:         true,
 							Description:      "Block Storage Size (10 to 5120)",
-							ValidateDiagFunc: database_common.ValidateBlockStorageSize,
+							ValidateDiagFunc: database_common.ValidateIntegerInRange(10, 5120),
+						},
+						"block_storage_group_id": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Block storage group id",
 						},
 					},
 				},
@@ -169,21 +167,19 @@ func ResourcePostgresql() *schema.Resource {
 							Type:             schema.TypeString,
 							Optional:         true,
 							Description:      "Availability Zone Name. The single server does not input anything. (AZ1|AZ2)",
-							ValidateDiagFunc: database_common.ValidateAvailabilityZone,
+							ValidateDiagFunc: database_common.ValidateStringInOptions("AZ1", "AZ2"),
 						},
 						"postgresql_server_name": {
 							Type:             schema.TypeString,
 							Required:         true,
-							ForceNew:         true,
 							Description:      "Postgresql database server names. (3 to 20 lowercase and number with dash and the first character should be an lowercase letter.)",
 							ValidateDiagFunc: database_common.Validate3to20LowercaseNumberDashAndStartLowercase,
 						},
 						"server_role_type": {
 							Type:             schema.TypeString,
 							Required:         true,
-							ForceNew:         true,
 							Description:      "Server role type Enter 'ACTIVE' for a single server configuration. (ACTIVE | STANDBY)",
-							ValidateDiagFunc: database_common.ValidateServerRoleType,
+							ValidateDiagFunc: database_common.ValidateStringInOptions("ACTIVE", "STANDBY"),
 						},
 					},
 				},
@@ -204,60 +200,68 @@ func ResourcePostgresql() *schema.Resource {
 			"service_zone_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "Service Zone Id",
 			},
 			"subnet_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "Subnet id of this database server. Subnet must be a valid subnet resource which is attached to the VPC.",
 			},
 			"timezone": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "Timezone setting of this database.",
 			},
 			"backup": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				MaxItems: 1,
-				Elem:     resourcePostgreSQLBackup(),
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"object_storage_id": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Object storage ID where backup files will be stored.",
+						},
+						"archive_backup_schedule_frequency": {
+							Type:             schema.TypeString,
+							Required:         true,
+							Description:      "Backup File Schedule Frequency.(5M|10M|30M|1H) ",
+							ValidateDiagFunc: database_common.ValidateStringInOptions("5M", "10M", "30M", "1H"),
+						},
+						"backup_retention_period": {
+							Type:             schema.TypeString,
+							Required:         true,
+							Description:      "Backup File Retention Day.(7D <= day <= 35D) ",
+							ValidateDiagFunc: database_common.ValidateBackupRetentionPeriod,
+						},
+						"backup_start_hour": {
+							Type:             schema.TypeInt,
+							Required:         true,
+							Description:      "The time at which the backup starts. (from 0 to 23)",
+							ValidateDiagFunc: database_common.ValidateIntegerInRange(0, 23),
+						},
+					},
+				},
+			},
+			"virtual_ip_address": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "virtual ip address",
+			},
+			"nat_ip_address": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "nat ip address",
+			},
+			"vpc_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "vpc id",
 			},
 			"tags": tfTags.TagsSchema(),
 		},
 		Description: "Provides a PostgreSQL Database resource.",
-	}
-}
-
-func resourcePostgreSQLBackup() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"object_storage_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Object storage ID where backup files will be stored.",
-			},
-			"archive_backup_schedule_frequency": {
-				Type:             schema.TypeString,
-				Required:         true,
-				Description:      "Backup File Schedule Frequency.(5M|10M|30M|1H) ",
-				ValidateDiagFunc: database_common.ValidateBackupScheduleFrequency,
-			},
-			"backup_retention_period": {
-				Type:             schema.TypeString,
-				Required:         true,
-				Description:      "Backup File Retention Day.(7D <= day <= 35D) ",
-				ValidateDiagFunc: database_common.ValidateBackupRetentionPeriod,
-			},
-			"backup_start_hour": {
-				Type:             schema.TypeInt,
-				Required:         true,
-				Description:      "The time at which the backup starts. (from 0 to 23)",
-				ValidateDiagFunc: database_common.ValidateBackupStartHour,
-			},
-		},
 	}
 }
 
@@ -302,7 +306,7 @@ func resourcePostgresqlCreate(ctx context.Context, rd *schema.ResourceData, meta
 
 	// block storage (HclListObject to Slice)
 	var PostgresqlBlockStorageGroupCreateRequestList []postgresql.PostgresqlBlockStorageGroupCreateRequest
-	blockStoragesList := database_common.ConvertBlockStorageList(blockStorages)
+	blockStoragesList := database_common.ConvertObjectSliceToStructSlice(blockStorages)
 	for _, blockStorage := range blockStoragesList {
 		PostgresqlBlockStorageGroupCreateRequestList = append(PostgresqlBlockStorageGroupCreateRequestList, postgresql.PostgresqlBlockStorageGroupCreateRequest{
 			BlockStorageRoleType: blockStorage.BlockStorageRoleType,
@@ -313,7 +317,7 @@ func resourcePostgresqlCreate(ctx context.Context, rd *schema.ResourceData, meta
 
 	// postgresql server (HclListObject to Slice)
 	var PostgresqlServerCreateRequestList []postgresql.PostgresqlServerCreateRequest
-	postgresqlServerList := database_common.ConvertServerList(postgresqlServers)
+	postgresqlServerList := database_common.ConvertObjectSliceToStructSlice(postgresqlServers)
 	for _, postgresqlServer := range postgresqlServerList {
 		PostgresqlServerCreateRequestList = append(PostgresqlServerCreateRequestList, postgresql.PostgresqlServerCreateRequest{
 			AvailabilityZoneName: postgresqlServer.AvailabilityZoneName,
@@ -481,6 +485,7 @@ func resourcePostgresqlRead(ctx context.Context, rd *schema.ResourceData, meta i
 		blockStorageInfo["block_storage_role_type"] = bs.BlockStorageRoleType
 		blockStorageInfo["block_storage_size"] = bs.BlockStorageSize
 		blockStorageInfo["block_storage_type"] = bs.BlockStorageType
+		blockStorageInfo["block_storage_group_id"] = bs.BlockStorageGroupId
 
 		blockStorages = append(blockStorages, blockStorageInfo)
 	}
@@ -522,7 +527,7 @@ func resourcePostgresqlRead(ctx context.Context, rd *schema.ResourceData, meta i
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	err = rd.Set("nat_public_ip_id", dbInfo.NatIpAddress)
+	err = rd.Set("nat_public_ip_id", rd.Get("nat_public_ip_id").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -590,6 +595,18 @@ func resourcePostgresqlRead(ctx context.Context, rd *schema.ResourceData, meta i
 		return diag.FromErr(err)
 	}
 	err = rd.Set("backup", backup)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = rd.Set("virtual_ip_address", dbInfo.PostgresqlServerGroup.VirtualIpAddress)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = rd.Set("nat_ip_address", dbInfo.NatIpAddress)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = rd.Set("vpc_id", dbInfo.VpcId)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -663,13 +680,13 @@ func resourcePostgresqlUpdate(ctx context.Context, rd *schema.ResourceData, meta
 	for _, f := range updateFuncs {
 		err = f(param)
 		if err != nil {
-			return
+			return diag.FromErr(err)
 		}
 	}
 
 	err = tfTags.UpdateTags(ctx, rd, meta, rd.Id())
 	if err != nil {
-		return
+		return diag.FromErr(err)
 	}
 	return resourcePostgresqlRead(ctx, rd, meta)
 }
@@ -684,6 +701,39 @@ func resourcePostgresqlDelete(ctx context.Context, rd *schema.ResourceData, meta
 
 	if err := waitForPostgresql(ctx, inst.Client, rd.Id(), common.DatabaseProcessingStates(), []string{common.DeletedState}, false); err != nil {
 		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func resourcePostgresqlDiff(ctx context.Context, rd *schema.ResourceDiff, meta interface{}) error {
+	if rd.Id() == "" {
+		return nil
+	}
+
+	var errorMessages []string
+	mutableFields := []string{
+		"server_type",
+		"block_storages",
+		"security_group_ids",
+		"postgresql_cluster_state",
+		"contract_period",
+		"next_contract_period",
+		"backup",
+		"tags",
+	}
+	resourcePostgresql := ResourcePostgresql().Schema
+
+	for key := range resourcePostgresql {
+		if rd.HasChanges(key) && !database_common.Contains(mutableFields, key) {
+			o, n := rd.GetChange(key)
+			errorMessage := fmt.Sprintf("value ['%v'] change not allowed (old: '%v', new: '%v')", key, o, n)
+			errorMessages = append(errorMessages, errorMessage)
+		}
+	}
+
+	if len(errorMessages) > 0 {
+		return fmt.Errorf("CustomizeDiff Validation Failed: \n%v", strings.Join(errorMessages, "\n"))
 	}
 
 	return nil
@@ -710,8 +760,8 @@ func updatePostgresqlClusterBlockStorages(param UpdatePostgresqlParam) error {
 	oldValue := o.([]interface{})
 	newValue := n.([]interface{})
 
-	oldList := database_common.ConvertBlockStorageList(oldValue)
-	newList := database_common.ConvertBlockStorageList(newValue)
+	oldList := database_common.ConvertObjectSliceToStructSlice(oldValue)
+	newList := database_common.ConvertObjectSliceToStructSlice(newValue)
 
 	err := validateBlockStorageInput(oldList, newList)
 	if err != nil {
@@ -731,7 +781,7 @@ func updatePostgresqlClusterBlockStorages(param UpdatePostgresqlParam) error {
 	return nil
 }
 
-func validateBlockStorageInput(oldList []database_common.BlockStorage, newList []database_common.BlockStorage) error {
+func validateBlockStorageInput(oldList []database_common.ConvertedStruct, newList []database_common.ConvertedStruct) error {
 	if len(oldList) > len(newList) {
 		return fmt.Errorf("removing additional storage is not allowed")
 	}
@@ -750,7 +800,7 @@ func validateBlockStorageInput(oldList []database_common.BlockStorage, newList [
 	return nil
 }
 
-func resizePostgresqlClusterBlockStorages(param UpdatePostgresqlParam, oldList []database_common.BlockStorage, newList []database_common.BlockStorage) error {
+func resizePostgresqlClusterBlockStorages(param UpdatePostgresqlParam, oldList []database_common.ConvertedStruct, newList []database_common.ConvertedStruct) error {
 	for i := 0; i < len(oldList); i++ {
 		if oldList[i].BlockStorageSize < newList[i].BlockStorageSize {
 
@@ -771,7 +821,7 @@ func resizePostgresqlClusterBlockStorages(param UpdatePostgresqlParam, oldList [
 	return nil
 }
 
-func addPostgresqlClusterBlockStorages(param UpdatePostgresqlParam, oldList []database_common.BlockStorage, newList []database_common.BlockStorage) error {
+func addPostgresqlClusterBlockStorages(param UpdatePostgresqlParam, oldList []database_common.ConvertedStruct, newList []database_common.ConvertedStruct) error {
 	for i := 0; i < len(newList)-len(oldList); i++ {
 		_, _, err := param.Inst.Client.Postgresql.AddPostgresqlClusterBlockStorages(param.Ctx, param.Rd.Id(), postgresql.PostgresqlClusterAddBlockStoragesRequest{
 			BlockStorageRoleType: newList[len(oldList)+i].BlockStorageRoleType,

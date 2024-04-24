@@ -2,7 +2,7 @@ package iam
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/iam"
@@ -51,7 +51,7 @@ func datasourceAccessKeysRead(ctx context.Context, rd *schema.ResourceData, meta
 	}
 
 	var err error
-	var response iam.PageResponseV2OfAccessKeysResponse
+	var response iam.PageResponseV2AccessKeysResponse
 	if careActive == true {
 		response, err = inst.Client.Iam.ListAccessKeys(ctx, projectId, projectType, state, optional.NewBool(activeYn), projectName)
 	} else {

@@ -55,12 +55,12 @@ func (client *Client) CreateFileStorage(ctx context.Context, request CreateFileS
 	return result, err
 }
 
-func (client *Client) ReadFileStorage(ctx context.Context, fileStorageId string) (filestorage2.FileStorageDetailResponse, int, error) {
+func (client *Client) ReadFileStorage(ctx context.Context, fileStorageId string) (filestorage2.FileStorageDetailResponseV3, int, error) {
 	result, c, err := client.sdkClient.FileStorageOpenApiV3Api.DetailFileStorage(ctx, client.config.ProjectId, fileStorageId)
 	return result, c.StatusCode, err
 }
 
-func (client *Client) ReadFileStorageList(ctx context.Context, request filestorage2.FileStorageOpenApiV3ApiListFileStoragesOpts) (filestorage2.ListResponseOfFileStoragesResponse, error) {
+func (client *Client) ReadFileStorageList(ctx context.Context, request filestorage2.FileStorageOpenApiV3ApiListFileStoragesOpts) (filestorage2.ListResponseFileStoragesListResponse, error) {
 	result, _, err := client.sdkClient.FileStorageOpenApiV3Api.ListFileStorages(ctx, client.config.ProjectId, &request)
 	return result, err
 }
@@ -131,7 +131,7 @@ func (client *Client) UpdateFileStorageObjectsLink(ctx context.Context, fileStor
 		})
 	}
 
-	result, _, err := client.sdkClient.FileStorageOpenApiV3Api.LinkObjectToFileStorage(
+	result, _, err := client.sdkClient.FileStorageOpenApiV3Api.LinkObjectToFileStorage1(
 		ctx,
 		client.config.ProjectId,
 		fileStorageId,

@@ -1,3 +1,3 @@
 output "id" {
-  value = scp_custom_image.custom_image_001
+  value = scp_custom_image.custom_image_001.id
 }

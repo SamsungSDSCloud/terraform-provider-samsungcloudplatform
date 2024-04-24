@@ -3,7 +3,7 @@ package backup
 import (
 	"context"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/backup"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
@@ -276,7 +276,7 @@ func readBackup(ctx context.Context, rd *schema.ResourceData, meta interface{}) 
 		rd.Set("is_backup_dr_destroy_enabled", false)
 	}
 
-	backupScheduleList, err := inst.Client.Backup.ReadBackupScheduleList(ctx, rd.Id(), backup2.BackupSearchOpenApiV2ApiListSchedulesOpts{
+	backupScheduleList, err := inst.Client.Backup.ReadBackupScheduleList(ctx, rd.Id(), backup2.BackupSearchOpenApiApiListSchedulesOpts{
 		Page: optional.Int32{},
 		Size: optional.Int32{},
 		Sort: optional.Interface{},

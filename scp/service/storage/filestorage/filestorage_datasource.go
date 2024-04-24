@@ -2,7 +2,7 @@ package filestorage
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	filestorage2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/file-storage2"
 	"github.com/antihax/optional"
 

@@ -25,7 +25,7 @@ type Filter struct {
 	TagValues []string
 }
 
-func (client *Client) ListResourceTags(ctx context.Context, resourceId string) (tag.PageResponseV2OfTagResponse, int, error) {
+func (client *Client) ListResourceTags(ctx context.Context, resourceId string) (tag.PageResponseV2TagResponse, int, error) {
 	result, c, err := client.sdkClient.ResourceTagControllerApi.ListResourceTags(ctx, client.config.ProjectId, resourceId, &tag.ResourceTagControllerApiListResourceTagsOpts{
 		Page: optional.NewInt32(0),
 		Size: optional.NewInt32(10000),
@@ -39,7 +39,7 @@ func (client *Client) ListResourceTags(ctx context.Context, resourceId string) (
 	return result, statusCode, err
 }
 
-func (client *Client) ListResources(ctx context.Context, resourceIds []string, resourceTypeFilters []string, filters []Filter) (tag.PageResponseV2OfTagsResponse, int, error) {
+func (client *Client) ListResources(ctx context.Context, resourceIds []string, resourceTypeFilters []string, filters []Filter) (tag.PageResponseV2TagsResponse, int, error) {
 	tagFilters := make([]tag.TagFilter, 0)
 	if len(filters) > 0 {
 		for _, f := range filters {

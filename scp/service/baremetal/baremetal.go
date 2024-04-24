@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/baremetal"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"log"
-	"net"
 	"regexp"
 	"strconv"
 	"strings"
@@ -42,17 +41,77 @@ func ResourceBareMetalServer() *schema.Resource {
 			Delete: schema.DefaultTimeout(30 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
-			"bm_server_name": {
+			"servers": {
 				Type:     schema.TypeList,
 				Required: true,
-				ForceNew: true,
 				MinItems: 1,
 				MaxItems: 5,
-				Elem: &schema.Schema{
-					Type:             schema.TypeString,
-					ValidateDiagFunc: validateName3to24LowerAlphaDashStartsWithLowerCase,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"bm_server_name": {
+							Type:             schema.TypeString,
+							Required:         true,
+							ValidateDiagFunc: common.ValidateName3to28AlphaNumberDash,
+							Description:      "Bare-metal server name",
+						},
+						"ipv4": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							Default:          "",
+							ValidateDiagFunc: common.ValidateIpv4WithEmptyValue,
+							Description:      "IP address of this bare-metal server",
+						},
+						"nat_enabled": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+							Description: "Enable NAT feature for this bare-metal server.",
+						},
+						"public_ip_id": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "Public IP id of this bare-metal server. Public-IP must be a valid public-ip resource which is attached to the VPC.",
+						},
+						"local_subnet_enabled": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+							Description: "Enable local subnet for this bare-metal server",
+						},
+						"local_subnet_id": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "Local Subnet id of this bare-metal server. Subnet must be a valid subnet resource which is attached to the VPC.",
+						},
+						"local_subnet_ipv4": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							Default:          "",
+							ValidateDiagFunc: common.ValidateIpv4WithEmptyValue,
+							Description:      "Local IP address of this bare-metal server",
+						},
+						"use_dns": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+							Description: "Enable DNS feature for this bare-metal server.",
+						},
+						"use_hyper_threading": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "N",
+							Description: "Enable hyper-threading feature for this bare-metal server.(ex. Y, N)",
+						},
+						"state": {
+							Type:             schema.TypeString,
+							Required:         true,
+							ValidateDiagFunc: validateBmState,
+							Description:      "Baremetal Server State(ex. RUNNING, STOPPED)",
+						},
+					},
 				},
-				Description: "Bare-metal server name",
 			},
 			"delete_protection": {
 				Type:        schema.TypeBool,
@@ -131,43 +190,10 @@ func ResourceBareMetalServer() *schema.Resource {
 				Required:    true,
 				Description: "Subnet id of this bare-metal server. Subnet must be a valid subnet resource which is attached to the VPC.",
 			},
-			"public_ip_id": {
-				Type:     schema.TypeList,
-				Required: true,
-				ForceNew: true,
-				MinItems: 1,
-				MaxItems: 5,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Description: "Public IP id of this bare-metal server. Public-IP must be a valid public-ip resource which is attached to the VPC.",
-			},
-			"use_dns": {
-				Type:     schema.TypeList,
-				Required: true,
-				MinItems: 1,
-				MaxItems: 5,
-				Elem: &schema.Schema{
-					Type:    schema.TypeBool,
-					Default: false,
-				},
-				Description: "Enable DNS feature for this bare-metal server.",
-			},
-			"use_hyper_threading": {
-				Type:     schema.TypeList,
-				Required: true,
-				MinItems: 1,
-				MaxItems: 5,
-				Elem: &schema.Schema{
-					Type:    schema.TypeString,
-					Default: "N",
-				},
-				Description: "Enable hyper-threading feature for this bare-metal server.",
-			},
 			"admin_account": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				ValidateDiagFunc: common.ValidateName3to20DashUnderscore,
+				ValidateDiagFunc: common.ValidateName3to20LowerAlphaAndNumberOnly,
 				Description:      "Admin account for this bare-metal server OS. For linux, this must be 'root'. For Windows, this must not be 'administrator'.",
 			},
 			"admin_password": {
@@ -176,69 +202,6 @@ func ResourceBareMetalServer() *schema.Resource {
 				Sensitive:        true,
 				ValidateDiagFunc: common.ValidatePassword8to20,
 				Description:      "Admin account password for this bare-metal server OS. (CAUTION) The actual plain-text password will be sent to your email.",
-			},
-			"ipv4": {
-				Type:        schema.TypeList,
-				Required:    true,
-				MinItems:    1,
-				MaxItems:    5,
-				Description: "IP address of this bare-metal server",
-				Elem: &schema.Schema{
-					Type:             schema.TypeString,
-					ValidateDiagFunc: validateIpv4InList,
-				},
-			},
-			"nat_enabled": {
-				Type:     schema.TypeList,
-				Required: true,
-				MinItems: 1,
-				MaxItems: 5,
-				Elem: &schema.Schema{
-					Type:    schema.TypeBool,
-					Default: false,
-				},
-				Description: "Enable NAT feature for this bare-metal server.",
-			},
-			"local_subnet_enabled": {
-				Type:     schema.TypeList,
-				Required: true,
-				MinItems: 1,
-				MaxItems: 5,
-				Elem: &schema.Schema{
-					Type: schema.TypeBool,
-				},
-				Description: "Enable local subnet for this bare-metal server",
-			},
-			"local_subnet_id": {
-				Type:     schema.TypeList,
-				Required: true,
-				MinItems: 1,
-				MaxItems: 5,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Description: "Local Subnet id of this bare-metal server. Subnet must be a valid subnet resource which is attached to the VPC.",
-			},
-			"local_subnet_ipv4": {
-				Type:     schema.TypeList,
-				Required: true,
-				MinItems: 1,
-				MaxItems: 5,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Description: "Local IP address of this bare-metal server",
-			},
-			"state": {
-				Type:     schema.TypeList,
-				Required: true,
-				MinItems: 1,
-				MaxItems: 5,
-				Elem: &schema.Schema{
-					Type:             schema.TypeString,
-					ValidateDiagFunc: validateBmState,
-				},
-				Description: "Baremetal Server State(ex. RUNNING, STOPPED)",
 			},
 			"tags": tfTags.TagsSchema(),
 		},
@@ -260,7 +223,7 @@ func validateName3to24LowerAlphaDashStartsWithLowerCase(v interface{}, path cty.
 	var diags diag.Diagnostics
 
 	// Get attribute key
-	attr := path[0].(cty.GetAttrStep)
+	attr := path[len(path)-1].(cty.GetAttrStep)
 	attrKey := attr.Name
 
 	// Get value
@@ -288,34 +251,11 @@ func validateName3to24LowerAlphaDashStartsWithLowerCase(v interface{}, path cty.
 	return diags
 }
 
-func validateIpv4InList(v interface{}, path cty.Path) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	attr := path[0].(cty.GetAttrStep)
-	attrKey := attr.Name
-
-	value := v.(string)
-	if value == "" {
-		return diags
-	}
-
-	trial := net.ParseIP(value)
-	if trial.To4() == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity:      diag.Error,
-			Summary:       fmt.Sprintf("Attribute %q is not IP address", attrKey),
-			AttributePath: path,
-		})
-	}
-
-	return diags
-}
-
 func validateBmState(v interface{}, path cty.Path) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	// Get attribute key
-	attr := path[0].(cty.GetAttrStep)
+	attr := path[len(path)-1].(cty.GetAttrStep)
 	attrKey := attr.Name
 
 	// Get value
@@ -360,48 +300,95 @@ func ConvertBlockStorageList(list common.HclListObject, diskToId map[string]stri
 	return result, nil
 }
 
-func convertInterfaceToStringList(input []interface{}) []string {
+func ConvertBaremetalServerList(list common.HclListObject, storageList []baremetal.BMAdditionalBlockStorageCreateRequest, scaleId string) ([]baremetal.BMServerDetailsRequest, error) {
+	var result []baremetal.BMServerDetailsRequest
+	for _, itemObject := range list {
+		item := itemObject.(common.HclKeyValueObject)
+		var info baremetal.BMServerDetailsRequest
+		if v, ok := item["bm_server_name"]; ok {
+			info.BareMetalServerName = v.(string)
+		}
+		if v, ok := item["ipv4"]; ok {
+			info.IpAddress = v.(string)
+		}
+		if v, ok := item["nat_enabled"]; ok {
+			info.NatEnabled = v.(bool)
+		}
+		if v, ok := item["public_ip_id"]; ok {
+			info.PublicIpAddressId = v.(string)
+		}
+		if v, ok := item["local_subnet_enabled"]; ok {
+			info.BareMetalLocalSubnetEnabled = v.(bool)
+		}
+		if v, ok := item["local_subnet_id"]; ok {
+			info.BareMetalLocalSubnetId = v.(string)
+		}
+		if v, ok := item["local_subnet_ipv4"]; ok {
+			info.BareMetalLocalSubnetIpAddress = v.(string)
+		}
+		if v, ok := item["use_dns"]; ok {
+			info.DnsEnabled = v.(bool)
+		}
+		if v, ok := item["use_hyper_threading"]; ok {
+			info.UseHyperThreading = v.(string)
+		}
 
-	output := make([]string, len(input))
+		if v, ok := item["state"]; ok {
+			if strings.Compare(strings.ToUpper(v.(string)), common.StoppedState) == 0 {
+				return nil, errors.New("state value must be RUNNING")
+			}
+		}
 
-	for i, v := range input {
-		if v == nil {
-			output[i] = ""
-		} else if str, ok := v.(string); ok {
-			output[i] = str
+		if !info.BareMetalLocalSubnetEnabled {
+			info.BareMetalLocalSubnetId = ""
+		}
+
+		info.ServerTypeId = scaleId
+		info.StorageDetails = storageList
+
+		result = append(result, info)
+	}
+	return result, nil
+}
+
+func convertInterfaceToStringList(list common.HclListObject, key string) ([]string, error) {
+
+	output := make([]string, 0)
+
+	for _, itemObject := range list {
+		item := itemObject.(common.HclKeyValueObject)
+		if v, ok := item[key]; ok {
+			output = append(output, v.(string))
+		} else {
+			return nil, fmt.Errorf("%q value must be exist", key)
 		}
 	}
 
-	return output
+	return output, nil
 }
 
-func convertInterfaceToBoolList(input []interface{}) []bool {
+// servers block에서 update 시에 달라진 index와 새로운 값을 반환시켜준다.
+func getChangeDiffIndex(rd *schema.ResourceData, key string) ([]int, []string, error) {
+	o, n := rd.GetChange("servers")
 
-	output := make([]bool, len(input))
-
-	for i, v := range input {
-		if v == nil {
-			output[i] = false
-		} else if b, ok := v.(bool); ok {
-			output[i] = b
-		}
+	oldValue, err := convertInterfaceToStringList(o.(common.HclListObject), key)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	return output
-}
+	newValue, err := convertInterfaceToStringList(n.(common.HclListObject), key)
+	if err != nil {
+		return nil, nil, err
+	}
 
-// update 시에 달라진 index와 새로운 값을 반환시켜준다.
-func getChangeDiffIndex(rd *schema.ResourceData, key string) (idxList []int, newValue []string) {
-	o, n := rd.GetChange(key)
-	oldValue := convertInterfaceToStringList(o.([]interface{}))
-	newValue = convertInterfaceToStringList(n.([]interface{}))
+	idxList := make([]int, 0)
 
 	for index, _ := range oldValue {
 		if oldValue[index] != newValue[index] {
 			idxList = append(idxList, index)
 		}
 	}
-	return idxList, newValue
+	return idxList, newValue, nil
 }
 
 func resourceBareMetalServerCreate(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
@@ -414,8 +401,6 @@ func resourceBareMetalServerCreate(ctx context.Context, rd *schema.ResourceData,
 
 	inst := meta.(*client.Instance)
 
-	serverName := convertInterfaceToStringList(rd.Get("bm_server_name").([]interface{}))
-
 	isDeleteProtected := rd.Get("delete_protection").(bool)
 	cpuCount := rd.Get("cpu_count").(int)
 	memorySizeGB := rd.Get("memory_size_gb").(int)
@@ -424,29 +409,15 @@ func resourceBareMetalServerCreate(ctx context.Context, rd *schema.ResourceData,
 	blockStorageList := rd.Get("block_storages").(common.HclListObject)
 
 	subnetId := rd.Get("subnet_id").(string)
-	publicIpId := convertInterfaceToStringList(rd.Get("public_ip_id").([]interface{}))
 
 	adminAccount := rd.Get("admin_account").(string)
 	adminPassword := rd.Get("admin_password").(string)
 	initialScript := rd.Get("initial_script").(string)
 
-	states := convertInterfaceToStringList(rd.Get("state").([]interface{}))
-
-	for _, state := range states {
-		if strings.Compare(state, common.StoppedState) == 0 {
-			return diag.Errorf("state value must be RUNNING")
-		}
-	}
-
 	vpcId := rd.Get("vpc_id").(string)
 	imageId := rd.Get("image_id").(string)
-	useDNS := convertInterfaceToBoolList(rd.Get("use_dns").([]interface{}))
-	ipAddr := convertInterfaceToStringList(rd.Get("ipv4").([]interface{}))
-	natEnabled := convertInterfaceToBoolList(rd.Get("nat_enabled").([]interface{}))
-	useHyperThreading := convertInterfaceToStringList(rd.Get("use_hyper_threading").([]interface{}))
-	localSubnetEnabled := convertInterfaceToBoolList(rd.Get("local_subnet_enabled").([]interface{}))
-	localSubnetIds := convertInterfaceToStringList(rd.Get("local_subnet_id").([]interface{}))
-	localSubnetIp := convertInterfaceToStringList(rd.Get("local_subnet_ipv4").([]interface{}))
+
+	servers := rd.Get("servers").(common.HclListObject)
 
 	// Get vpc info
 	vpcInfo, _, err := inst.Client.Vpc.GetVpcInfo(ctx, vpcId)
@@ -488,6 +459,13 @@ func resourceBareMetalServerCreate(ctx context.Context, rd *schema.ResourceData,
 		return
 	}
 
+	if isOsWindows {
+		err := common.ValidateServerNameInWindowImage(servers)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
 	// Get product group information
 	productGroup, err := inst.Client.Product.GetProductGroup(ctx, targetProductGroupId)
 	//productGroup, err := inst.Client.Product.GetProducesList(ctx, vpcInfo.ServiceZoneId, targetProductGroupId, "")
@@ -525,33 +503,9 @@ func resourceBareMetalServerCreate(ctx context.Context, rd *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 
-	serverDetailList := make([]baremetal.BMServerDetailsRequest, 0)
-
-	for index, _ := range serverName {
-
-		localSubnetId := localSubnetIds[index]
-		if !localSubnetEnabled[index] {
-			localSubnetId = "" // to bypass local-subnet data manipulation bug
-		}
-
-		if !localSubnetEnabled[index] && localSubnetId != "" {
-			return diag.Errorf("local subnet is disabled, but has subnet id")
-		}
-
-		serverDetails := baremetal.BMServerDetailsRequest{
-			BareMetalLocalSubnetEnabled:   localSubnetEnabled[index],
-			BareMetalLocalSubnetId:        localSubnetId,
-			BareMetalLocalSubnetIpAddress: localSubnetIp[index],
-			BareMetalServerName:           serverName[index],
-			DnsEnabled:                    useDNS[index],
-			IpAddress:                     ipAddr[index],
-			NatEnabled:                    natEnabled[index],
-			PublicIpAddressId:             publicIpId[index],
-			ServerTypeId:                  scaleId,
-			StorageDetails:                blockStorageInfoList,
-			UseHyperThreading:             useHyperThreading[index],
-		}
-		serverDetailList = append(serverDetailList, serverDetails)
+	serverDetailList, err := ConvertBaremetalServerList(servers, blockStorageInfoList, scaleId)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	createRequest := baremetal.BMServerCreateRequest{
@@ -568,6 +522,7 @@ func resourceBareMetalServerCreate(ctx context.Context, rd *schema.ResourceData,
 		ServerDetails:             serverDetailList,
 		VpcId:                     vpcId,
 	}
+
 	createResponse, err := inst.Client.BareMetal.CreateBareMetalServer(ctx, createRequest, rd.Get("tags").(map[string]interface{}))
 	if err != nil {
 		return
@@ -622,17 +577,6 @@ func resourceBareMetalServerRead(ctx context.Context, rd *schema.ResourceData, m
 	inst := meta.(*client.Instance)
 	baremetalIds := strings.Split(rd.Id(), ",")
 
-	serverNames := make([]string, 0)
-	ipv4List := make([]string, 0)
-	useDnsList := make([]bool, 0)
-	useHyperThreadingList := make([]string, 0)
-	natEnabledList := make([]bool, 0)
-	publicIpIdList := make([]string, 0)
-	localSubnetEnabledList := make([]bool, 0)
-	localSubnetIdList := make([]string, 0)
-	localSubnetIpv4List := make([]string, 0)
-	states := make([]string, 0)
-
 	bmServerInfo, _, err := inst.Client.BareMetal.GetBareMetalServerDetail(ctx, baremetalIds[0])
 	if err != nil {
 		rd.SetId("")
@@ -670,7 +614,7 @@ func resourceBareMetalServerRead(ctx context.Context, rd *schema.ResourceData, m
 		}
 		blockStorageInfo := common.HclKeyValueObject{}
 		blockStorageInfo["name"] = blockInfo.BareMetalBlockStorageName
-		blockStorageInfo["storage_size_gb"] = int(blockInfo.BareMetalBlockStorageSize)
+		blockStorageInfo["storage_size_gb"] = blockInfo.BareMetalBlockStorageSize
 		blockStorageInfo["encrypted"] = blockInfo.EncryptionEnabled
 		if blockProductName, ok := productIdToNameMapper[blockInfo.ProductId]; ok {
 			blockStorageInfo["product_name"] = blockProductName
@@ -712,46 +656,10 @@ func resourceBareMetalServerRead(ctx context.Context, rd *schema.ResourceData, m
 		return
 	}
 
-	serverNames = append(serverNames, bmServerInfo.BareMetalServerName)
-	ipv4List = append(ipv4List, bmServerInfo.IpAddress)
-	useDnsList = append(useDnsList, bmServerInfo.DnsEnabled == "Y")
-	useHyperThreadingList = append(useHyperThreadingList, bmServerInfo.UseHyperThreading)
-	natEnabledList = append(natEnabledList, bmServerInfo.NatIpAddress != "")
-	localSubnetEnabledList = append(localSubnetEnabledList, bmServerInfo.BareMetalLocalSubnetId != "")
-	localSubnetIdList = append(localSubnetIdList, bmServerInfo.BareMetalLocalSubnetId)
-	localSubnetIpv4List = append(localSubnetIpv4List, bmServerInfo.BareMetalLocalSubnetIpAddress)
-	states = append(states, strings.ToUpper(bmServerInfo.BareMetalServerState))
+	servers := common.HclListObject{}
 
-	natIpv4 := bmServerInfo.NatIpAddress
-
-	if natIpv4 != "" {
-		publicIpInfo, err := inst.Client.PublicIp.GetPublicIps(ctx, &publicip2.PublicIpOpenApiV3ControllerApiListPublicIpsV3Opts{
-			IpAddress:     optional.NewString(natIpv4),
-			VpcId:         optional.NewString(bmServerInfo.VpcId),
-			PublicIpState: optional.String{},
-			UplinkType:    optional.String{},
-			CreatedBy:     optional.String{},
-			Page:          optional.Int32{},
-			Size:          optional.Int32{},
-			Sort:          optional.Interface{},
-		})
-		if err != nil {
-			diagnostics = diag.FromErr(err)
-			return
-		}
-
-		if len(publicIpInfo.Contents) == 0 {
-			// this case is found on auto assign mode
-			publicIpIdList = append(publicIpIdList, "")
-		} else {
-			publicIpIdList = append(publicIpIdList, publicIpInfo.Contents[0].PublicIpAddressId)
-		}
-	} else {
-		publicIpIdList = append(publicIpIdList, "")
-	}
-
-	for i := 1; i < len(baremetalIds); i++ {
-		bmServerInfo, _, err := inst.Client.BareMetal.GetBareMetalServerDetail(ctx, baremetalIds[i])
+	for _, baremetalId := range baremetalIds {
+		bmServerInfo, _, err := inst.Client.BareMetal.GetBareMetalServerDetail(ctx, baremetalId)
 		if err != nil {
 			rd.SetId("")
 			if common.IsDeleted(err) {
@@ -760,15 +668,17 @@ func resourceBareMetalServerRead(ctx context.Context, rd *schema.ResourceData, m
 			return diag.FromErr(err)
 		}
 
-		serverNames = append(serverNames, bmServerInfo.BareMetalServerName)
-		ipv4List = append(ipv4List, bmServerInfo.IpAddress)
-		useDnsList = append(useDnsList, bmServerInfo.DnsEnabled == "Y")
-		useHyperThreadingList = append(useHyperThreadingList, bmServerInfo.UseHyperThreading)
-		natEnabledList = append(natEnabledList, bmServerInfo.NatIpAddress != "")
-		localSubnetEnabledList = append(localSubnetEnabledList, bmServerInfo.BareMetalLocalSubnetId != "")
-		localSubnetIdList = append(localSubnetIdList, bmServerInfo.BareMetalLocalSubnetId)
-		localSubnetIpv4List = append(localSubnetIpv4List, bmServerInfo.BareMetalLocalSubnetIpAddress)
-		states = append(states, strings.ToUpper(bmServerInfo.BareMetalServerState))
+		serverInfo := common.HclKeyValueObject{}
+
+		serverInfo["bm_server_name"] = bmServerInfo.BareMetalServerName
+		serverInfo["ipv4"] = bmServerInfo.IpAddress
+		serverInfo["nat_enabled"] = bmServerInfo.NatIpAddress != ""
+		serverInfo["local_subnet_enabled"] = bmServerInfo.BareMetalLocalSubnetId != ""
+		serverInfo["local_subnet_id"] = bmServerInfo.BareMetalLocalSubnetId
+		serverInfo["local_subnet_ipv4"] = bmServerInfo.BareMetalLocalSubnetIpAddress
+		serverInfo["use_hyper_threading"] = bmServerInfo.UseHyperThreading
+		serverInfo["use_dns"] = bmServerInfo.DnsEnabled == "Y"
+		serverInfo["state"] = strings.ToUpper(bmServerInfo.BareMetalServerState)
 
 		natIpv4 := bmServerInfo.NatIpAddress
 
@@ -790,24 +700,19 @@ func resourceBareMetalServerRead(ctx context.Context, rd *schema.ResourceData, m
 
 			if len(publicIpInfo.Contents) == 0 {
 				// this case is found on auto assign mode
-				publicIpIdList = append(publicIpIdList, "")
+				serverInfo["public_ip_id"] = ""
 			} else {
-				publicIpIdList = append(publicIpIdList, publicIpInfo.Contents[0].PublicIpAddressId)
+				serverInfo["public_ip_id"] = publicIpInfo.Contents[0].PublicIpAddressId
 			}
 		} else {
-			publicIpIdList = append(publicIpIdList, "")
+			serverInfo["public_ip_id"] = ""
 		}
+
+		servers = append(servers, serverInfo)
 	}
-	rd.Set("bm_server_name", serverNames)
-	rd.Set("ipv4", ipv4List)
-	rd.Set("local_subnet_id", localSubnetIdList)
-	rd.Set("local_subnet_ipv4", localSubnetIpv4List)
-	rd.Set("local_subnet_enabled", localSubnetEnabledList)
-	rd.Set("public_ip_id", publicIpIdList)
-	rd.Set("nat_enabled", natEnabledList)
-	rd.Set("use_dns", useDnsList)
-	rd.Set("use_hyper_threading", useHyperThreadingList)
-	rd.Set("state", states)
+
+	rd.Set("servers", servers)
+
 	tfTags.SetTags(ctx, rd, meta, baremetalIds[0])
 
 	return nil
@@ -824,8 +729,7 @@ func resourceBareMetalServerUpdate(ctx context.Context, rd *schema.ResourceData,
 	inst := meta.(*client.Instance)
 
 	if !rd.HasChanges("delete_protection") && !rd.HasChanges("contract_discount") &&
-		!rd.HasChanges("local_subnet_enabled") && !rd.HasChanges("nat_enabled") &&
-		!rd.HasChanges("block_storages") && !rd.HasChanges("state") && !rd.HasChanges("tags") {
+		!rd.HasChanges("block_storages") && !rd.HasChanges("servers") && !rd.HasChanges("tags") {
 		return diag.Errorf("nothing to update")
 	}
 
@@ -929,8 +833,11 @@ func resourceBareMetalServerUpdate(ctx context.Context, rd *schema.ResourceData,
 		}
 	*/
 
-	if rd.HasChanges("state") {
-		idxList, newValue := getChangeDiffIndex(rd, "state")
+	if rd.HasChanges("servers") {
+		idxList, newValue, err := getChangeDiffIndex(rd, "state")
+		if err != nil {
+			return diag.FromErr(err)
+		}
 
 		stopBaremetalIds := make([]string, 0)
 		startBaremetalIds := make([]string, 0)
@@ -1094,11 +1001,11 @@ func resourceBareMetalServerUpdate(ctx context.Context, rd *schema.ResourceData,
 
 	for _, bmId := range serverIds {
 		err = tfTags.UpdateTags(ctx, rd, meta, bmId)
+		if err != nil {
+			return
+		}
 	}
 
-	if err != nil {
-		return
-	}
 	return resourceBareMetalServerRead(ctx, rd, meta)
 }
 

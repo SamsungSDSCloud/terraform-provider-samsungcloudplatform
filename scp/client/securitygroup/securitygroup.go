@@ -132,7 +132,7 @@ func (client *Client) GetSecurityGroupRule(ctx context.Context, ruleId string, s
 	return result, statusCode, err
 }
 
-func (client *Client) ListSecurityGroupRules(ctx context.Context, securityGroupId string, opts *securitygroup2.SecurityGroupOpenApiControllerV2ApiListSecurityGroupRuleV2Opts) (securitygroup2.ListResponseOfSecurityGroupRuleResponse, error) {
+func (client *Client) ListSecurityGroupRules(ctx context.Context, securityGroupId string, opts *securitygroup2.SecurityGroupOpenApiControllerV2ApiListSecurityGroupRuleV2Opts) (securitygroup2.ListResponseSecurityGroupRuleResponse, error) {
 	result, _, err := client.sdkClient.SecurityGroupOpenApiControllerV2Api.ListSecurityGroupRuleV2(ctx, client.config.ProjectId, securityGroupId, opts)
 	return result, err
 }
@@ -173,7 +173,7 @@ func (client *Client) DeleteSecurityGroupRuleAll(ctx context.Context, securityGr
 	return result, err
 }
 
-func (client *Client) CreateSecurityGroupLogStorage(ctx context.Context, request securitygroup2.SecurityGroupLogStorageCreatRequest) (securitygroup2.SecurityGroupLogStorageDetailResponse, int, error) {
+func (client *Client) CreateSecurityGroupLogStorage(ctx context.Context, request securitygroup2.SecurityGroupLogStorageCreateRequest) (securitygroup2.SecurityGroupLogStorageDetailResponse, int, error) {
 	result, c, err := client.sdkClient.SecurityGroupLogStorageOpenApiControllerV2Api.CreateSecurityGroupLogStorageV2(ctx, client.config.ProjectId, request)
 	var statusCode int
 	if c != nil {
@@ -183,7 +183,7 @@ func (client *Client) CreateSecurityGroupLogStorage(ctx context.Context, request
 }
 
 func (client *Client) UpdateSecurityGroupLogStorage(ctx context.Context, logStorageId string, obsBucketId string) (securitygroup2.SecurityGroupLogStorageDetailResponse, int, error) {
-	result, c, err := client.sdkClient.SecurityGroupLogStorageOpenApiControllerV2Api.UpdateSecurityGroupLogStorageV2(ctx, client.config.ProjectId, logStorageId, securitygroup2.SecurityGroupStorageUpdateRequest{
+	result, c, err := client.sdkClient.SecurityGroupLogStorageOpenApiControllerV2Api.UpdateSecurityGroupLogStorageV2(ctx, client.config.ProjectId, logStorageId, securitygroup2.SecurityGroupLogStorageUpdateRequest{
 		ObsBucketId: obsBucketId,
 	})
 	var statusCode int
@@ -207,7 +207,7 @@ func (client *Client) DeleteSecurityGroupLogStorage(ctx context.Context, logStor
 	return err
 }
 
-func (client *Client) ListSecurityGroupLogStorages(ctx context.Context, vpcId string, obsBucketId string) (securitygroup2.ListResponseOfSecurityGroupLogStorageDetailResponse, int, error) {
+func (client *Client) ListSecurityGroupLogStorages(ctx context.Context, vpcId string, obsBucketId string) (securitygroup2.ListResponseSecurityGroupLogStorageDetailResponse, int, error) {
 	result, c, err := client.sdkClient.SecurityGroupLogStorageOpenApiControllerV2Api.ListSecurityGroupLogStoragesV2(ctx, client.config.ProjectId, vpcId, &securitygroup2.SecurityGroupLogStorageOpenApiControllerV2ApiListSecurityGroupLogStoragesV2Opts{
 		ObsBucketId: optional.NewString(obsBucketId),
 	})
@@ -218,12 +218,12 @@ func (client *Client) ListSecurityGroupLogStorages(ctx context.Context, vpcId st
 	return result, statusCode, err
 }
 
-func (client *Client) ListSecurityGroups(ctx context.Context, opts *securitygroup2.SecurityGroupOpenApiControllerV2ApiListSecurityGroupV2Opts) (securitygroup2.ListResponseOfSecurityGroupResponse, error) {
+func (client *Client) ListSecurityGroups(ctx context.Context, opts *securitygroup2.SecurityGroupOpenApiControllerV2ApiListSecurityGroupV2Opts) (securitygroup2.ListResponseSecurityGroupResponse, error) {
 	result, _, err := client.sdkClient.SecurityGroupOpenApiControllerV2Api.ListSecurityGroupV2(ctx, client.config.ProjectId, opts)
 	return result, err
 }
 
-func (client *Client) ListSecurityGroupsByLoggable(ctx context.Context, vpcId string, isLoggable bool) (securitygroup2.ListResponseOfSecurityGroupResponse, error) {
+func (client *Client) ListSecurityGroupsByLoggable(ctx context.Context, vpcId string, isLoggable bool) (securitygroup2.ListResponseSecurityGroupResponse, error) {
 
 	opts := &securitygroup2.SecurityGroupOpenApiControllerV2ApiListSecurityGroupV2Opts{
 		VpcId:      optional.NewString(vpcId),
@@ -233,7 +233,7 @@ func (client *Client) ListSecurityGroupsByLoggable(ctx context.Context, vpcId st
 	return result, err
 }
 
-func (client *Client) ListUserIpsBySecurityGroupId(ctx context.Context, securityGroupId string) (securitygroup2.ListResponseOfSecurityGroupUserIpResponse, error) {
+func (client *Client) ListUserIpsBySecurityGroupId(ctx context.Context, securityGroupId string) (securitygroup2.ListResponseSecurityGroupUserIpResponse, error) {
 	result, _, err := client.sdkClient.SecurityGroupOpenApiControllerV2Api.ListUserIpV2(ctx, client.config.ProjectId, securityGroupId)
 	return result, err
 }

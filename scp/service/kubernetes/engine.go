@@ -2,8 +2,9 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/kubernetesengine"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
@@ -136,6 +137,11 @@ func createEngine(ctx context.Context, data *schema.ResourceData, meta interface
 	inst := meta.(*client.Instance)
 	vpcId := data.Get("vpc_id").(string)
 	vpcInfo, _, err := inst.Client.Vpc.GetVpcInfo(ctx, vpcId)
+	isCreatable, _, err := inst.Client.KubernetesEngine.CheckDuplicatedKubernetesEngineName(ctx, data.Get("name").(string))
+
+	if !isCreatable {
+		return diag.FromErr(errors.New("Cluster Name is duplicate"))
+	}
 
 	response, _, err := inst.Client.KubernetesEngine.CreateEngine(ctx, kubernetesengine.CreateEngineRequest{
 		CloudLoggingEnabled:  data.Get("cloud_logging_enabled").(bool),

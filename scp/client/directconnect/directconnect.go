@@ -49,8 +49,8 @@ func (client *Client) DeleteDirectConnect(ctx context.Context, dcId string) erro
 	return err
 }
 
-func (client *Client) GetDirectConnectList(ctx context.Context, request *directconnect2.DirectConnectOpenApiControllerApiListDirectConnects1Opts) (directconnect2.ListResponseOfDirectConnectListItemResponse, int, error) {
-	result, c, err := client.sdkClient.DirectConnectOpenApiControllerApi.ListDirectConnects1(ctx, client.config.ProjectId, request)
+func (client *Client) GetDirectConnectList(ctx context.Context, request *directconnect2.DirectConnectOpenApiControllerApiListDirectConnectsOpts) (directconnect2.ListResponseDirectConnectListItemResponse, int, error) {
+	result, c, err := client.sdkClient.DirectConnectOpenApiControllerApi.ListDirectConnects(ctx, client.config.ProjectId, request)
 	var statusCode int
 	if c != nil {
 		statusCode = c.StatusCode
@@ -93,8 +93,8 @@ func (client *Client) GetDconVpcConnectionInfo(ctx context.Context, directConnec
 	return result, statusCode, err
 }
 
-func (client *Client) GetDconVpcConnectionList(ctx context.Context, request *directconnect2.DirectConnectConnectionOpenApiControllerApiListDirectConnectConnections1Opts) (directconnect2.ListResponseOfDirectConnectConnectionListResponse, int, error) {
-	result, c, err := client.sdkClient.DirectConnectConnectionOpenApiControllerApi.ListDirectConnectConnections1(ctx, client.config.ProjectId, request)
+func (client *Client) GetDconVpcConnectionList(ctx context.Context, request *directconnect2.DirectConnectConnectionOpenApiControllerApiListDirectConnectConnectionsOpts) (directconnect2.ListResponseDirectConnectConnectionListResponse, int, error) {
+	result, c, err := client.sdkClient.DirectConnectConnectionOpenApiControllerApi.ListDirectConnectConnections(ctx, client.config.ProjectId, request)
 	var statusCode int
 	if c != nil {
 		statusCode = c.StatusCode

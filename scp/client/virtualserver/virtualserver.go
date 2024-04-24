@@ -29,7 +29,7 @@ func (client *Client) GetVirtualServer(ctx context.Context, virtualServerId stri
 	return result, statusCode, err
 }
 
-func (client *Client) GetVirtualServerList(ctx context.Context, virtualServerName string) (virtualserver2.ListResponseOfVirtualServersResponse, int, error) {
+func (client *Client) GetVirtualServerList(ctx context.Context, virtualServerName string) (virtualserver2.ListResponseVirtualServersResponse, int, error) {
 	var optVirtualServerName optional.String
 	if len(virtualServerName) > 0 {
 		optVirtualServerName = optional.NewString(virtualServerName)
@@ -95,6 +95,7 @@ func (client *Client) CreateVirtualServer(ctx context.Context, request CreateReq
 			OsUserId:       request.OsAdmin.OsUserId,
 			OsUserPassword: request.OsAdmin.OsUserPassword,
 		},
+		RoleId:           request.RoleId,
 		SecurityGroupIds: request.SecurityGroupIds,
 		ServerGroupId:    request.ServerGroupId,
 		ServerType:       request.ServerType,
@@ -148,6 +149,7 @@ func (client *Client) CreateVirtualServerV4(ctx context.Context, request CreateR
 			SubnetId:          request.Nic.SubnetId,
 		},
 		KeyPairId:        request.KeyPairId,
+		RoleId:           request.RoleId,
 		PlacementGroupId: request.PlacementGroupId,
 		SecurityGroupIds: request.SecurityGroupIds,
 		ServerGroupId:    request.ServerGroupId,
@@ -167,7 +169,7 @@ func (client *Client) DeleteVirtualServer(ctx context.Context, virtualServerId s
 	return result, err
 }
 
-func (client *Client) GetNicList(ctx context.Context, virtualServerId string) (virtualserver2.ListResponseOfNicResponse, error) {
+func (client *Client) GetNicList(ctx context.Context, virtualServerId string) (virtualserver2.ListResponseNicResponse, error) {
 	result, _, err := client.sdkClient.VirtualServerNicV2Api.ListNics2(ctx, client.config.ProjectId, virtualServerId)
 	return result, err
 }
@@ -248,7 +250,7 @@ func (client *Client) DetailVirtualServer(ctx context.Context, virtualServerId s
 	return result, err
 }
 
-func (client *Client) ListVirtualServers(ctx context.Context, request ListVirtualServersRequestParam) (virtualserver2.ListResponseOfVirtualServersResponse, error) {
+func (client *Client) ListVirtualServers(ctx context.Context, request ListVirtualServersRequestParam) (virtualserver2.ListResponseVirtualServersResponse, error) {
 	result, _, err := client.sdkClient.VirtualServerV2Api.ListVirtualServers2(ctx, client.config.ProjectId,
 		&virtualserver2.VirtualServerV2ApiListVirtualServers2Opts{
 			AutoscalingEnabled:   boolPtrToOptionalBool(request.AutoscalingEnabled),
@@ -297,7 +299,7 @@ func (client *Client) UpdateVirtualServerNextContract(ctx context.Context, virtu
 	return result, err
 }
 
-func (client *Client) ListNics(ctx context.Context, virtualServerId string) (virtualserver2.ListResponseOfNicResponse, error) {
+func (client *Client) ListNics(ctx context.Context, virtualServerId string) (virtualserver2.ListResponseNicResponse, error) {
 	result, _, err := client.sdkClient.VirtualServerNicV2Api.ListNics2(ctx, client.config.ProjectId, virtualServerId)
 	return result, err
 }
@@ -310,4 +312,22 @@ func (client *Client) StopVirtualServer(ctx context.Context, virtualServerId str
 func (client *Client) StartVirtualServer(ctx context.Context, virtualServerId string) (virtualserver2.AsyncResponse, error) {
 	result, _, err := client.sdkClient.VirtualServerOperateV2Api.StartVirtualServer2(ctx, client.config.ProjectId, virtualServerId)
 	return result, err
+}
+
+func (client *Client) UpdateRole(ctx context.Context, virtualServerId string, roleId string) (virtualserver2.DetailVirtualServerV3Response, int, error) {
+	result, c, err := client.sdkClient.VirtualServerRoleV2Api.UpdateVirtualServerRole(ctx, client.config.ProjectId, roleId, virtualServerId)
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
+}
+
+func (client *Client) DeleteRole(ctx context.Context, virtualServerId string) (virtualserver2.DetailVirtualServerV3Response, int, error) {
+	result, c, err := client.sdkClient.VirtualServerRoleV2Api.DeleteVirtualServerRole(ctx, client.config.ProjectId, virtualServerId)
+	var statusCode int
+	if c != nil {
+		statusCode = c.StatusCode
+	}
+	return result, statusCode, err
 }

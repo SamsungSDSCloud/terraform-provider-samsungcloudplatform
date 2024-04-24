@@ -18,7 +18,7 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) GetMigrationImageList(ctx context.Context, request image2.MigrationImageV2ApiListMigrationImagesOpts) (image2.ListResponseOfMigrationImageResponse, error) {
+func (client *Client) GetMigrationImageList(ctx context.Context, request image2.MigrationImageV2ApiListMigrationImagesOpts) (image2.ListResponseMigrationImageResponse, error) {
 	result, _, err := client.sdkClient.MigrationImageV2Api.ListMigrationImages(ctx, client.config.ProjectId, &request)
 	return result, err
 }

@@ -60,14 +60,18 @@ func (client *Client) ReadTrail(ctx context.Context, trailId string) (loggingaud
 	return result, statusCode, err
 }
 
-func (client *Client) ListTrails(ctx context.Context, isMy *bool, regions []string, resourceIds []string, state string, name string) (loggingaudit.PageResponseV2OfTrailResponse, error) {
+func (client *Client) ListTrails(ctx context.Context, isMy *bool, regions []string, resourceIds []string, state string, name string) (loggingaudit.PageResponseV2TrailResponse, error) {
+	var stateList []string
+	if len(state) > 0 {
+		stateList = append(stateList, state)
+	}
 	result, _, err := client.sdkClient.TrailControllerApi.ListTrails(ctx, client.config.ProjectId, loggingaudit.TrailSearchCriteria{
 		IsMy:                     isMy,
 		LoggingTargetRegions:     regions,
 		LoggingTargetResourceIds: resourceIds,
 		Page:                     0,
 		Size:                     10000,
-		State:                    state,
+		StateList:                stateList,
 		TrailName:                name,
 	})
 
@@ -137,7 +141,7 @@ func (client *Client) DetailLogging(ctx context.Context, loggingId string) (logg
 	return result, statusCode, err
 }
 
-func (client *Client) ListLoggings(ctx context.Context, request loggingaudit.LoggingSearchCriteria) (loggingaudit.PageResponseV2OfLoggingsResponse, int, error) {
+func (client *Client) ListLoggings(ctx context.Context, request loggingaudit.LoggingSearchCriteria) (loggingaudit.PageResponseV2LoggingsResponse, int, error) {
 	response, c, err := client.sdkClient.LoggingControllerApi.ListLoggings(ctx, client.config.ProjectId, request)
 	var statusCode int
 	if c != nil {
@@ -146,7 +150,7 @@ func (client *Client) ListLoggings(ctx context.Context, request loggingaudit.Log
 	return response, statusCode, err
 }
 
-func (client *Client) ListUsers(ctx context.Context, userName string) (loggingaudit.PageResponseV2OfMembersResponse, int, error) {
+func (client *Client) ListUsers(ctx context.Context, userName string) (loggingaudit.PageResponseV2MembersResponse, int, error) {
 	response, c, err := client.sdkClient.TrailControllerApi.ListUsers(ctx, client.config.ProjectId, &loggingaudit.TrailControllerApiListUsersOpts{
 		UserName: optional.NewString(userName),
 		Page:     optional.NewInt32(0),

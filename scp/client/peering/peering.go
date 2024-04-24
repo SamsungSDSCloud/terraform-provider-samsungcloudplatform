@@ -19,8 +19,8 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) GetVpcPeeringList(ctx context.Context, request VpcPeeringListRequest) (peering2.ListResponseOfVpcPeeringResponse, error) {
-	result, _, err := client.sdkClient.VpcPeeringOpenApiControllerApi.ListVpcPeerings2(ctx, client.config.ProjectId, &peering2.VpcPeeringOpenApiControllerApiListVpcPeerings2Opts{
+func (client *Client) GetVpcPeeringList(ctx context.Context, request VpcPeeringListRequest) (peering2.ListResponseVpcPeeringResponse, error) {
+	result, _, err := client.sdkClient.VpcPeeringOpenApiControllerApi.ListVpcPeerings(ctx, client.config.ProjectId, &peering2.VpcPeeringOpenApiControllerApiListVpcPeeringsOpts{
 		ApproverVpcId:  optional.NewString(request.ApproverVpcId),
 		RequesterVpcId: optional.NewString(request.RequesterVpcId),
 		VpcPeeringName: optional.NewString(request.VpcPeeringName),
@@ -34,7 +34,7 @@ func (client *Client) GetVpcPeeringList(ctx context.Context, request VpcPeeringL
 }
 
 func (client *Client) GetVpcPeeringForDelete(ctx context.Context, peeringId string) (peering2.VpcPeeringResponse, string, error) {
-	result, _, err := client.sdkClient.VpcPeeringOpenApiControllerApi.ListVpcPeerings2(ctx, client.config.ProjectId, &peering2.VpcPeeringOpenApiControllerApiListVpcPeerings2Opts{
+	result, _, err := client.sdkClient.VpcPeeringOpenApiControllerApi.ListVpcPeerings(ctx, client.config.ProjectId, &peering2.VpcPeeringOpenApiControllerApiListVpcPeeringsOpts{
 		Size: optional.NewInt32(1000),
 		Page: optional.NewInt32(0),
 	})

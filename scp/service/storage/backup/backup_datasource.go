@@ -2,7 +2,7 @@ package backup
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/backup2"
@@ -65,7 +65,7 @@ func dataSourceList(ctx context.Context, rd *schema.ResourceData, meta interface
 		sort = optional.NewInterface(v.([]interface{}))
 	}
 
-	responses, err := inst.Client.Backup.ReadBackupList(ctx, backup2.BackupSearchOpenApiV3ApiListBackups1Opts{
+	responses, err := inst.Client.Backup.ReadBackupList(ctx, backup2.BackupSearchOpenApiApiListBackupsOpts{
 		BackupName:               backupName,
 		CreatedBy:                createdBy,
 		BackupPolicyTypeCategory: backupPolicyTypeCategory,

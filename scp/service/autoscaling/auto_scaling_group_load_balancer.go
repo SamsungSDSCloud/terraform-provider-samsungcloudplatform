@@ -2,7 +2,7 @@ package autoscaling
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/autoscaling/autoscaling_common"
@@ -61,22 +61,22 @@ func resourceAutoScalingGroupLoadBalancerCreate(ctx context.Context, rd *schema.
 	return resourceAutoScalingGroupLoadBalancerRead(ctx, rd, meta)
 }
 
-func getAutoScalingGroupLoadBalancer(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diag.Diagnostics, loadbalancer2.ListResponseOfLbServiceForAsgResponse) {
+func getAutoScalingGroupLoadBalancer(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diag.Diagnostics, loadbalancer2.ListResponseLbServiceForAsgResponse) {
 	inst := meta.(*client.Instance)
 
 	response, _, err := inst.Client.LoadBalancer.GetLoadBalancerServiceConnectedToAsgList(ctx, rd.Id())
 	if err != nil {
 		rd.SetId("")
 		if common.IsDeleted(err) {
-			return nil, loadbalancer2.ListResponseOfLbServiceForAsgResponse{}
+			return nil, loadbalancer2.ListResponseLbServiceForAsgResponse{}
 		}
-		return diag.FromErr(err), loadbalancer2.ListResponseOfLbServiceForAsgResponse{}
+		return diag.FromErr(err), loadbalancer2.ListResponseLbServiceForAsgResponse{}
 	}
 
 	return diag.Diagnostics{}, response
 }
 
-func generateAsgLoadBalancersUpdateRequest(rd *schema.ResourceData, response loadbalancer2.ListResponseOfLbServiceForAsgResponse) autoscaling2.AsgLoadBalancersUpdateRequest {
+func generateAsgLoadBalancersUpdateRequest(rd *schema.ResourceData, response loadbalancer2.ListResponseLbServiceForAsgResponse) autoscaling2.AsgLoadBalancersUpdateRequest {
 	currentLbRuleIds := extractLbRuleIdsFromResponse(response)
 	desiredLbRuleIds := rd.Get("lb_rule_ids").(*schema.Set)
 	attachLbRuleIds := autoscaling_common.CalculateSetDifference(desiredLbRuleIds, currentLbRuleIds).List()
@@ -90,7 +90,7 @@ func generateAsgLoadBalancersUpdateRequest(rd *schema.ResourceData, response loa
 	return request
 }
 
-func extractLbRuleIdsFromResponse(response loadbalancer2.ListResponseOfLbServiceForAsgResponse) *schema.Set {
+func extractLbRuleIdsFromResponse(response loadbalancer2.ListResponseLbServiceForAsgResponse) *schema.Set {
 	currentLbRuleIds := schema.NewSet(schema.HashString, nil)
 	for _, lbService := range response.Contents {
 		for _, lbRule := range lbService.LbRules {

@@ -45,7 +45,7 @@ func (client *Client) DeleteAccessKey(ctx context.Context, accessKeyId string) (
 	return result, err
 }
 
-func (client *Client) ListAccessKeys(ctx context.Context, projectId string, accessKeyProjectType string, accessKeyState string, active optional.Bool, projectName string) (iam.PageResponseV2OfAccessKeysResponse, error) {
+func (client *Client) ListAccessKeys(ctx context.Context, projectId string, accessKeyProjectType string, accessKeyState string, active optional.Bool, projectName string) (iam.PageResponseV2AccessKeysResponse, error) {
 	result, _, err := client.sdkClient.AccessKeyControllerApi.ListAccessKeys1(ctx, &iam.AccessKeyControllerApiListAccessKeys1Opts{
 		ProjectId:            optional.NewString(projectId),
 		AccessKeyProjectType: optional.NewString(accessKeyProjectType),
@@ -258,7 +258,7 @@ func (client *Client) RemoveRolePolicies(ctx context.Context, roleId string, pol
 	return statusCode, err
 }
 
-func (client *Client) ListMembers(ctx context.Context, companyName string, email string, userName string) (iam.PageResponseV2OfMembersResponse, error) {
+func (client *Client) ListMembers(ctx context.Context, companyName string, email string, userName string) (iam.PageResponseV2MembersResponse, error) {
 	result, _, err := client.sdkClient.MemberControllerApi.ListMembers(ctx, client.config.ProjectId, &iam.MemberControllerApiListMembersOpts{
 		CompanyName: optional.NewString(companyName),
 		Email:       optional.NewString(email),
@@ -269,7 +269,7 @@ func (client *Client) ListMembers(ctx context.Context, companyName string, email
 	return result, err
 }
 
-func (client *Client) ListGroupMembers(ctx context.Context, groupId string, request ListMemberRequest) (iam.PageResponseV2OfGroupMembersResponse, error) {
+func (client *Client) ListGroupMembers(ctx context.Context, groupId string, request ListMemberRequest) (iam.PageResponseV2GroupMembersResponse, error) {
 	result, _, err := client.sdkClient.GroupControllerApi.ListGroupMembers(ctx, client.config.ProjectId, groupId,
 		&iam.GroupControllerApiListGroupMembersOpts{
 			CompanyName: optional.NewString(request.CompanyName),
@@ -365,7 +365,7 @@ func (client *Client) RemoveGroupMembers(ctx context.Context, groupId string, us
 	return result, err
 }
 
-func (client *Client) ListPolicies(ctx context.Context, request ListMemberRequest) (iam.PageResponseV2OfPolicysResponse, error) {
+func (client *Client) ListPolicies(ctx context.Context, request ListMemberRequest) (iam.PageResponseV2PolicysResponse, error) {
 	result, _, err := client.sdkClient.PolicyControllerApi.ListPolicys(ctx, client.config.ProjectId,
 		&iam.PolicyControllerApiListPolicysOpts{
 			ModifiedByEmail: optional.NewString(request.CompanyName),
@@ -376,7 +376,7 @@ func (client *Client) ListPolicies(ctx context.Context, request ListMemberReques
 	return result, err
 }
 
-func (client *Client) ListGroupPolicies(ctx context.Context, groupId string, request ListPolicyRequest) (iam.PageResponseV2OfGroupPolicysResponse, error) {
+func (client *Client) ListGroupPolicies(ctx context.Context, groupId string, request ListPolicyRequest) (iam.PageResponseV2GroupPolicysResponse, error) {
 	result, _, err := client.sdkClient.GroupControllerApi.ListGroupPolicys(ctx, client.config.ProjectId, groupId, &iam.GroupControllerApiListGroupPolicysOpts{
 		PolicyName: optional.NewString(request.PolicyName),
 		PolicyType: optional.NewString(request.PolicyType),
@@ -386,7 +386,7 @@ func (client *Client) ListGroupPolicies(ctx context.Context, groupId string, req
 	return result, err
 }
 
-func (client *Client) ListPolicyGroups(ctx context.Context, policyId string, groupName string) (iam.PageResponseV2OfPolicyGroupsResponse, int, error) {
+func (client *Client) ListPolicyGroups(ctx context.Context, policyId string, groupName string) (iam.PageResponseV2PolicyGroupsResponse, int, error) {
 	result, c, err := client.sdkClient.PolicyControllerApi.ListPolicyGroups(ctx, client.config.ProjectId, policyId, &iam.PolicyControllerApiListPolicyGroupsOpts{
 		GroupName: optional.NewString(groupName),
 		Page:      optional.NewInt32(0),
@@ -400,7 +400,7 @@ func (client *Client) ListPolicyGroups(ctx context.Context, policyId string, gro
 	return result, statusCode, err
 }
 
-func (client *Client) ListPolicyRoles(ctx context.Context, policyId string, roleName string) (iam.PageResponseV2OfPolicyRolesResponse, int, error) {
+func (client *Client) ListPolicyRoles(ctx context.Context, policyId string, roleName string) (iam.PageResponseV2PolicyRolesResponse, int, error) {
 	result, c, err := client.sdkClient.PolicyControllerApi.ListPolicyRoles(ctx, client.config.ProjectId, policyId, &iam.PolicyControllerApiListPolicyRolesOpts{
 		RoleName: optional.NewString(roleName),
 		Page:     optional.NewInt32(0),
@@ -434,7 +434,7 @@ func (client *Client) RemoveGroupPolicies(ctx context.Context, groupId string, p
 	return result, err
 }
 
-func (client *Client) ListMemberGroups(ctx context.Context, memberId string, groupName string) (iam.PageResponseV2OfMemberGroupsResponse, error) {
+func (client *Client) ListMemberGroups(ctx context.Context, memberId string, groupName string) (iam.PageResponseV2MemberGroupsResponse, error) {
 	result, _, err := client.sdkClient.MemberControllerApi.ListMemberGroups(ctx, client.config.ProjectId, memberId, &iam.MemberControllerApiListMemberGroupsOpts{
 		GroupName: optional.NewString(groupName),
 		Page:      optional.NewInt32(0),
@@ -443,7 +443,7 @@ func (client *Client) ListMemberGroups(ctx context.Context, memberId string, gro
 	return result, err
 }
 
-func (client *Client) ListMemberSystemGroups(ctx context.Context, memberId string) (iam.ListResponseV2OfGroupLinkResponse, error) {
+func (client *Client) ListMemberSystemGroups(ctx context.Context, memberId string) (iam.ListResponseV2GroupLinkResponse, error) {
 	result, _, err := client.sdkClient.MemberControllerApi.ListMemberDefaultSystemGroups(ctx, client.config.ProjectId, memberId)
 	return result, err
 }
@@ -472,7 +472,7 @@ func (client *Client) AddMemberGroups(ctx context.Context, memberId string, grou
 	return statusCode, err
 }
 
-func (client *Client) ListGroups(ctx context.Context, groupName string, email string) (iam.PageResponseV2OfGroupsResponse, error) {
+func (client *Client) ListGroups(ctx context.Context, groupName string, email string) (iam.PageResponseV2GroupsResponse, error) {
 	var optName optional.String
 	var optEmail optional.String
 
@@ -492,7 +492,7 @@ func (client *Client) ListGroups(ctx context.Context, groupName string, email st
 	return result, err
 }
 
-func (client *Client) ListRoles(ctx context.Context, email string, roleName string) (iam.PageResponseV2OfRolesResponse, error) {
+func (client *Client) ListRoles(ctx context.Context, email string, roleName string) (iam.PageResponseV2RolesResponse, error) {
 	result, _, err := client.sdkClient.RoleControllerApi.ListRoles(ctx, client.config.ProjectId, &iam.RoleControllerApiListRolesOpts{
 		ModifiedByEmail: optional.NewString(email),
 		RoleName:        optional.NewString(roleName),
@@ -502,7 +502,7 @@ func (client *Client) ListRoles(ctx context.Context, email string, roleName stri
 	return result, err
 }
 
-func (client *Client) ListRolePolicies(ctx context.Context, roleId string, policyName string, policyType string) (iam.PageResponseV2OfRolePolicysResponse, error) {
+func (client *Client) ListRolePolicies(ctx context.Context, roleId string, policyName string, policyType string) (iam.PageResponseV2RolePolicysResponse, error) {
 	result, _, err := client.sdkClient.RoleControllerApi.ListRolePolicys(ctx, client.config.ProjectId, roleId, &iam.RoleControllerApiListRolePolicysOpts{
 		PolicyName: optional.NewString(policyName),
 		PolicyType: optional.NewString(policyType),

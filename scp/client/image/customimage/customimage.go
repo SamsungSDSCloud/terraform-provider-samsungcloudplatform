@@ -37,7 +37,7 @@ func (client *Client) GetCustomImage(ctx context.Context, imageId string) (image
 	return result, statusCode, err
 }
 
-func (client *Client) GetCustomImageList(ctx context.Context, request image.CustomImageV2ApiListCustomImagesOpts) (image.ListResponseOfCustomImageResponse, error) {
+func (client *Client) GetCustomImageList(ctx context.Context, request image.CustomImageV2ApiListCustomImagesOpts) (image.ListResponseCustomImageResponse, error) {
 	if request.Size == optional.NewInt32(0) {
 		request.Size = optional.NewInt32(20)
 	}

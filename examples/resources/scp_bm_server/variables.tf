@@ -28,8 +28,8 @@ variable "password" {
 }
 
 variable "name" {
-  type = list(string)
-  default = ["terrabm1", "terrabm2"]
+  type = string
+  default = "terrabm1"
 }
 
 variable "ext_name" {
@@ -49,46 +49,46 @@ variable "memory" {
 }
 
 variable "state" {
-  type = list(string)
-  default = ["RUNNING", "RUNNING"]
+  type = string
+  default = "RUNNING"
 }
 
 variable "ipv4" {
-  type = list(string)
-  default = ["222.222.0.2", "222.222.0.3"]
+  type = string
+  default = "192.168.29.40"
 }
 
 variable "use_dns" {
-  type = list(bool)
-  default = [false, false]
+  type = bool
+  default = true
 }
 
 variable "hyper_threading" {
-  type = list(string)
-  default = ["N", "Y"]
+  type = string
+  default = "Y"
 }
 
 variable "nat_enabled" {
-  type = list(bool)
-  default = [false, false]
+  type = bool
+  default = true
 }
 
 variable "public_ip_id" {
-  type = list(string)
-  default = ["", ""]
+  type = string
+  default = ""
 }
 
 variable "local_subnet_enabled" {
-  type = list(bool)
-  default = [false, false]
+  type = bool
+  default = false
 }
 
 variable "local_subnet_id" {
-  type = list(string)
-  default = ["", ""]
+  type = string
+  default = ""
 }
 
 variable "local_subnet_ipv4" {
-  type = list(string)
-  default = ["", ""]
+  type = string
+  default = ""
 }

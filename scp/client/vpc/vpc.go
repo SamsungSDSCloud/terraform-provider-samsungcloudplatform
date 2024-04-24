@@ -38,7 +38,7 @@ func (client *Client) UpdateVpc(ctx context.Context, vpcId string, description s
 	return result, err
 }
 
-func (client *Client) GetVpcList(ctx context.Context) (vpc2.ListResponseOfVpcResponse, error) {
+func (client *Client) GetVpcList(ctx context.Context) (vpc2.ListResponseVpcResponse, error) {
 	result, _, err := client.sdkClient.VpcOpenApiControllerApi.ListVpcV2(ctx, client.config.ProjectId, &vpc2.VpcOpenApiControllerApiListVpcV2Opts{
 		Size: optional.NewInt32(20),
 		Page: optional.NewInt32(0),
@@ -46,7 +46,7 @@ func (client *Client) GetVpcList(ctx context.Context) (vpc2.ListResponseOfVpcRes
 	return result, err
 }
 
-func (client *Client) GetVpcListV2(ctx context.Context, request ListVpcRequest) (vpc2.ListResponseOfVpcResponse, error) {
+func (client *Client) GetVpcListV2(ctx context.Context, request ListVpcRequest) (vpc2.ListResponseVpcResponse, error) {
 	result, _, err := client.sdkClient.VpcOpenApiControllerApi.ListVpcV2(ctx, client.config.ProjectId, &vpc2.VpcOpenApiControllerApiListVpcV2Opts{
 		ServiceZoneId: optional.NewString(request.ServiceZoneId),
 		VpcId:         optional.NewString(request.VpcId),
@@ -74,7 +74,7 @@ func (client *Client) DeleteVpc(ctx context.Context, vpcId string) error {
 	return err
 }
 
-func (client *Client) GetVpcDnsList(ctx context.Context, vpcId string) (vpc2.ListResponseOfDnsUserZoneResponse, error) {
+func (client *Client) GetVpcDnsList(ctx context.Context, vpcId string) (vpc2.ListResponseDnsUserZoneResponse, error) {
 	result, _, err := client.sdkClient.VpcOpenApiControllerApi.ListDnsUserZoneV2(ctx, client.config.ProjectId, vpcId)
 	return result, err
 }

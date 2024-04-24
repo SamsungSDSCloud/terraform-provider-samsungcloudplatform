@@ -2,7 +2,7 @@ package autoscaling
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/autoscaling/autoscaling_common"
@@ -141,6 +141,7 @@ func DataSourceAutoScalingGroup() *schema.Resource {
 			"server_name_prefix":              {Type: schema.TypeString, Computed: true, Description: "Server name prefix"},
 			"vpc_info":                        {Type: schema.TypeList, Computed: true, Description: "VPC information", Elem: resourceVpcInfo()},
 			"security_group_ids":              {Type: schema.TypeList, Computed: true, Description: "Security Group ID", Elem: &schema.Schema{Type: schema.TypeString}},
+			"file_storage_id":                 {Type: schema.TypeString, Computed: true, Description: "File Storage ID"},
 			"created_by":                      {Type: schema.TypeString, Computed: true, Description: "The person who created the resource"},
 			"created_dt":                      {Type: schema.TypeString, Computed: true, Description: "Creation date"},
 			"modified_by":                     {Type: schema.TypeString, Computed: true, Description: "The person who modified the resource"},

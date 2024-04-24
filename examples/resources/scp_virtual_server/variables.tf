@@ -58,3 +58,7 @@ variable "cpu" {
 variable "memory" {
   default = 4
 }
+
+variable "server-type" {
+  default = "s1v1m2"
+}

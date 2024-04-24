@@ -2,7 +2,7 @@ package directconnect
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	directconnect2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/direct-connect2"
 	"github.com/antihax/optional"
 
@@ -39,7 +39,7 @@ func DatasourceDirectConnects() *schema.Resource {
 func dataSourceList(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	responses, _, err := inst.Client.DirectConnect.GetDirectConnectList(ctx, &directconnect2.DirectConnectOpenApiControllerApiListDirectConnects1Opts{
+	responses, _, err := inst.Client.DirectConnect.GetDirectConnectList(ctx, &directconnect2.DirectConnectOpenApiControllerApiListDirectConnectsOpts{
 		DirectConnectId:   optional.NewString(rd.Get("direct_connect_id").(string)),
 		DirectConnectName: optional.NewString(rd.Get("direct_connect_name").(string)),
 		CreatedBy:         optional.NewString(rd.Get("created_by").(string)),

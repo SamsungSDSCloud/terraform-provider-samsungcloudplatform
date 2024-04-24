@@ -19,7 +19,7 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) GetStandardImageList(ctx context.Context, zoneId string, imageState string, servicedGroupFor string, servicedFor string) (image2.ListResponseOfStandardImageResponse, error) {
+func (client *Client) GetStandardImageList(ctx context.Context, zoneId string, imageState string, servicedGroupFor string, servicedFor string) (image2.ListResponseStandardImageResponse, error) {
 	result, _, err := client.sdkClient.StandardImageV2Api.ListStandardImages(ctx, client.config.ProjectId, zoneId, &image2.StandardImageV2ApiListStandardImagesOpts{
 		ImageState:       optional.NewString(imageState),
 		ServicedFor:      optional.NewString(servicedFor),

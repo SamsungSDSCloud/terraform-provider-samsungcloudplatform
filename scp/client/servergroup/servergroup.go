@@ -31,7 +31,7 @@ func NewClient(config *sdk.Configuration) *Client {
 //	})
 //}
 
-func (client *Client) GetServerGroup(ctx context.Context, serverGroupName string, servicedFor []string) (servergroup2.ListResponseOfServerGroupsResponse, error) {
+func (client *Client) GetServerGroup(ctx context.Context, serverGroupName string, servicedFor []string) (servergroup2.ListResponseServerGroupsResponse, error) {
 	var optServerGroupName optional.String
 	if len(serverGroupName) > 0 {
 		optServerGroupName = optional.NewString(serverGroupName)
@@ -52,7 +52,7 @@ func (client *Client) GetServerGroup(ctx context.Context, serverGroupName string
 	return result, err
 }
 
-func (client *Client) GetServerGroupByServicedForCondition(ctx context.Context, serverGroupName string, servicedFor string) (servergroup2.ListResponseOfServerGroupsResponse, error) {
+func (client *Client) GetServerGroupByServicedForCondition(ctx context.Context, serverGroupName string, servicedFor string) (servergroup2.ListResponseServerGroupsResponse, error) {
 	var optServerGroupName optional.String
 	if len(serverGroupName) > 0 {
 		optServerGroupName = optional.NewString(serverGroupName)

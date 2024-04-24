@@ -56,7 +56,7 @@ func (client *Client) ReadBlockStorage(ctx context.Context, blockStorageId strin
 	return result, statusCode, err
 }
 
-func (client *Client) ReadBlockStorageList(ctx context.Context, request ReadBlockStorageRequest) (blockstorage2.ListResponseOfBlockStorageResponse, error) {
+func (client *Client) ReadBlockStorageList(ctx context.Context, request ReadBlockStorageRequest) (blockstorage2.ListResponseBlockStorageResponse, error) {
 	result, _, err := client.sdkClient.BlockStorageControllerApi.ListBlockStorages(
 		ctx,
 		client.config.ProjectId,
@@ -111,7 +111,7 @@ func (client *Client) DetachBlockStorage(ctx context.Context, blockStorageId str
 	return result, err
 }
 
-func (client *Client) ListBlockStorageVirtualServers(ctx context.Context, blockStorageId string, request BlockStorageVirtualServersRequest) (blockstorage2.ListResponseOfBlockStorageVirtualServerResponse, error) {
+func (client *Client) ListBlockStorageVirtualServers(ctx context.Context, blockStorageId string, request BlockStorageVirtualServersRequest) (blockstorage2.ListResponseBlockStorageVirtualServerResponse, error) {
 	result, _, err := client.sdkClient.BlockStorageControllerApi.ListBlockStorageVirtualServers(ctx, client.config.ProjectId, blockStorageId, &blockstorage2.BlockStorageControllerApiListBlockStorageVirtualServersOpts{
 		Page: optional.NewInt32(request.Page),
 		Size: optional.NewInt32(request.Size),

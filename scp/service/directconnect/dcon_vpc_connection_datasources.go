@@ -2,7 +2,7 @@ package directconnect
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	directconnect2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/direct-connect2"
@@ -39,7 +39,7 @@ func DatasourceDconVpcConnections() *schema.Resource {
 func dconVpcConnectionList(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	responses, _, err := inst.Client.DirectConnect.GetDconVpcConnectionList(ctx, &directconnect2.DirectConnectConnectionOpenApiControllerApiListDirectConnectConnections1Opts{
+	responses, _, err := inst.Client.DirectConnect.GetDconVpcConnectionList(ctx, &directconnect2.DirectConnectConnectionOpenApiControllerApiListDirectConnectConnectionsOpts{
 		ApproverVpcId:               optional.NewString(rd.Get("approver_vpc_id").(string)),
 		DirectConnectConnectionName: optional.NewString(rd.Get("direct_connect_connection_name").(string)),
 		RequesterDirectConnectId:    optional.NewString(rd.Get("requester_direct_connect_id").(string)),

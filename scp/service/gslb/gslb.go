@@ -3,7 +3,7 @@ package gslb
 import (
 	"context"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/gslb"
 	common "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
@@ -338,7 +338,7 @@ func resourceGslbRead(ctx context.Context, rd *schema.ResourceData, meta interfa
 	rd.Set("gslb_send_string", gslbInfo.GslbHealthCheck.GslbSendString)
 	rd.Set("gslb_response_string", gslbInfo.GslbHealthCheck.GslbResponseString)
 
-	var gslbResourceInfo gslb2.ListResponseOfGslbResourceMappingResponse
+	var gslbResourceInfo gslb2.ListResponseGslbResourceMappingResponse
 	gslbResourceInfo, err = inst.Client.Gslb.GetGslbResource(ctx, rd.Id())
 
 	var gslbResources []common.HclKeyValueObject

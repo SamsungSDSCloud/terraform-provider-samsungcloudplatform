@@ -16,7 +16,7 @@ Provides a PostgreSQL Database resource.
 data "scp_region" "region" {
   filter {
     name = "location"
-    values = ["KR-EAST-1"]
+    values = ["KR-WEST-2"]
   }
 }
 
@@ -42,7 +42,7 @@ resource "scp_postgresql" "demo_db" {
   service_zone_id = data.scp_region.region.id
 
   postgresql_servers {
-    postgresql_server_name = "demoserver-01"
+    postgresql_server_name = "demopost-01"
     server_role_type = "ACTIVE"
   }
 
@@ -50,9 +50,9 @@ resource "scp_postgresql" "demo_db" {
   audit_enabled = true
   contract_period = "1 Year"
   next_contract_period = "None"
-  nat_enabled = false
+  nat_enabled = true
   nat_public_ip_id = null
-  postgresql_cluster_name = "democluster"
+  postgresql_cluster_name = "demopostcluster"
   postgresql_cluster_state = "RUNNING"
 
   database_encoding = "UTF8"
@@ -72,7 +72,7 @@ resource "scp_postgresql" "demo_db" {
     block_storage_size = 10
   }
 
-  backup  {
+  backup {
     object_storage_id = data.scp_obs_storages.obs_storage.contents[0].object_storage_id
     archive_backup_schedule_frequency = "30M"
     backup_retention_period = "15D"
@@ -88,7 +88,7 @@ resource "scp_postgresql" "demo_db" {
 
 - `audit_enabled` (Boolean) Whether to use database audit logging.
 - `block_storages` (Block List, Min: 1) block storage. (see [below for nested schema](#nestedblock--block_storages))
-- `contract_period` (String) Contract (None|1-year|3-year)
+- `contract_period` (String) Contract (None|1 Year|3 Year)
 - `database_encoding` (String) Postgresql encoding. (Only 'UTF8' for now)
 - `database_locale` (String) Postgresql locale. (Only 'C' for now)
 - `database_name` (String) Name of database. (only English alphabets or numbers between 3 and 20 characters)
@@ -111,13 +111,16 @@ resource "scp_postgresql" "demo_db" {
 - `backup` (Block Set, Max: 1) (see [below for nested schema](#nestedblock--backup))
 - `nat_enabled` (Boolean) Whether to use nat.
 - `nat_public_ip_id` (String) Public IP for NAT. If it is null, it is automatically allocated.
-- `next_contract_period` (String) Next contract (None|1-year|3-year)
+- `next_contract_period` (String) Next contract (None|1 Year|3 Year)
 - `tags` (Map of String)
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+- `nat_ip_address` (String) nat ip address
+- `virtual_ip_address` (String) virtual ip address
+- `vpc_id` (String) vpc id
 
 <a id="nestedblock--block_storages"></a>
 ### Nested Schema for `block_storages`
@@ -127,6 +130,10 @@ Required:
 - `block_storage_role_type` (String) Storage usage. (DATA|ARCHIVE|TEMP|BACKUP)
 - `block_storage_size` (Number) Block Storage Size (10 to 5120)
 - `block_storage_type` (String) Storage product name. (SSD|HDD)
+
+Read-Only:
+
+- `block_storage_group_id` (String) Block storage group id
 
 
 <a id="nestedblock--postgresql_servers"></a>

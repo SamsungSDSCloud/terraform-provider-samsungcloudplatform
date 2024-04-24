@@ -2,7 +2,7 @@ package internetgateway
 
 import (
 	"context"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
@@ -36,8 +36,8 @@ func ResourceInternetGateway() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				ForceNew:         true,
-				Description:      "Internet-Gateway Type. One of SHARED , DEDICATED, SHARED_GROUP",
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"SHARED", "DEDICATED", "SHARED_GROUP"}, false)),
+				Description:      "Internet-Gateway Type. One of SHARED , DEDICATED, SHARED_GROUP, SECURE",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"SHARED", "DEDICATED", "SHARED_GROUP", "SECURE"}, false)),
 			},
 			"description": {
 				Type:         schema.TypeString,

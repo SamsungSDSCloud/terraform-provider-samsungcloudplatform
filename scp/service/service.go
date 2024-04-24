@@ -3,7 +3,13 @@ package scp
 import (
 	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/autoscaling"
 	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/baremetal"
+	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/baremetalvdc"
+	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/database/epas"
+	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/database/mariadb"
+	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/database/mysql"
 	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/database/postgresql"
+	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/database/redis"
+	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/database/rediscluster"
 	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/database/sqlserver"
 	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/directconnect"
 	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/dns"

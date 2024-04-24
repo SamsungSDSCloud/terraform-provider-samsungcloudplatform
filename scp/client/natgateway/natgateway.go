@@ -62,8 +62,8 @@ func (client *Client) DeleteNatGateway(ctx context.Context, natGatewayId string)
 	return result, statusCode, err
 }
 
-func (client *Client) ListNatGateway(ctx context.Context, request *natgateway2.NatGatewayV2ControllerV2ApiListNatGateways1Opts) (natgateway2.ListResponseOfNatGatewayListItemResponse, int, error) {
-	result, c, err := client.sdkClient.NatGatewayV2ControllerV2Api.ListNatGateways1(ctx, client.config.ProjectId, request)
+func (client *Client) ListNatGateway(ctx context.Context, request *natgateway2.NatGatewayV2ControllerV2ApiListNatGatewaysOpts) (natgateway2.ListResponseNatGatewayListItemResponse, int, error) {
+	result, c, err := client.sdkClient.NatGatewayV2ControllerV2Api.ListNatGateways(ctx, client.config.ProjectId, request)
 	var statusCode int
 	if c != nil {
 		statusCode = c.StatusCode

@@ -2,35 +2,35 @@ package sqlserver
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/image"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/database/database_common"
 	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/tag"
-	objectstorage "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/object-storage"
-	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/sqlserver2"
+	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/sqlserver"
 	"github.com/antihax/optional"
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"log"
+	"sort"
+	"strings"
+
 	//"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"strconv"
-	"strings"
 	"time"
 )
 
 func init() {
-	scp.RegisterResource("scp_sqlserver", ResourceSqlServer())
+	scp.RegisterResource("scp_sqlserver", ResourceSqlserver())
 }
 
-func ResourceSqlServer() *schema.Resource {
+func ResourceSqlserver() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceSqlServerCreate,
-		ReadContext:   resourceSqlServerRead,
-		UpdateContext: resourceSqlServerUpdate,
-		DeleteContext: resourceSqlServerDelete,
+		CreateContext: resourceSqlserverCreate,
+		ReadContext:   resourceSqlserverRead,
+		UpdateContext: resourceSqlserverUpdate,
+		DeleteContext: resourceSqlserverDelete,
+		CustomizeDiff: resourceSqlserverDiff,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -40,239 +40,276 @@ func ResourceSqlServer() *schema.Resource {
 			Delete: schema.DefaultTimeout(60 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
+			"audit_enabled": {
+				Type:        schema.TypeBool,
+				Required:    true,
+				Description: "Whether to use database audit logging.",
+			},
+			"contract_period": {
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "Contract : None, 1-year, 3-year",
+				ValidateDiagFunc: database_common.ValidateStringInOptions("None", database_common.OneYear, database_common.ThreeYear),
+			},
+			"next_contract_period": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "None",
+				Description:      "Next contract : None, 1-year, 3-year",
+				ValidateDiagFunc: database_common.ValidateStringInOptions("None", database_common.OneYear, database_common.ThreeYear),
+			},
 			"image_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "SQL Server standard image id.",
 			},
-			"virtual_server_name_prefix": {
-				Type:             schema.TypeString,
-				Required:         true,
-				ForceNew:         true,
-				Description:      "Prefix of virtual server. (3 to 13 alpha-numerics with dash)",
-				ValidateDiagFunc: common.ValidateName3to13AlphaNumberDash,
+			"nat_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Whether to use nat.",
 			},
-			"server_group_name": {
-				// cluster
+			"nat_public_ip_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Public IP for NAT. If it is null, it is automatically allocated.",
+			},
+			"security_group_ids": {
+				Type:     schema.TypeList,
+				Required: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Description: "Security-Group ids of this MS SQL Server DB. Each security-group must be a valid security-group resource which is attached to the VPC.",
+			},
+			"service_zone_id": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Service Zone Id",
+			},
+			"sqlserver_cluster_name": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ForceNew:         true,
 				Description:      "Name of database cluster. (3 to 20 characters only)",
 				ValidateDiagFunc: common.ValidateName3to20AlphaOnly,
 			},
-			"db_service_name": {
+			"sqlserver_cluster_state": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ForceNew:         true,
-				Description:      "Name of SQL server database service. (Starts with a capital letter, 1 to 15 alphabet only)",
-				ValidateDiagFunc: common.ValidateName1to15AlphaOnlyStartsWithCapitalLetter,
+				Description:      "MS SQL Server cluster state",
+				ValidateDiagFunc: database_common.ValidateStringInOptions("RUNNING", "STOPPED"),
 			},
-			"db_name": {
+			"database_service_name": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ForceNew:         true,
-				Description:      "Name of database.",
-				ValidateDiagFunc: nil, // TODO
+				Description:      "MS SQL Server Database Service name",
+				ValidateDiagFunc: common.ValidateName1to15AlphaOnlyStartsWithUpperCase,
 			},
-			"db_user_id": {
-				Type:             schema.TypeString,
-				Required:         true,
-				ForceNew:         true,
-				Description:      "User account id. (2 to 20 alpha-numerics)",
-				ValidateDiagFunc: common.ValidateName2to20AlphaNumeric,
+			"database_names": {
+				Type:     schema.TypeList,
+				Required: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Description: "Database Name List",
 			},
-			"db_user_password": {
+			"database_user_name": {
 				Type:             schema.TypeString,
 				Required:         true,
-				Description:      "User account password",
+				Description:      "User account id of database. (2 to 20 alpha-numerics)",
+				ValidateDiagFunc: database_common.ValidateDbUserName2to20AlphaNumeric,
+			},
+			"database_user_password": {
+				Type:             schema.TypeString,
+				Required:         true,
+				Sensitive:        true,
+				Description:      "User account password of database.",
 				ValidateDiagFunc: common.ValidatePassword8to30WithSpecialsExceptQuotes,
 			},
-			"db_port": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				ForceNew:    true,
-				Description: "Port number of database.",
-			},
-			"cpu_count": {
-				Type:             schema.TypeInt,
-				Required:         true,
-				Description:      "CPU core count (2, 4, 8,..)",
-				ValidateDiagFunc: common.ValidatePositiveInt,
-			},
-			"memory_size_gb": {
-				Type:             schema.TypeInt,
-				Required:         true,
-				Description:      "Memory size in gigabytes(4, 8, 16,..)",
-				ValidateDiagFunc: common.ValidatePositiveInt,
-			},
-			"contract_discount": {
+			"license": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
-				Description: "Contract : None, 1-year, 3-year",
+				Sensitive:   true,
+				Description: "License key.",
 			},
-			"data_disk_type": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Data storage disk type. (SSD, HDD)",
-				ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
-					var diags diag.Diagnostics
-					val := v.(string)
-					if val == "SSD" {
-						return diags
-					} else if val == "HDD" {
-						return diags
-					}
-
-					diags = append(diags, diag.Diagnostic{
-						Severity:      diag.Error,
-						Summary:       fmt.Sprintf("Must be either SSD or HDD"),
-						AttributePath: path,
-					})
-					return diags
-				},
-			},
-			"data_block_storage_size_gb": {
+			"database_port": {
 				Type:             schema.TypeInt,
 				Required:         true,
-				Description:      "Data Block Storage size in gigabytes.",
-				ValidateDiagFunc: common.ValidateBlockStorageSize,
+				Description:      "Port number of this database. (1024 to 65535)",
+				ValidateDiagFunc: database_common.ValidateIntegerInRange(1024, 65535),
 			},
-			"encrypt_enabled": {
-				Type:     schema.TypeBool,
-				Required: true,
+			"database_collation": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Commands that specify how to sort and compare data",
 			},
-			"additional_block_storages": {
-				Type:        schema.TypeList,
+			"sqlserver_active_directory": {
+				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "Additional block storages.",
+				Description: "MS SQL Server Active directory",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"product_name": {
+						"domain_name": {
 							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Storage product name. (only SSD)",
-							ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
-								var diags diag.Diagnostics
-								val := v.(string)
-								if val == "SSD" {
-									return diags
-								}
-
-								diags = append(diags, diag.Diagnostic{
-									Severity:      diag.Error,
-									Summary:       fmt.Sprintf("Must be SSD"),
-									AttributePath: path,
-								})
-								return diags
-							},
+							Optional:    true,
+							Description: "Active Directory Domain name",
 						},
-						"storage_usage": {
+						"domain_net_bios_name": {
 							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Storage usage. (DATA, ARCHIVE)",
-							ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
-								var diags diag.Diagnostics
-								val := v.(string)
-								if val == "DATA" {
-									return diags
-								} else if val == "ARCHIVE" {
-									return diags
-								}
-
-								diags = append(diags, diag.Diagnostic{
-									Severity:      diag.Error,
-									Summary:       fmt.Sprintf("Must be either DATA or ARCHIVE"),
-									AttributePath: path,
-								})
-								return diags
-							},
+							Optional:    true,
+							Description: "Active Directory NetBios name",
 						},
-						"storage_size_gb": {
-							Type:             schema.TypeInt,
-							Required:         true,
-							Description:      "Default data storage size in gigabytes. (10~7,168 GB)",
-							ValidateDiagFunc: common.ValidateBlockStorageSize,
+						"dns_server_ips": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+							Description: "Active Directory DNS Server IPs",
+						},
+						"ad_server_user_id": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Active Directory Server User ID",
+						},
+						"ad_server_user_password": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Sensitive:   true,
+							Description: "Active Directory Server User password",
+						},
+						"failover_cluster_name": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Active Directory Failover Cluster name",
 						},
 					},
 				},
+			},
+			"block_storages": {
+				Type:        schema.TypeList,
+				Required:    true,
+				Description: "block storage. (It can't be deleted.)",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"block_storage_size": {
+							Type:             schema.TypeInt,
+							Required:         true,
+							Description:      "Block Storage Size (10 to 7168)",
+							ValidateDiagFunc: database_common.ValidateIntegerInRange(10, 7168),
+						},
+						"block_storage_type": {
+							Type:             schema.TypeString,
+							Required:         true,
+							Description:      "Storage product name. (SSD|HDD)",
+							ValidateDiagFunc: database_common.ValidateStringInOptions("SSD", "HDD"),
+						},
+						"block_storage_group_id": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Block storage group id",
+						},
+					},
+				},
+			},
+			"encryption_enabled": {
+				Type:        schema.TypeBool,
+				Required:    true,
+				Description: "Whether to use storage encryption.",
+			},
+			"sqlserver_servers": {
+				Type:        schema.TypeList,
+				Required:    true,
+				Description: "MS SQL Server servers (HA configuration when entering two server specifications)",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"availability_zone_name": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							Description:      "Availability Zone Name. (AZ1 | AZ2)",
+							ValidateDiagFunc: database_common.ValidateStringInOptions("AZ1", "AZ2", ""),
+						},
+						"sqlserver_server_name": {
+							Type:             schema.TypeString,
+							Required:         true,
+							Description:      "MS SQL Server database server names. (3 to 15 lowercase and number with dash and the first character should be an lowercase letter.)",
+							ValidateDiagFunc: database_common.Validate3to15LowercaseNumberDashAndStartLowercase,
+						},
+						"server_role_type": {
+							Type:             schema.TypeString,
+							Required:         true,
+							Description:      "Server role type Enter 'ACTIVE' for a single server configuration. (ACTIVE | PRIMARY | SECONDARY)\",",
+							ValidateDiagFunc: database_common.ValidateStringInOptions("ACTIVE", "PRIMARY", "SECONDARY"),
+						},
+					},
+				},
+			},
+			"server_type": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Whether to use storage encryption.",
+			},
+			"subnet_id": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Subnet id of this database server. Subnet must be a valid subnet resource which is attached to the VPC.",
+			},
+			"timezone": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Timezone setting of this database.",
 			},
 			"backup": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				MaxItems: 1,
-				Elem:     resourceSqlServerBackup(),
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"object_storage_id": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Object storage ID where backup files will be stored.",
+						},
+						"archive_backup_schedule_frequency": {
+							Type:             schema.TypeString,
+							Required:         true,
+							Description:      "Backup File Schedule Frequency.(5M, 10M, 30M, 1H) ",
+							ValidateDiagFunc: database_common.ValidateStringInOptions("5M", "10M", "30M", "1H"),
+						},
+						"backup_retention_period": {
+							Type:             schema.TypeString,
+							Required:         true,
+							Description:      "Backup File Retention Day.(7D <= day <= 35D) ",
+							ValidateDiagFunc: database_common.ValidateBackupRetentionPeriod,
+						},
+						"backup_start_hour": {
+							Type:             schema.TypeInt,
+							Required:         true,
+							Description:      "The time at which the backup starts. (from 0 to 23)",
+							ValidateDiagFunc: database_common.ValidateIntegerInRange(0, 23),
+						},
+						"full_backup_day_of_week": {
+							Type:             schema.TypeString,
+							Required:         true,
+							Description:      "Full backup schedule(Day). (MONDAY to SUNDAY)",
+							ValidateDiagFunc: database_common.ValidateStringInOptions("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"),
+						},
+					},
+				},
+			},
+			"virtual_ip_address": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "virtual ip address",
+			},
+			"nat_ip_address": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "nat ip address",
 			},
 			"vpc_id": {
 				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "VPC ID.",
-			},
-			"subnet_id": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "Subnet ID.",
-			},
-			"license_key": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "License key.",
-			},
-			"timezone": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "Timezone setting of this database.",
-			},
-			//"nat_enabled":{},
-			"security_group_ids": {
-				Type:     schema.TypeList,
-				Required: true,
-				ForceNew: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Description: "Security-Group ids of this sql server group. Each security-group must be a valid security-group resource which is attached to the VPC.",
-			},
-			"db_collation": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Commands that specify how to sort and compare data",
-			},
-			"additional_db": {
-				Type:     schema.TypeList,
-				Required: true, // why?
-				ForceNew: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Description: "Names of additional database.",
-			},
-			"high_availability": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				MaxItems: 1,
-				ForceNew: true,
-				Elem:     resourceSqlServerHighAvailability(),
-			},
-			"vip": {
-				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Virtual IP.",
-			},
-			"external_vip": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "External virtual IP.",
-			},
-			"cluster_vip": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Cluster virtual IP.",
+				Description: "vpc id",
 			},
 			"tags": tfTags.TagsSchema(),
 		},
@@ -280,117 +317,7 @@ func ResourceSqlServer() *schema.Resource {
 	}
 }
 
-func resourceSqlServerBackup() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"object_storage_id": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Object storage ID where backup files will be stored.",
-			},
-			"backup_method": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Backup Method (s3api|cdp) ",
-				ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
-					var diags diag.Diagnostics
-					val := v.(string)
-					if val == "s3api" || val == "cdp" {
-						return diags
-					}
-
-					diags = append(diags, diag.Diagnostic{
-						Severity:      diag.Error,
-						Summary:       fmt.Sprintf("Must be either s3api or cdp"),
-						AttributePath: path,
-					})
-					return diags
-				},
-			},
-			"backup_retention_day": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "Backup File Retention Day.(7 <= day <= 35) ",
-				ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
-					var diags diag.Diagnostics
-					value := v.(int)
-					if value < 7 || value > 35 {
-						diags = append(diags, diag.Diagnostic{
-							Severity:      diag.Error,
-							Summary:       fmt.Sprintf("Backup retion day's value must be between 7 and 35 days"),
-							AttributePath: path,
-						})
-					}
-					return diags
-				},
-			},
-			"backup_start_hour": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "The time at which the backup starts. (from 0 to 23)",
-				ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
-					var diags diag.Diagnostics
-					value := v.(int)
-					if value < 0 || value > 23 {
-						diags = append(diags, diag.Diagnostic{
-							Severity:      diag.Error,
-							Summary:       fmt.Sprintf("Backup start hour can be set from 0 to 23."),
-							AttributePath: path,
-						})
-					}
-					return diags
-				},
-			},
-		},
-	}
-}
-
-func resourceSqlServerHighAvailability() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"use_vip_nat": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "use Virtual IP NAT.",
-			},
-			"reserved_nat_ip_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "ID of Reserved Virtual NAT IP.",
-			},
-			"virtual_ip": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				Description:      "Virtual IP for database cluster access.",
-				ValidateDiagFunc: common.ValidateIpv4,
-			},
-			"active_server_ip": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				Description:      "Static IP to assign to the ACTIVE server.",
-				ValidateDiagFunc: common.ValidateIpv4,
-			},
-			"standby_server_ip": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				Description:      "Static IP to assign to the STANDBy server.",
-				ValidateDiagFunc: common.ValidateIpv4,
-			},
-			"active_availability_zone_name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Active Availability Zone Name",
-			},
-			"standby_availability_zone_name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Standby Availability Zone Name",
-			},
-		},
-	}
-}
-
-func resourceSqlServerCreate(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
+func resourceSqlserverCreate(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
 	var err error = nil
 	defer func() {
 		if err != nil {
@@ -400,147 +327,119 @@ func resourceSqlServerCreate(ctx context.Context, rd *schema.ResourceData, meta 
 
 	inst := meta.(*client.Instance)
 
-	vpcId := rd.Get("vpc_id").(string)
-	vpcInfo, _, err := inst.Client.Vpc.GetVpcInfo(ctx, vpcId)
-	if err != nil {
-		return
+	auditEnabled := rd.Get("audit_enabled").(bool)
+	contractPeriod := rd.Get("contract_period").(string)
+	nextContractPeriod := rd.Get("next_contract_period").(string)
+	imageId := rd.Get("image_id").(string)
+	natEnabled := rd.Get("nat_enabled").(bool)
+	natPublicIpId := rd.Get("nat_public_ip_id").(string)
+
+	securityGroupIds := rd.Get("security_group_ids").([]interface{})
+	serviceZoneId := rd.Get("service_zone_id").(string)
+
+	sqlserverClusterName := rd.Get("sqlserver_cluster_name").(string)
+	sqlserverClusterState := rd.Get("sqlserver_cluster_state").(string)
+
+	//sqlserver InitialConfig
+	databaseCollation := rd.Get("database_collation").(string)
+	databaseNames := rd.Get("database_names").([]interface{})
+	databasePort := rd.Get("database_port").(int)
+	databaseServiceName := rd.Get("database_service_name").(string)
+	databaseUserName := rd.Get("database_user_name").(string)
+	databaseUserPassword := rd.Get("database_user_password").(string)
+	license := rd.Get("license").(string)
+
+	// sqlserver active directory
+	sqlserverActiveDirectoryRequest := &sqlserver.SqlserverActiveDirectory{}
+	sqlserverActiveDirectory := rd.Get("sqlserver_active_directory").(*schema.Set).List()
+
+	if len(sqlserverActiveDirectory) != 0 {
+		adMap := sqlserverActiveDirectory[0].(map[string]interface{})
+		err = database_common.MapToObjectWithCamel(adMap, sqlserverActiveDirectoryRequest)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
+		sqlserverActiveDirectoryRequest = nil
 	}
-	//blockId := vpcInfo.BlockId	// vpcInfo.BlockId is bogus
+
+	//sqlserver ServerGroup
+	blockStorages := rd.Get("block_storages").([]interface{})
+	encryptionEnabled := rd.Get("encryption_enabled").(bool)
+	sqlserverServers := rd.Get("sqlserver_servers").([]interface{})
+	serverType := rd.Get("server_type").(string)
 
 	subnetId := rd.Get("subnet_id").(string)
-	subnetInfo, _, err := inst.Client.Subnet.GetSubnet(ctx, subnetId)
-	if err != nil {
-		return
+	timezone := rd.Get("timezone").(string)
+	backup := rd.Get("backup").(*schema.Set).List()
+
+	// block storage
+	var SqlserverBlockStorageGroupCreateRequestList []sqlserver.SqlserverBlockStorageGroupCreateRequest
+	blockStoragesList := database_common.ConvertObjectSliceToStructSlice(blockStorages)
+	for _, blockStorage := range blockStoragesList {
+		SqlserverBlockStorageGroupCreateRequestList = append(SqlserverBlockStorageGroupCreateRequestList, sqlserver.SqlserverBlockStorageGroupCreateRequest{
+			BlockStorageSize: int32(blockStorage.BlockStorageSize),
+			BlockStorageType: blockStorage.BlockStorageType,
+		})
 	}
 
-	serviceZoneId := vpcInfo.ServiceZoneId
+	// sqlserver server (HclListObject to Slice)
+	var SqlserverServerCreateRequestList []sqlserver.SqlserverServerCreateRequest
+	sqlserverServerList := database_common.ConvertObjectSliceToStructSlice(sqlserverServers)
+	for _, sqlserverServer := range sqlserverServerList {
+		SqlserverServerCreateRequestList = append(SqlserverServerCreateRequestList, sqlserver.SqlserverServerCreateRequest{
+			AvailabilityZoneName: sqlserverServer.AvailabilityZoneName,
+			SqlserverServerName:  sqlserverServer.SqlserverServerName,
+			ServerRoleType:       sqlserverServer.ServerRoleType,
+		})
+	}
 
-	// block id, AZ
+	securityGroupIdList := database_common.ConvertToList(securityGroupIds)
+	databaseNameList := database_common.ConvertToList(databaseNames)
+
 	projectInfo, err := inst.Client.Project.GetProjectInfo(ctx)
 	if err != nil {
+		diagnostics = diag.FromErr(err)
 		return
 	}
 	var blockId string
-	var isMultiAvailabilityZone *bool
 	for _, zoneInfo := range projectInfo.ServiceZones {
 		if zoneInfo.ServiceZoneId == serviceZoneId {
 			blockId = zoneInfo.BlockId
-			isMultiAvailabilityZone = zoneInfo.IsMultiAvailabilityZone
 			break
 		}
 	}
-
-	serverNamePrefix := rd.Get("virtual_server_name_prefix").(string)
-	networks := expandNetworkSetting(serverNamePrefix, rd.Get("high_availability").(*schema.Set), isMultiAvailabilityZone)
-	ha := expandHASetting(rd.Get("high_availability").(*schema.Set))
-
-	backup, err := createBackupSettings(ctx, inst.Client, serviceZoneId, rd.Get("backup").(*schema.Set))
-	if err != nil {
-		return
+	if len(blockId) == 0 {
+		return diag.Errorf("current service block not found")
 	}
 
-	dbPort := rd.Get("db_port").(int)
-	dbUserPassword := base64.StdEncoding.EncodeToString([]byte(rd.Get("db_user_password").(string)))
-	licenseKey := base64.StdEncoding.EncodeToString([]byte(rd.Get("license_key").(string)))
-	//licenseKey := rd.Get("license_key").(string)
-
-	encryptEnabled := rd.Get("encrypt_enabled").(bool)
-
-	dataDiskType := rd.Get("data_disk_type").(string)
-
-	// block storage
-	var blockStorages []sqlserver2.DatabaseBlockStorage
-	additionalStorageList := rd.Get("additional_block_storages").(common.HclListObject)
-	additionalStorageInfoList := common.ConvertAdditionalStorageList(additionalStorageList)
-	for _, additionalStorageInfo := range additionalStorageInfoList {
-		blockStorages = append(blockStorages, sqlserver2.DatabaseBlockStorage{
-			BlockStorageType: additionalStorageInfo.StorageUsage,
-			BlockStorageSize: int32(additionalStorageInfo.StorageSize),
-			DiskType:         additionalStorageInfo.ProductName,
-		})
-	}
-	blockStorageSize := rd.Get("data_block_storage_size_gb").(int)
-
-	// additional db
-	dbSWOption := make(map[string]string)
-	dbSWOption["sqlserver_collation"] = rd.Get("db_collation").(string)
-	iAdditionalDbs := rd.Get("additional_db").([]interface{})
-	additionalDbs := make([]string, len(iAdditionalDbs))
-	for i, aDbName := range iAdditionalDbs {
-		additionalDbs[i] = aDbName.(string)
-	}
-
-	// product group
-	imageId := rd.Get("image_id").(string)
-	standardImages, err := inst.Client.Image.GetStandardImageList(ctx, serviceZoneId, image.ActiveState, common.ServicedGroupDatabase, common.ServicedForSqlServer)
-	if err != nil {
-		return
-	}
-
-	var targetProductGroupId string
-	for _, c := range standardImages.Contents {
-		if c.ImageId == imageId {
-			targetProductGroupId = c.ProductGroupId
-		}
-	}
-
-	productGroup, err := inst.Client.Product.GetProductGroup(ctx, targetProductGroupId)
-	if err != nil {
-		return
-	}
-
-	// scale
-	scaleProductId, err := client.FindScaleProduct(ctx, inst.Client, targetProductGroupId, rd.Get("cpu_count").(int), rd.Get("memory_size_gb").(int))
-
-	// contract
-	contractDiscount := rd.Get("contract_discount").(string)
-	contractId, err := common.FindProductId(common.ContractProductType, contractDiscount, &productGroup)
-	if err != nil {
-		return
-	}
-
-	valueFalse := false
-	dbName := rd.Get("db_name").(string)
-	serverGroupName := rd.Get("server_group_name").(string)
-
-	_, _, err = inst.Client.SqlServer.CreateSqlServer(ctx, sqlserver2.CreateSqlServerRequest{
-		ServiceZoneId:           serviceZoneId,
-		BlockId:                 blockId,
-		ImageId:                 imageId,
-		ProductGroupId:          targetProductGroupId,
-		VirtualServerNamePrefix: serverNamePrefix,
-		ServerGroupName:         serverGroupName,
-		DbServiceName:           rd.Get("db_service_name").(string),
-		DbName:                  dbName,
-		DbUserId:                rd.Get("db_user_id").(string),
-		DbUserPassword:          dbUserPassword,
-		DbPort:                  int32(dbPort),
-		DeploymentEnvType:       "DEV",
-		VirtualServer: &sqlserver2.InstanceSpec{
-			ScaleProductId:            scaleProductId,
-			ContractDiscountProductId: contractId,
-			DataBlockStorageSize:      int32(blockStorageSize),
-			EncryptEnabled:            &encryptEnabled,
-			AdditionalBlockStorages:   blockStorages,
-			DataDiskType:              dataDiskType,
+	_, _, err = inst.Client.Sqlserver.CreateSqlserverCluster(ctx, sqlserver.SqlserverClusterCreateRequest{
+		AuditEnabled:         &auditEnabled,
+		ContractPeriod:       contractPeriod,
+		ImageId:              imageId,
+		NatEnabled:           &natEnabled,
+		NatPublicIpId:        natPublicIpId,
+		SqlserverClusterName: sqlserverClusterName,
+		SqlserverInitialConfig: &sqlserver.SqlserverInitialConfigCreateRequest{
+			DatabaseCollation:    databaseCollation,
+			DatabaseNames:        databaseNameList,
+			DatabasePort:         int32(databasePort),
+			DatabaseServiceName:  databaseServiceName,
+			DatabaseUserName:     databaseUserName,
+			DatabaseUserPassword: databaseUserPassword,
+			License:              license,
+			ActiveDirectory:      sqlserverActiveDirectoryRequest,
 		},
-		HighAvailability: ha,
-		Replica:          nil,
-		Network: &sqlserver2.DatabaseNetwork{
-			NetworkEnvType: strings.ToUpper(subnetInfo.SubnetType),
-			VpcId:          vpcId,
-			SubnetId:       subnetId,
-			UseNat:         &valueFalse, //todo
-			ServerNetworks: networks,
+		SqlserverServerGroup: &sqlserver.SqlserverServerGroupCreateRequest{
+			BlockStorages:     SqlserverBlockStorageGroupCreateRequestList,
+			EncryptionEnabled: &encryptionEnabled,
+			SqlserverServers:  SqlserverServerCreateRequestList,
+			ServerType:        serverType,
 		},
-		SecurityGroupIds:  getSecurityGroupIds(rd),
-		Maintenance:       nil,
-		Backup:            backup,
-		UseDbLoggingAudit: &valueFalse,
-		LicenseKey:        licenseKey,
-		Timezone:          rd.Get("timezone").(string),
-		DbSoftwareOptions: dbSWOption,
-		AdditionalDb:      additionalDbs,
+		SecurityGroupIds: securityGroupIdList,
+		ServiceZoneId:    serviceZoneId,
+		SubnetId:         subnetId,
+		Timezone:         timezone,
 	}, rd.Get("tags").(map[string]interface{}))
 	if err != nil {
 		return diag.FromErr(err)
@@ -549,38 +448,80 @@ func resourceSqlServerCreate(ctx context.Context, rd *schema.ResourceData, meta 
 	time.Sleep(50 * time.Second)
 
 	// NOTE : response.ResourceId is empty
-
-	resultList, _, err := inst.Client.SqlServer.ListSqlServer(ctx, &sqlserver2.MsSqlConfigurationControllerApiListSqlserverOpts{
-		DbName:            optional.NewString(dbName),
-		ServerGroupName:   optional.NewString(serverGroupName),
-		VirtualServerName: optional.NewString(serverNamePrefix),
+	resultList, _, err := inst.Client.Sqlserver.ListSqlserverClusters(ctx, &sqlserver.SqlserverSearchApiListSqlserverClustersOpts{
+		SqlserverClusterName: optional.NewString(sqlserverClusterName),
+		Page:                 optional.NewInt32(0),
+		Size:                 optional.NewInt32(1000),
+		Sort:                 optional.Interface{},
 	})
 	if err != nil {
-		return
+		return diag.FromErr(err)
 	}
 	if len(resultList.Contents) == 0 {
 		diagnostics = diag.Errorf("no pending create found")
 		return
 	}
 
-	dbServerGroupId := resultList.Contents[0].ServerGroupId
+	sqlserverClusterId := resultList.Contents[0].SqlserverClusterId
 
-	if len(dbServerGroupId) == 0 {
+	if len(sqlserverClusterId) == 0 {
 		diagnostics = diag.Errorf("database id not found")
 		return
 	}
 
-	err = waitForSqlServer(ctx, inst.Client, dbServerGroupId, common.DatabaseProcessingStates(), []string{common.RunningState}, true)
+	err = waitForSqlserver(ctx, inst.Client, sqlserverClusterId, common.DatabaseProcessingStates(), []string{common.RunningState}, true)
 	if err != nil {
-		return
+		return diag.FromErr(err)
 	}
 
-	rd.SetId(dbServerGroupId)
+	rd.SetId(sqlserverClusterId)
 
-	return resourceSqlServerRead(ctx, rd, meta)
+	if nextContractPeriod == database_common.OneYear || nextContractPeriod == database_common.ThreeYear {
+		err := modifySqlserverClusterNextContract(UpdateSqlserverParam{
+			Ctx:  ctx,
+			Rd:   rd,
+			Inst: inst,
+		}, nextContractPeriod)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if len(backup) != 0 {
+		backupObject := &sqlserver.SqlserverCreateFullBackupConfigRequest{}
+		backupMap := backup[0].(map[string]interface{})
+		err := database_common.MapToObjectWithCamel(backupMap, backupObject)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		err = createSqlserverClusterFullBackupConfig(UpdateSqlserverParam{
+			Ctx:  ctx,
+			Rd:   rd,
+			Inst: inst,
+		}, backupObject)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if sqlserverClusterState == common.StoppedState {
+		err := stopSqlserverCluster(UpdateSqlserverParam{
+			Ctx:  ctx,
+			Rd:   rd,
+			Inst: inst,
+		})
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	return resourceSqlserverRead(ctx, rd, meta)
 }
 
-func resourceSqlServerRead(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
+func resourceSqlserverRead(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
+	const BlockStorageDataRoleTypeIndex = 1
+
 	var err error = nil
 	defer func() {
 		if err != nil {
@@ -590,7 +531,8 @@ func resourceSqlServerRead(ctx context.Context, rd *schema.ResourceData, meta in
 	}()
 
 	inst := meta.(*client.Instance)
-	sqlServer, _, err := inst.Client.SqlServer.GetSqlServer(ctx, rd.Id())
+
+	sqlserverClusterDetail, _, err := inst.Client.Sqlserver.DetailSqlserverCluster(ctx, rd.Id())
 	if err != nil {
 		rd.SetId("")
 		if common.IsDeleted(err) {
@@ -599,140 +541,157 @@ func resourceSqlServerRead(ctx context.Context, rd *schema.ResourceData, meta in
 		return diag.FromErr(err)
 	}
 
-	if len(sqlServer.VirtualServers) == 0 {
+	if len(sqlserverClusterDetail.SqlserverServerGroup.SqlserverServers) == 0 {
 		diagnostics = diag.Errorf("no server found")
 		return
 	}
 
-	port64, err := strconv.ParseInt(sqlServer.DbPort, 10, 32)
+	sqlserverServerGroup := sqlserverClusterDetail.SqlserverServerGroup
+	sqlserverBlockStorages := database_common.HclListObject{}
+	blockStorageInfo := database_common.HclKeyValueObject{}
+	blockStorageInfo["block_storage_size"] = sqlserverServerGroup.BlockStorages[BlockStorageDataRoleTypeIndex].BlockStorageSize
+	blockStorageInfo["block_storage_type"] = sqlserverServerGroup.BlockStorages[BlockStorageDataRoleTypeIndex].BlockStorageType
+	blockStorageInfo["block_storage_group_id"] = sqlserverServerGroup.BlockStorages[BlockStorageDataRoleTypeIndex].BlockStorageGroupId
+	sqlserverBlockStorages = append(sqlserverBlockStorages, blockStorageInfo)
+
+	sqlserverServers := database_common.HclListObject{}
+	for _, server := range sqlserverServerGroup.SqlserverServers {
+		sqlserverServersInfo := database_common.HclKeyValueObject{}
+		sqlserverServersInfo["availability_zone_name"] = server.AvailabilityZoneName
+		sqlserverServersInfo["sqlserver_server_name"] = server.SqlserverServerName
+		sqlserverServersInfo["server_role_type"] = server.ServerRoleType
+
+		sqlserverServers = append(sqlserverServers, sqlserverServersInfo)
+	}
+
+	backup := database_common.HclListObject{}
+	if sqlserverClusterDetail.BackupConfig != nil {
+		backupInfo := database_common.HclKeyValueObject{}
+		backupInfo["object_storage_id"] = rd.Get("backup").(*schema.Set).List()[0].(map[string]interface{})["object_storage_id"]
+		backupInfo["archive_backup_schedule_frequency"] = sqlserverClusterDetail.BackupConfig.FullBackupConfig.ArchiveBackupScheduleFrequency
+		backupInfo["backup_retention_period"] = sqlserverClusterDetail.BackupConfig.FullBackupConfig.BackupRetentionPeriod
+		backupInfo["backup_start_hour"] = sqlserverClusterDetail.BackupConfig.FullBackupConfig.BackupStartHour
+		backupInfo["full_backup_day_of_week"] = sqlserverClusterDetail.BackupConfig.FullBackupConfig.FullBackupDayOfWeek
+
+		backup = append(backup, backupInfo)
+	}
+
+	sort.SliceStable(sqlserverServers, func(i, j int) bool {
+		return sqlserverServers[i].(map[string]interface{})["server_role_type"].(string) < sqlserverServers[j].(map[string]interface{})["server_role_type"].(string)
+	})
+
+	err = rd.Set("audit_enabled", sqlserverClusterDetail.AuditEnabled)
 	if err != nil {
-		return
+		return diag.FromErr(err)
 	}
-
-	vsInfo := sqlServer.VirtualServers[0]
-	serverNamePrefix := vsInfo.VirtualServerName[:len(vsInfo.VirtualServerName)-2]
-	if len(serverNamePrefix) == 0 {
-		diagnostics = diag.Errorf("server name prefix is invalid")
-		return
-	}
-
-	contractDiscountName := vsInfo.ContractDiscountName
-	if len(contractDiscountName) == 0 {
-		diagnostics = diag.Errorf("contract discount information not found")
-		return
-	}
-
-	cpuCount, memorySize, err := client.FindScaleInfo(ctx, inst.Client, sqlServer.ProductGroupId, vsInfo.ScaleProductId)
+	err = rd.Set("contract_period", sqlserverClusterDetail.Contract.ContractPeriod)
 	if err != nil {
-		return
+		return diag.FromErr(err)
 	}
-
-	// additional db 가 db_name에 합쳐져서 나오고 있기 때문에 parsing해야함 -> API가 수정되는게 맞을 것 같지만...
-	var dbName string
-	var additionalDb []string
-	if strings.Contains(sqlServer.DbName, ",") {
-		dbNames := strings.Split(sqlServer.DbName, ",")
-		for i, dn := range dbNames {
-			if i == 0 {
-				dbName = dn
-			} else {
-				additionalDb = append(additionalDb, dn)
-			}
-		}
-	} else {
-		dbName = sqlServer.DbName
-	}
-	//rd.Set("service_zone_id", sqlServer.ServiceZoneId)
-	rd.Set("image_id", sqlServer.ImageId)
-	rd.Set("virtual_server_name_prefix", serverNamePrefix)
-	rd.Set("server_group_name", sqlServer.ServerGroupName)
-	rd.Set("db_service_name", sqlServer.SqlServerServiceName)
-	rd.Set("db_name", dbName)
-	rd.Set("db_user_id", sqlServer.DbUserId)
-	//rd.Set("db_user_password",...)
-	rd.Set("db_port", int(port64))
-	rd.Set("cpu_count", cpuCount)
-	rd.Set("memory_size_gb", memorySize)
-	rd.Set("contract_discount", vsInfo.ContractDiscountName)
-	//rd.Set("encrypt_enabled", ...)
-	rd.Set("vpc_id", vsInfo.VpcId)
-	rd.Set("subnet_id", vsInfo.Network.NetworkId)
-	//rd.Set("license_key", ...)
-	rd.Set("timezone", sqlServer.Timezone)
-	rd.Set("vip", sqlServer.Vip)
-	rd.Set("external_vip", sqlServer.ExternalVip)
-	rd.Set("cluster_vip", sqlServer.ClusterVip)
-	rd.Set("additional_db", additionalDb)
-
-	// security group
-	var securityGroupIds []string
-	for _, sg := range sqlServer.SecurityGroups {
-		securityGroupIds = append(securityGroupIds, sg.SecurityGroupId)
-	}
-	rd.Set("security_group_id", securityGroupIds)
-
-	// additional block storages
-	productGroup, err := inst.Client.Product.GetProductGroup(ctx, sqlServer.ProductGroupId)
+	err = rd.Set("image_id", sqlserverClusterDetail.ImageId)
 	if err != nil {
-		return
+		return diag.FromErr(err)
 	}
-	var storageProductName string
-	if productInfos, ok := productGroup.Products[common.ProductDisk]; ok {
-		for _, productInfo := range productInfos {
-			if productInfo.ProductState == common.ProductAvailableState {
-				storageProductName = productInfo.ProductName
-				break
-			}
-		}
+	err = rd.Set("nat_public_ip_id", rd.Get("nat_public_ip_id").(string))
+	if err != nil {
+		return diag.FromErr(err)
 	}
-
-	additionalStorages := common.HclListObject{}
-	for i, bs := range vsInfo.BlockStorages {
-		// Skip OS Storage (i == 0)
-		if i == 0 {
-			continue
-		}
-		// First data storage is default storage
-		if i == 1 {
-			rd.Set("data_block_storage_size_gb", bs.BlockStorageSize)
-			continue
-		}
-
-		// Additional storages
-		storageInfo := common.HclKeyValueObject{}
-		storageInfo["id"] = bs.BlockStorageId
-		storageInfo["product_name"] = storageProductName
-		storageInfo["storage_size_gb"] = bs.BlockStorageSize
-		storageInfo["storage_usage"] = bs.BlockStorageType
-
-		additionalStorages = append(additionalStorages, storageInfo)
+	err = rd.Set("sqlserver_cluster_name", sqlserverClusterDetail.SqlserverClusterName)
+	if err != nil {
+		return diag.FromErr(err)
 	}
-	rd.Set("additional_storage", additionalStorages)
-
-	if sqlServer.Backup != nil {
-		backup := map[string]interface{}{
-			"backup_method":        sqlServer.Backup.BackupMethod,
-			"object_storage_id":    sqlServer.Backup.ObjectStorageId,
-			"backup_retention_day": int(sqlServer.Backup.BackupRetentionDay),
-			"backup_start_hour":    int(sqlServer.Backup.BackupStartHour),
-		}
-
-		backupSchema := resourceSqlServerBackup()
-		rd.Set("backup", schema.NewSet(schema.HashResource(backupSchema), []interface{}{backup}))
+	err = rd.Set("sqlserver_cluster_state", sqlserverClusterDetail.SqlserverClusterState)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
-	tfTags.SetTags(ctx, rd, meta, rd.Id())
+	err = rd.Set("database_collation", sqlserverClusterDetail.SqlserverInitialConfig.DatabaseCollation)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = rd.Set("database_names", sqlserverClusterDetail.SqlserverInitialConfig.DatabaseNames)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = rd.Set("database_port", sqlserverClusterDetail.SqlserverInitialConfig.DatabasePort)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = rd.Set("database_service_name", sqlserverClusterDetail.SqlserverInitialConfig.DatabaseServiceName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = rd.Set("database_user_name", sqlserverClusterDetail.SqlserverInitialConfig.DatabaseUserName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	err = rd.Set("block_storages", sqlserverBlockStorages)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = rd.Set("encryption_enabled", sqlserverClusterDetail.SqlserverServerGroup.EncryptionEnabled)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = rd.Set("sqlserver_servers", sqlserverServers)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = rd.Set("server_type", sqlserverClusterDetail.SqlserverServerGroup.ServerType)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	err = rd.Set("security_group_ids", sqlserverClusterDetail.SecurityGroupIds)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = rd.Set("service_zone_id", sqlserverClusterDetail.ServiceZoneId)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = rd.Set("subnet_id", sqlserverClusterDetail.SubnetId)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = rd.Set("timezone", sqlserverClusterDetail.Timezone)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = rd.Set("backup", backup)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = rd.Set("virtual_ip_address", sqlserverClusterDetail.SqlserverServerGroup.VirtualIpAddress)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = rd.Set("nat_ip_address", sqlserverClusterDetail.NatIpAddress)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = rd.Set("vpc_id", sqlserverClusterDetail.VpcId)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	err = tfTags.SetTags(ctx, rd, meta, rd.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	return nil
 }
 
-type UpdateSqlServerParam struct {
+type UpdateSqlserverParam struct {
 	Ctx       context.Context
 	Rd        *schema.ResourceData
 	Inst      *client.Instance
-	SqlServer *sqlserver2.DetailDatabaseResponse
+	Sqlserver *sqlserver.SqlserverClusterDetailResponse
 }
 
-func resourceSqlServerUpdate(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
+func resourceSqlserverUpdate(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
 	var err error = nil
 	defer func() {
 		if err != nil {
@@ -742,32 +701,39 @@ func resourceSqlServerUpdate(ctx context.Context, rd *schema.ResourceData, meta 
 
 	inst := meta.(*client.Instance)
 
-	sqlServer, _, err := inst.Client.SqlServer.GetSqlServer(ctx, rd.Id())
+	sqlserverClusterDetail, _, err := inst.Client.Sqlserver.DetailSqlserverCluster(ctx, rd.Id())
 	if err != nil {
-		return
+		return diag.FromErr(err)
 	}
-	if len(sqlServer.VirtualServers) == 0 {
+
+	if len(sqlserverClusterDetail.SqlserverServerGroup.SqlserverServers) == 0 {
 		diagnostics = diag.Errorf("database id not found")
 		return
 	}
 
-	param := UpdateSqlServerParam{
+	param := UpdateSqlserverParam{
 		Ctx:       ctx,
 		Rd:        rd,
 		Inst:      inst,
-		SqlServer: &sqlServer,
+		Sqlserver: &sqlserverClusterDetail,
 	}
 
-	var updateFuncs []func(serverParam UpdateSqlServerParam) error
+	var updateFuncs []func(serverParam UpdateSqlserverParam) error
 
-	if rd.HasChanges("cpu_count", "memory_size_gb") {
-		updateFuncs = append(updateFuncs, updateScale)
+	if rd.HasChanges("server_type") {
+		updateFuncs = append(updateFuncs, resizeSqlserverClusterVirtualServers)
 	}
-	if rd.HasChanges("data_block_storage_size_gb") {
-		updateFuncs = append(updateFuncs, updateDataStorageSize)
+	if rd.HasChanges("block_storages") {
+		updateFuncs = append(updateFuncs, updateSqlserverClusterBlockStorages)
 	}
-	if rd.HasChanges("additional_block_storages") {
-		updateFuncs = append(updateFuncs, updateAdditionalStorage)
+	if rd.HasChanges("security_group_ids") {
+		updateFuncs = append(updateFuncs, updateSqlserverClusterSecurityGroupIds)
+	}
+	if rd.HasChanges("contract_period") {
+		updateFuncs = append(updateFuncs, updateContractPeriod)
+	}
+	if rd.HasChanges("next_contract_period") {
+		updateFuncs = append(updateFuncs, updateNextContractPeriod)
 	}
 	if rd.HasChanges("backup") {
 		updateFuncs = append(updateFuncs, updateBackup)
@@ -776,159 +742,299 @@ func resourceSqlServerUpdate(ctx context.Context, rd *schema.ResourceData, meta 
 	for _, f := range updateFuncs {
 		err = f(param)
 		if err != nil {
-			return
+			return diag.FromErr(err)
+		}
+	}
+
+	if rd.HasChanges("sqlserver_cluster_state") {
+		err = updateSqlserverClusterServerState(param)
+		if err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
 	err = tfTags.UpdateTags(ctx, rd, meta, rd.Id())
 	if err != nil {
-		return
+		return diag.FromErr(err)
 	}
 
-	return resourceSqlServerRead(ctx, rd, meta)
+	return resourceSqlserverRead(ctx, rd, meta)
 }
 
-func updateScale(param UpdateSqlServerParam) error {
-	scaleProductId, err := client.FindScaleProduct(param.Ctx, param.Inst.Client, param.SqlServer.ProductGroupId, param.Rd.Get("cpu_count").(int), param.Rd.Get("memory_size_gb").(int))
+func resizeSqlserverClusterVirtualServers(param UpdateSqlserverParam) error {
+	_, _, err := param.Inst.Client.Sqlserver.ResizeSqlserverClusterVirtualServers(param.Ctx, param.Rd.Id(), sqlserver.SqlserverClusterResizeVirtualServersRequest{
+		ServerType: param.Rd.Get("server_type").(string),
+	})
 	if err != nil {
 		return err
 	}
 
-	if len(scaleProductId) == 0 {
-		return fmt.Errorf("no server type found")
-	}
-
-	// update all
-	for _, vsInfo := range param.SqlServer.VirtualServers {
-		_, _, err = param.Inst.Client.SqlServer.UpdateSqlServerScale(param.Ctx, param.Rd.Id(), vsInfo.VirtualServerId, scaleProductId)
-
-		err = waitForSqlServer(param.Ctx, param.Inst.Client, param.Rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true)
-		if err != nil {
-			return err
-		}
+	err = waitForSqlserver(param.Ctx, param.Inst.Client, param.Rd.Id(), database_common.DatabaseProcessingAndStoppedStates(), []string{common.RunningState}, true)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
+func updateSqlserverClusterBlockStorages(param UpdateSqlserverParam) error {
+	o, n := param.Rd.GetChange("block_storages")
+	oldValue := o.([]interface{})
+	newValue := n.([]interface{})
 
-func updateBackup(param UpdateSqlServerParam) error {
-	o, n := param.Rd.GetChange("backup")
+	oldList := database_common.ConvertObjectSliceToStructSlice(oldValue)
+	newList := database_common.ConvertObjectSliceToStructSlice(newValue)
 
-	oldBackups := expandBackupSettings(o.(*schema.Set))
-	newBackups := expandBackupSettings(n.(*schema.Set))
-
-	var backup *sqlserver2.DatabaseBackup
-	var useBackup bool
-	if len(newBackups) > 0 {
-		useBackup = true
-		backup = newBackups[0]
-		if len(backup.ObjectStorageId) < 1 {
-			objectStorageId, err := getObjectStorageId(param.Ctx, param.Inst.Client, param.SqlServer.ServiceZoneId)
-			if err != nil {
-				return err
-			}
-			backup.ObjectStorageId = objectStorageId
-		}
-	} else {
-		useBackup = false
-		backup = oldBackups[0]
-	}
-	updateBackupSettingRequest := sqlserver2.UpdateBackupSettingRequest{
-		UseBackup: &useBackup,
-		Backup:    backup,
-	}
-	if _, _, err := param.Inst.Client.SqlServer.UpdateBackupSetting(param.Ctx, param.Rd.Id(), updateBackupSettingRequest); err != nil {
+	err := validateBlockStorageInput(oldList, newList)
+	if err != nil {
 		return err
 	}
-	if err := waitForSqlServer(param.Ctx, param.Inst.Client, param.Rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true); err != nil {
+
+	err = resizeSqlserverClusterBlockStorages(param, oldList, newList)
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// Increase only
-func updateAdditionalStorage(param UpdateSqlServerParam) error {
-	o, n := param.Rd.GetChange("additional_block_storages")
-	oldVal := o.(common.HclListObject)
-	newVal := n.(common.HclListObject)
-
-	oldList := common.ConvertAdditionalStorageList(oldVal)
-	newList := common.ConvertAdditionalStorageList(newVal)
-
+func validateBlockStorageInput(oldList []database_common.ConvertedStruct, newList []database_common.ConvertedStruct) error {
 	if len(oldList) > len(newList) {
 		return fmt.Errorf("removing additional storage is not allowed")
 	}
 
-	incIndices := make(map[int]int)
 	for i := 0; i < len(oldList); i++ {
-		if oldList[i].StorageUsage != newList[i].StorageUsage {
-			return fmt.Errorf("changing storage usage is not allowed")
+		if oldList[i].BlockStorageType != newList[i].BlockStorageType {
+			return fmt.Errorf("changing block storage type is not allowed")
 		}
-		if oldList[i].ProductName != newList[i].ProductName {
-			return fmt.Errorf("changing product name is not allowed")
-		}
-		if oldList[i].StorageSize > newList[i].StorageSize {
+		if oldList[i].BlockStorageSize > newList[i].BlockStorageSize {
 			return fmt.Errorf("decreasing size is not allowed")
 		}
-		incIndices[i] = newList[i].StorageSize
 	}
+	return nil
+}
 
-	// Update all
-	for _, vsInfo := range param.SqlServer.VirtualServers {
-		for i, blockInfo := range vsInfo.BlockStorages {
-			// Skip
-			if i < 2 {
-				continue
+func resizeSqlserverClusterBlockStorages(param UpdateSqlserverParam, oldList []database_common.ConvertedStruct, newList []database_common.ConvertedStruct) error {
+	for i := 0; i < len(oldList); i++ {
+		if oldList[i].BlockStorageSize < newList[i].BlockStorageSize {
+
+			_, _, err := param.Inst.Client.Sqlserver.ResizeSqlserverClusterBlockStorages(param.Ctx, param.Rd.Id(), sqlserver.SqlserverClusterResizeBlockStoragesRequest{
+				BlockStorageGroupId: param.Sqlserver.SqlserverServerGroup.BlockStorages[i+1].BlockStorageGroupId,
+				BlockStorageSize:    int32(newList[i].BlockStorageSize),
+			})
+			if err != nil {
+				return err
 			}
-			if newSize, ok := incIndices[i-2]; ok {
-				if newSize != int(blockInfo.BlockStorageSize) {
-					_, _, err := param.Inst.Client.SqlServer.UpdateSqlServerBlockSize(param.Ctx, param.Rd.Id(), vsInfo.VirtualServerId, blockInfo.BlockStorageId, newSize)
-					if err != nil {
-						return err
-					}
 
-					err = waitForSqlServer(param.Ctx, param.Inst.Client, param.Rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true)
-					if err != nil {
-						return err
-					}
-				} else {
-					// No size change
-				}
+			err = waitForSqlserver(param.Ctx, param.Inst.Client, param.Rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true)
+			if err != nil {
+				return err
 			}
 		}
 	}
 	return nil
 }
 
-// Increase only
-func updateDataStorageSize(param UpdateSqlServerParam) error {
-	o, n := param.Rd.GetChange("data_block_storage_size_gb")
-	oldSize := o.(int)
-	newSize := n.(int)
-	if oldSize >= newSize {
-		return fmt.Errorf("storage size can only be increased. check size value : %d -> %d", oldSize, newSize)
-	}
+func updateSqlserverClusterSecurityGroupIds(param UpdateSqlserverParam) error {
+	o, n := param.Rd.GetChange("security_group_ids")
+	oldValue := o.(common.HclListObject)
+	newValue := n.(common.HclListObject)
 
-	// Update all
-	for _, vs := range param.SqlServer.VirtualServers {
-		var dataBlockId string
-		for i, bs := range vs.BlockStorages {
-			if i == 1 && bs.BlockStorageType == common.BlockStorageTypeData {
-				dataBlockId = bs.BlockStorageId
-				break
+	oldList := database_common.ConvertSecurityGroupIdList(oldValue)
+	newList := database_common.ConvertSecurityGroupIdList(newValue)
+
+	for _, v := range newList {
+		if !database_common.Contains(oldList, v) {
+			if err := attachSqlserverClusterSecurityGroup(param, v); err != nil {
+				return err
 			}
 		}
-		if len(dataBlockId) < 1 {
-			return fmt.Errorf("default data storage not found")
-		}
+	}
 
-		_, _, err := param.Inst.Client.SqlServer.UpdateSqlServerBlockSize(param.Ctx, param.Rd.Id(), vs.VirtualServerId, dataBlockId, newSize)
+	for _, v := range oldList {
+		if !database_common.Contains(newList, v) {
+			if err := detachSqlserverClusterSecurityGroup(param, v); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func attachSqlserverClusterSecurityGroup(param UpdateSqlserverParam, v string) error {
+	_, _, err := param.Inst.Client.Sqlserver.AttachSqlserverClusterSecurityGroup(param.Ctx, param.Rd.Id(), sqlserver.DbClusterAttachSecurityGroupRequest{
+		SecurityGroupId: v,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = waitForSqlserver(param.Ctx, param.Inst.Client, param.Rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func detachSqlserverClusterSecurityGroup(param UpdateSqlserverParam, v string) error {
+	_, _, err := param.Inst.Client.Sqlserver.DetachSqlserverClusterSecurityGroup(param.Ctx, param.Rd.Id(), sqlserver.DbClusterDetachSecurityGroupRequest{
+		SecurityGroupId: v,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = waitForSqlserver(param.Ctx, param.Inst.Client, param.Rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func updateSqlserverClusterServerState(param UpdateSqlserverParam) error {
+	_, n := param.Rd.GetChange("sqlserver_cluster_state")
+	newVal := n.(string)
+
+	if newVal == common.RunningState {
+		err := startSqlserverCluster(param)
+		if err != nil {
+			return err
+		}
+	} else if newVal == common.StoppedState {
+		err := stopSqlserverCluster(param)
+		if err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("MS SQL Server status update failed. ")
+	}
+
+	return nil
+}
+
+func startSqlserverCluster(param UpdateSqlserverParam) error {
+	_, _, err := param.Inst.Client.Sqlserver.StartSqlserverCluster(param.Ctx, param.Rd.Id())
+	if err != nil {
+		return err
+	}
+
+	err = waitForSqlserver(param.Ctx, param.Inst.Client, param.Rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func stopSqlserverCluster(param UpdateSqlserverParam) error {
+	_, _, err := param.Inst.Client.Sqlserver.StopSqlserverCluster(param.Ctx, param.Rd.Id())
+	if err != nil {
+		return err
+	}
+
+	err = waitForSqlserver(param.Ctx, param.Inst.Client, param.Rd.Id(), common.DatabaseProcessingStates(), []string{common.StoppedState}, true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func updateContractPeriod(param UpdateSqlserverParam) error {
+	o, n := param.Rd.GetChange("contract_period")
+
+	oldValue := o.(string)
+	newValue := n.(string)
+
+	if oldValue != database_common.None {
+		return fmt.Errorf("changing contract period is not allowed")
+	}
+
+	err := modifySqlserverClusterContract(param, newValue)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func modifySqlserverClusterContract(param UpdateSqlserverParam, newValue string) error {
+	_, _, err := param.Inst.Client.Sqlserver.ModifySqlserverClusterContract(param.Ctx, param.Rd.Id(), sqlserver.DbClusterModifyContractRequest{
+		ContractPeriod: newValue,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = waitForSqlserver(param.Ctx, param.Inst.Client, param.Rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func updateNextContractPeriod(param UpdateSqlserverParam) error {
+	_, n := param.Rd.GetChange("next_contract_period")
+
+	newValue := n.(string)
+
+	err := modifySqlserverClusterNextContract(param, newValue)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func modifySqlserverClusterNextContract(param UpdateSqlserverParam, newValue string) error {
+	_, _, err := param.Inst.Client.Sqlserver.ModifySqlserverClusterNextContract(param.Ctx, param.Rd.Id(), sqlserver.DbClusterModifyNextContractRequest{
+		NextContractPeriod: newValue,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = waitForSqlserver(param.Ctx, param.Inst.Client, param.Rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func updateBackup(param UpdateSqlserverParam) error {
+	o, n := param.Rd.GetChange("backup")
+
+	oldValue := o.(*schema.Set)
+	newValue := n.(*schema.Set)
+
+	if oldValue.Len() == 0 {
+		backupObject := &sqlserver.SqlserverCreateFullBackupConfigRequest{}
+		backupMap := newValue.List()[0].(map[string]interface{})
+
+		err := database_common.MapToObjectWithCamel(backupMap, backupObject)
 		if err != nil {
 			return err
 		}
 
-		err = waitForSqlServer(param.Ctx, param.Inst.Client, param.Rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true)
+		err = createSqlserverClusterFullBackupConfig(param, backupObject)
+		if err != nil {
+			return err
+		}
+	} else if newValue.Len() == 0 {
+		err := deleteSqlserverClusterFullBackupConfig(param)
+		if err != nil {
+			return err
+		}
+	} else {
+		backupObject := &sqlserver.SqlserverModifyFullBackupConfigRequest{}
+		backupMap := newValue.List()[0].(map[string]interface{})
+
+		err := database_common.MapToObjectWithCamel(backupMap, backupObject)
+		if err != nil {
+			return err
+		}
+
+		err = updateSqlserverClusterFullBackupConfig(param, backupObject)
 		if err != nil {
 			return err
 		}
@@ -937,267 +1043,146 @@ func updateDataStorageSize(param UpdateSqlServerParam) error {
 	return nil
 }
 
-func resourceSqlServerDelete(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func createSqlserverClusterFullBackupConfig(param UpdateSqlserverParam, value *sqlserver.SqlserverCreateFullBackupConfigRequest) error {
+	_, _, err := param.Inst.Client.Sqlserver.CreateSqlserverClusterFullBackupConfig(param.Ctx, param.Rd.Id(), sqlserver.SqlserverCreateFullBackupConfigRequest{
+		ObjectStorageId:                value.ObjectStorageId,
+		ArchiveBackupScheduleFrequency: value.ArchiveBackupScheduleFrequency,
+		BackupRetentionPeriod:          value.BackupRetentionPeriod,
+		BackupStartHour:                value.BackupStartHour,
+		FullBackupDayOfWeek:            value.FullBackupDayOfWeek,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = waitForSqlserver(param.Ctx, param.Inst.Client, param.Rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func updateSqlserverClusterFullBackupConfig(param UpdateSqlserverParam, value *sqlserver.SqlserverModifyFullBackupConfigRequest) error {
+	_, _, err := param.Inst.Client.Sqlserver.ModifySqlserverClusterFullBackupConfig(param.Ctx, param.Rd.Id(), sqlserver.SqlserverModifyFullBackupConfigRequest{
+		ArchiveBackupScheduleFrequency: value.ArchiveBackupScheduleFrequency,
+		BackupRetentionPeriod:          value.BackupRetentionPeriod,
+		BackupStartHour:                value.BackupStartHour,
+		FullBackupDayOfWeek:            value.FullBackupDayOfWeek,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = waitForSqlserver(param.Ctx, param.Inst.Client, param.Rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func deleteSqlserverClusterFullBackupConfig(param UpdateSqlserverParam) error {
+	_, _, err := param.Inst.Client.Sqlserver.DeleteSqlserverClusterFullBackupConfig(param.Ctx, param.Rd.Id())
+	if err != nil {
+		return err
+	}
+
+	err = waitForSqlserver(param.Ctx, param.Inst.Client, param.Rd.Id(), common.DatabaseProcessingStates(), []string{common.RunningState}, true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func resourceSqlserverDelete(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
-	_, _, err := inst.Client.SqlServer.DeleteSqlServer(ctx, rd.Id())
+	_, _, err := inst.Client.Sqlserver.DeleteSqlserverCluster(ctx, rd.Id())
 	if err != nil && !common.IsDeleted(err) {
 		return diag.FromErr(err)
 	}
 
-	err = waitForSqlServer(ctx, inst.Client, rd.Id(), common.DatabaseProcessingStates(), []string{common.DeletedState}, false)
-	if err != nil {
+	if err := waitForSqlserver(ctx, inst.Client, rd.Id(), common.DatabaseProcessingStates(), []string{common.DeletedState}, false); err != nil {
 		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func waitForSqlServer(ctx context.Context, scpClient *client.SCPClient, id string, pendingStates []string, targetStates []string, errorOnNotFound bool) error {
-	baseInfo, baseStatusCode, baseErr := scpClient.SqlServer.GetSqlServer(ctx, id)
-	if baseErr != nil {
-		if baseStatusCode == 404 && !errorOnNotFound {
-			return nil
+func waitForSqlserver(ctx context.Context, scpClient *client.SCPClient, sqlserverClusterId string, pendingStates []string, targetStates []string, errorOnNotFound bool) error {
+	return client.WaitForStatus(ctx, scpClient, pendingStates, targetStates, func() (interface{}, string, error) {
+		var info sqlserver.SqlserverClusterDetailResponse
+		var statusCode int
+		var err error
+		retryCount := 10
+
+		for i := 0; i < retryCount; i++ {
+			info, statusCode, err = scpClient.Sqlserver.DetailSqlserverCluster(ctx, sqlserverClusterId)
+			if err != nil && statusCode >= 500 && statusCode < 600 {
+				log.Println("API temporarily unavailable. Status code: ", statusCode)
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			break
 		}
-		if baseStatusCode == 403 && !errorOnNotFound {
-			return nil
+
+		if err != nil {
+			if statusCode == 404 && !errorOnNotFound {
+				return "", common.DeletedState, nil
+			}
+			if statusCode == 403 && !errorOnNotFound {
+				return "", common.DeletedState, nil
+			}
+			return nil, "", err
 		}
-		if baseStatusCode >= 500 && !errorOnNotFound {
-			return nil
+
+		servers := info.SqlserverServerGroup.SqlserverServers
+		log.Println("1. len(servers) : ", len(servers))
+
+		if len(servers) == 0 {
+			return nil, "", fmt.Errorf("no virtual server found")
+		} else {
+			for i := 0; i < len(servers); i++ {
+				log.Printf("servers[%s]", i+1)
+				log.Println(".sqlServerState : ", servers[i].SqlserverServerState)
+
+				if servers[i].SqlserverServerState != common.RunningState {
+					return info, servers[i].SqlserverServerState, nil
+				}
+			}
 		}
-		return baseErr
+		return info, servers[0].SqlserverServerState, nil
+	})
+}
+
+func resourceSqlserverDiff(ctx context.Context, rd *schema.ResourceDiff, meta interface{}) error {
+	if rd.Id() == "" {
+		return nil
 	}
 
-	if len(baseInfo.VirtualServers) == 0 {
-		return fmt.Errorf("no virtual server found")
+	var errorMessages []string
+	mutableFields := []string{
+		"server_type",
+		"block_storages",
+		"security_group_ids",
+		"sqlserver_cluster_state",
+		"contract_period",
+		"next_contract_period",
+		"backup",
+		"tags",
+	}
+	resourceSqlserver := ResourceSqlserver().Schema
+
+	for key, _ := range resourceSqlserver {
+		if rd.HasChanges(key) && !database_common.Contains(mutableFields, key) {
+			o, n := rd.GetChange(key)
+			errorMessage := fmt.Sprintf("value ['%v'] change not allowed (old: '%v', new: '%v')", key, o, n)
+			errorMessages = append(errorMessages, errorMessage)
+		}
 	}
 
-	// Check all virtual server software status
-	for i := 0; i < len(baseInfo.VirtualServers); i++ {
-		baseErr = client.WaitForStatus(ctx, scpClient, pendingStates, targetStates, func() (interface{}, string, error) {
-			info, c, err := scpClient.SqlServer.GetSqlServer(ctx, id)
-			if err != nil {
-				//virtual server not found
-				if c == 400 && !errorOnNotFound {
-					return "", common.DeletedState, nil
-				}
-
-				if c == 404 && !errorOnNotFound {
-					return "", common.DeletedState, nil
-				}
-				/*
-					if c == 403 && !errorOnNotFound {
-						return "", common.DeletedState, nil
-					}
-					if c >= 500 && !errorOnNotFound {
-						return "", common.DeletedState, nil
-					}
-				*/
-				return nil, "", err
-			}
-			if i >= len(info.VirtualServers) {
-				return nil, "", fmt.Errorf("invalid number of virtual servers")
-			}
-
-			vsSoftware := info.VirtualServers[i].Software
-			if vsSoftware == nil {
-				return nil, "", fmt.Errorf("virtual server software status not found")
-			}
-			return info, vsSoftware.SoftwareServiceState, nil
-		})
-		if baseErr != nil {
-			return baseErr
-		}
+	if len(errorMessages) > 0 {
+		return fmt.Errorf("CustomizeDiff Validation Failed: \n%v", strings.Join(errorMessages, "\n"))
 	}
 
 	return nil
-}
-func contains(s []string, str string) bool {
-	for _, v := range s {
-		if v == str {
-			return true
-		}
-	}
-
-	return false
-}
-
-func getSecurityGroupIds(rd *schema.ResourceData) []string {
-	securityGroupIds := rd.Get("security_group_ids").([]interface{})
-	sgIds := make([]string, len(securityGroupIds))
-	for i, valueIpv4 := range securityGroupIds {
-		sgIds[i] = valueIpv4.(string)
-	}
-	return sgIds
-}
-
-func expandNetworkSetting(serverNamePrefix string, haSchemaSet *schema.Set, isMultiAvailabilityZone *bool) []sqlserver2.DatabaseServerNetwork {
-	var networks []sqlserver2.DatabaseServerNetwork
-
-	haSettings := haSchemaSet.List()
-
-	if len(haSettings) > 0 {
-
-		setting := haSettings[0].(map[string]interface{})
-
-		network := sqlserver2.DatabaseServerNetwork{
-			ServerName: serverNamePrefix + "01",
-			NodeType:   "ACTIVE",
-		}
-		if v, ok := setting["active_server_ip"].(string); ok && v != "" {
-			network.ServiceIp = v
-		}
-
-		if *isMultiAvailabilityZone {
-			if v, ok := setting["active_availability_zone_name"].(string); ok && v != "" {
-				network.AvailabilityZoneName = v
-			}
-		}
-
-		networks = append(networks, network)
-
-		network = sqlserver2.DatabaseServerNetwork{
-			ServerName: serverNamePrefix + "02",
-			NodeType:   "STANDBY",
-		}
-		if v, ok := setting["standby_server_ip"].(string); ok && v != "" {
-			network.ServiceIp = v
-		}
-
-		if *isMultiAvailabilityZone {
-			if v, ok := setting["standby_availability_zone_name"].(string); ok && v != "" {
-				network.AvailabilityZoneName = v
-			}
-		}
-
-		networks = append(networks, network)
-
-	} else {
-		if *isMultiAvailabilityZone {
-			networks = append(networks, sqlserver2.DatabaseServerNetwork{
-				ServerName:           serverNamePrefix + "01",
-				NodeType:             "ACTIVE",
-				ServiceIp:            "",
-				AvailabilityZoneName: "AZ1",
-				NatIpId:              "",
-			})
-		} else {
-			networks = append(networks, sqlserver2.DatabaseServerNetwork{
-				ServerName:           serverNamePrefix + "01",
-				NodeType:             "ACTIVE",
-				ServiceIp:            "",
-				AvailabilityZoneName: "",
-				NatIpId:              "",
-			})
-		}
-	}
-
-	return networks
-}
-
-func expandHASetting(haSchemaSet *schema.Set) *sqlserver2.HaNormal {
-	var haSettings []*sqlserver2.HaNormal
-
-	for _, haSet := range haSchemaSet.List() {
-
-		setting := haSet.(map[string]interface{})
-
-		haSetting := &sqlserver2.HaNormal{}
-
-		if v, ok := setting["use_vip_nat"].(bool); ok {
-			haSetting.UseVipNat = &v
-		}
-
-		if v, ok := setting["reserved_nat_ip_id"].(string); ok && v != "" {
-			haSetting.ReservedNatIpId = v
-		}
-
-		if v, ok := setting["virtual_ip"].(string); ok && v != "" {
-			haSetting.VirtualIp = v
-		}
-		haSettings = append(haSettings, haSetting)
-	}
-
-	var ha *sqlserver2.HaNormal
-	if len(haSettings) > 0 {
-		ha = haSettings[0]
-	} else {
-		ha = nil
-	}
-
-	return ha
-}
-
-func expandBackupSettings(vAdvancedBackupSettings *schema.Set) []*sqlserver2.DatabaseBackup {
-	backupSettings := []*sqlserver2.DatabaseBackup{}
-
-	for _, vAdvancedBackupSetting := range vAdvancedBackupSettings.List() {
-		backupSetting := &sqlserver2.DatabaseBackup{}
-
-		mAdvancedBackupSetting := vAdvancedBackupSetting.(map[string]interface{})
-
-		if v, ok := mAdvancedBackupSetting["objectstorage_id"].(string); ok && v != "" {
-			backupSetting.ObjectStorageId = v
-		}
-
-		if v, ok := mAdvancedBackupSetting["backup_method"].(string); ok && v != "" {
-			backupSetting.BackupMethod = v
-		}
-
-		if v, ok := mAdvancedBackupSetting["backup_retention_day"].(int); ok {
-			backupSetting.BackupRetentionDay = int32(v)
-		}
-
-		if v, ok := mAdvancedBackupSetting["backup_start_hour"].(int); ok {
-			backupSetting.BackupStartHour = int32(v)
-		}
-		backupSettings = append(backupSettings, backupSetting)
-	}
-
-	return backupSettings
-}
-
-func getObjectStorageId(ctx context.Context, scpClient *client.SCPClient, serviceZoneId string) (string, error) {
-
-	response, err := scpClient.ObjectStorage.ReadObjectStorageList(ctx, serviceZoneId, objectstorage.ObjectStorageV4ControllerApiListObjectStorage4Opts{})
-	if err != nil {
-		return "", fmt.Errorf(err.Error())
-	}
-	if response.TotalCount < 1 {
-		return "", fmt.Errorf("No object storage list.")
-	}
-	objectStorageId := response.Contents[0].ObjectStorageId // idx 0 is OK?
-
-	return objectStorageId, nil
-}
-
-func createBackupSettings(ctx context.Context, scpClient *client.SCPClient, serviceZoneId string, backupSettingsSet *schema.Set) (*sqlserver2.DatabaseBackup, error) {
-	backupSetting := &sqlserver2.DatabaseBackup{}
-
-	backupList := backupSettingsSet.List()
-	if len(backupList) < 1 {
-		return nil, nil
-	}
-
-	objectStorageId, err := getObjectStorageId(ctx, scpClient, serviceZoneId)
-	if err != nil {
-		return nil, err
-	}
-
-	backup := backupList[0].(map[string]interface{})
-
-	backupSetting.ObjectStorageId = objectStorageId
-
-	if v, ok := backup["backup_method"].(string); ok {
-		backupSetting.BackupMethod = v
-	}
-	if v, ok := backup["backup_retention_day"].(int); ok {
-		backupSetting.BackupRetentionDay = int32(v)
-	}
-	if v, ok := backup["backup_start_hour"].(int); ok {
-		backupSetting.BackupStartHour = int32(v)
-	}
-
-	backupSetting.DbBackupArchMin = 60
-	return backupSetting, nil
 }

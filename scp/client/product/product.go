@@ -20,7 +20,7 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) GetProductGroups(ctx context.Context, serviceZoneId string, targetProductGroup string, targetProduct string) (product.ListResponseV2OfProductGroupsResponse, error) {
+func (client *Client) GetProductGroups(ctx context.Context, serviceZoneId string, targetProductGroup string, targetProduct string) (product.ListResponseV2ProductGroupsResponse, error) {
 	var param product.ProductV2ControllerApiListProductGroupsByZoneIdOpts
 	if len(targetProductGroup) != 0 {
 		param.TargetProductGroup = optional.NewString(targetProductGroup)
@@ -38,7 +38,7 @@ func (client *Client) GetProductGroup(ctx context.Context, productGroupId string
 	return result, err
 }
 
-func (client *Client) GetProducesList(ctx context.Context, serviceZoneId string, productGroupId string, productType string) (product.ListResponseV2OfProductsResponse, error) {
+func (client *Client) GetProducesList(ctx context.Context, serviceZoneId string, productGroupId string, productType string) (product.ListResponseV2ProductsResponse1, error) {
 	result, _, err := client.sdkClient.ProductV2ControllerApi.ListProducsByZoneId(ctx, client.config.ProjectId, serviceZoneId, &product.ProductV2ControllerApiListProducsByZoneIdOpts{
 		ProductGroupId: optional.NewString(productGroupId),
 		ProductType:    optional.NewString(productType),
@@ -46,7 +46,7 @@ func (client *Client) GetProducesList(ctx context.Context, serviceZoneId string,
 	return result, err
 }
 
-func (client *Client) GetProductGroupsByZone(ctx context.Context, serviceZoneId string, targetProduct string, targetProductGroup string) (product.ListResponseV2OfProductGroupsResponse, error) {
+func (client *Client) GetProductGroupsByZone(ctx context.Context, serviceZoneId string, targetProduct string, targetProductGroup string) (product.ListResponseV2ProductGroupsResponse, error) {
 	result, _, err := client.sdkClient.ProductV2ControllerApi.ListProductGroupsByZoneId(ctx, client.config.ProjectId, serviceZoneId, &product.ProductV2ControllerApiListProductGroupsByZoneIdOpts{
 		TargetProduct:      optional.NewString(targetProduct),
 		TargetProductGroup: optional.NewString(targetProductGroup),
@@ -54,7 +54,7 @@ func (client *Client) GetProductGroupsByZone(ctx context.Context, serviceZoneId 
 	return result, err
 }
 
-func (client *Client) GetProductsByZoneId(ctx context.Context, serviceZoneId string, productGroupId string, productType string) (product.ListResponseV2OfProductsResponse, error) {
+func (client *Client) GetProductsByZoneId(ctx context.Context, serviceZoneId string, productGroupId string, productType string) (product.ListResponseV2ProductsResponse1, error) {
 	result, _, err := client.sdkClient.ProductV2ControllerApi.ListProducsByZoneId(ctx, client.config.ProjectId, serviceZoneId, &product.ProductV2ControllerApiListProducsByZoneIdOpts{
 		ProductGroupId: optional.NewString(productGroupId),
 		ProductType:    optional.NewString(productType),
@@ -69,7 +69,7 @@ func (client *Client) GetProductsByGroup(ctx context.Context, productGroupId str
 	return result, err
 }
 
-func (client *Client) GetProductGroupsList(ctx context.Context, targetProduct string, targetProductGroup string) (product.ListResponseV2OfProductGroupForCalculatorResponse, error) {
+func (client *Client) GetProductGroupsList(ctx context.Context, targetProduct string, targetProductGroup string) (product.ListResponseV2ProductGroupForCalculatorResponse, error) {
 	result, _, err := client.sdkClient.ProductV2ControllerApi.ListProductGroups(ctx, client.config.ProjectId, &product.ProductV2ControllerApiListProductGroupsOpts{
 		ForCalculator:      optional.NewString("false"),
 		ProductGroupType:   optional.NewString("SSC"),
@@ -86,7 +86,7 @@ func (client *Client) GetProductDetail(ctx context.Context, productId string, it
 	return result, err
 }
 
-func (client *Client) GetCategoryList(ctx context.Context, request ListCategoriesRequest) (product.ListResponseV2OfProductCategoryResponse, error) {
+func (client *Client) GetCategoryList(ctx context.Context, request ListCategoriesRequest) (product.ListResponseV2ProductCategoryResponse, error) {
 	result, _, err := client.sdkClient.ProductV2ControllerApi.ListCategories(ctx, client.config.ProjectId, request.LanguageCode, &product.ProductV2ControllerApiListCategoriesOpts{
 		CategoryId:    optional.NewString(request.CategoryId),
 		CategoryState: optional.NewString(request.CategoryState),
@@ -97,7 +97,7 @@ func (client *Client) GetCategoryList(ctx context.Context, request ListCategorie
 	return result, err
 }
 
-func (client *Client) GetMenuList(ctx context.Context, request ListMenusRequest) (product.ListResponseV2OfProductCategoryResponse, error) {
+func (client *Client) GetMenuList(ctx context.Context, request ListMenusRequest) (product.ListResponseV2ProductCategoryResponse, error) {
 	result, _, err := client.sdkClient.ProductV2ControllerApi.ListMenus(ctx, &product.ProductV2ControllerApiListMenusOpts{
 		CategoryId:   optional.NewString(request.CategoryId),
 		ExposureType: optional.NewString(request.ExposureType),
