@@ -80,10 +80,10 @@ func resourceVpcRoutingCreate(ctx context.Context, rd *schema.ResourceData, meta
 	}
 
 	// duplication check
-	_, err = inst.Client.Routing.CheckDuplicationRoutingRule(ctx, routingTableId, destinationNetworkCidr)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	//_, err = inst.Client.Routing.CheckDuplicationRoutingRule(ctx, routingTableId, destinationNetworkCidr)
+	//if err != nil {
+	//	return diag.FromErr(err)
+	//}
 
 	tflog.Debug(ctx, "Try create vpc dns zone : "+routingTableId+", "+destinationNetworkCidr)
 

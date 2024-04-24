@@ -82,9 +82,9 @@ func resourceDCRoutingCreate(ctx context.Context, rd *schema.ResourceData, meta 
 	// }
 
 	// duplication check
-	if _, err := inst.Client.Routing.CheckDCDuplicationRoutingRule(ctx, routingTableId, destinationNetworkCidr); err != nil {
-		return diag.FromErr(err)
-	}
+	//if _, err := inst.Client.Routing.CheckDCDuplicationRoutingRule(ctx, routingTableId, destinationNetworkCidr); err != nil {
+	//	return diag.FromErr(err)
+	//}
 
 	if err := inst.Client.Routing.CreateDCRoutingRules(ctx, routingTableId, request); err != nil {
 		return diag.FromErr(err)
