@@ -102,14 +102,6 @@ func (client *Client) GetVpcRoutingRulesById(ctx context.Context, ruleId string)
 	return routing2.VpcRoutingRuleListResponse{}, "DELETED", nil
 }
 
-func (client *Client) CheckDuplicationRoutingRule(ctx context.Context, routingTableId string, destinationNetworkCidr string) (bool, error) {
-	result, _, err := client.sdkClient.VpcRoutingRuleOpenApiControllerApi.CheckDuplicationVpcRoutingRule(ctx, client.config.ProjectId, routingTableId, destinationNetworkCidr)
-	if result.Result == nil {
-		return false, err
-	}
-	return *result.Result, err
-}
-
 func (client *Client) CreateRoutingRules(ctx context.Context, routingTableId string, request CreateRoutingRulesRequest) error {
 	var rules routing2.CreateRoutingRulesRequest
 	for _, rule := range request.RoutingRules {
@@ -216,14 +208,6 @@ func (client *Client) DeleteDCRoutingRules(ctx context.Context, routingTableId s
 	})
 
 	return err
-}
-
-func (client *Client) CheckDCDuplicationRoutingRule(ctx context.Context, routingTableId string, destinationNetworkCidr string) (bool, error) {
-	result, _, err := client.sdkClient.DirectConnectRoutingRuleOpenApiControllerApi.CheckDuplicationDcRoutingRule(ctx, client.config.ProjectId, routingTableId, destinationNetworkCidr)
-	if result.Result == nil {
-		return false, err
-	}
-	return *result.Result, err
 }
 
 func (client *Client) GetDCRoutingRulesList(ctx context.Context, routingTableId string, request ListVpcRoutingRulesRequest) (routing2.ListResponseDcRoutingRuleListResponse, error) {
@@ -334,13 +318,4 @@ func (client *Client) DeleteTgwRoutingRules(ctx context.Context, routingTableId 
 	rules.RoutingRuleIds = append(rules.RoutingRuleIds, routingRuleId)
 	_, _, err := client.sdkClient.TransitGatewayRoutingRuleOpenApiControllerApi.DeleteTgwRoutingRules(ctx, client.config.ProjectId, routingTableId, rules)
 	return err
-}
-
-func (client *Client) CheckDuplicationTgwRoutingRule(ctx context.Context, routingTableId string, destinationNetworkCidr string) (bool, error) {
-	result, _, err := client.sdkClient.TransitGatewayRoutingRuleOpenApiControllerApi.CheckDuplicationTgwRoutingRule(ctx, client.config.ProjectId, routingTableId, destinationNetworkCidr)
-	if result.Result == nil {
-		return false, err
-	}
-
-	return *result.Result, err
 }

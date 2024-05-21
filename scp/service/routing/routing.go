@@ -34,10 +34,9 @@ func ResourceVpcRouting() *schema.Resource {
 				ValidateFunc: validation.StringLenBetween(3, 100),
 			},
 			"destination_network_cidr": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "Network CIDR",
-				ValidateFunc: validation.IsCIDRNetwork(24, 27),
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Network CIDR",
 			},
 			"source_service_interface_id": {
 				Type:         schema.TypeString,
@@ -78,12 +77,6 @@ func resourceVpcRoutingCreate(ctx context.Context, rd *schema.ResourceData, meta
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	// duplication check
-	//_, err = inst.Client.Routing.CheckDuplicationRoutingRule(ctx, routingTableId, destinationNetworkCidr)
-	//if err != nil {
-	//	return diag.FromErr(err)
-	//}
 
 	tflog.Debug(ctx, "Try create vpc dns zone : "+routingTableId+", "+destinationNetworkCidr)
 

@@ -75,17 +75,6 @@ func resourceDCRoutingCreate(ctx context.Context, rd *schema.ResourceData, meta 
 
 	inst := meta.(*client.Instance)
 
-	// // check if routingTableId is valid
-	// _, err := inst.Client.Routing.GetDCRoutingTableDetail(ctx, routingTableId)
-	// if err != nil {
-	// 	return diag.FromErr(err)
-	// }
-
-	// duplication check
-	//if _, err := inst.Client.Routing.CheckDCDuplicationRoutingRule(ctx, routingTableId, destinationNetworkCidr); err != nil {
-	//	return diag.FromErr(err)
-	//}
-
 	if err := inst.Client.Routing.CreateDCRoutingRules(ctx, routingTableId, request); err != nil {
 		return diag.FromErr(err)
 	}

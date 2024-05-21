@@ -77,12 +77,6 @@ func resourceTGWRoutingCreate(ctx context.Context, rd *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 
-	//중복 체크
-	//_, err = inst.Client.Routing.CheckDuplicationTgwRoutingRule(ctx, routingTableId, destinationNetworkCidr)
-	//if err != nil {
-	//	return diag.FromErr(err)
-	//}
-
 	//Rule 생성
 	err = inst.Client.Routing.CreateTgwRoutingRules(ctx, routingTableId, request)
 	if err != nil {
