@@ -1436,7 +1436,6 @@ func resourceVirtualServerUpdate(ctx context.Context, rd *schema.ResourceData, m
 				inst.Client.BlockStorage.ResizeBlockStorage(ctx, blockstorage.UpdateBlockStorageRequest{
 					BlockStorageId:   blockStorageResponse.BlockStorageId,
 					BlockStorageSize: int32(osStorageSize),
-					ProductId:        blockStorageResponse.ProductId,
 				})
 				err = WaitForVirtualServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
 				if err != nil {
@@ -1470,17 +1469,11 @@ func resourceVirtualServerUpdate(ctx context.Context, rd *schema.ResourceData, m
 			inst.Client.BlockStorage.ResizeBlockStorage(ctx, blockstorage.UpdateBlockStorageRequest{
 				BlockStorageId:   externalStorageWithChangeSize.BlockStorageId,
 				BlockStorageSize: externalStorageWithChangeSize.StorageSizeGb,
-				ProductId:        externalStorageWithChangeSize.ProductId,
 			})
 			err = WaitForVirtualServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
 			if err != nil {
 				return
 			}
-		}
-
-		productGroup, err := inst.Client.Product.GetProductGroup(ctx, virtualServerInfo.ProductGroupId)
-		if err != nil {
-			return diag.FromErr(err)
 		}
 
 		for _, addedExternalStorage := range addedExternalStorageList {
@@ -1490,7 +1483,7 @@ func resourceVirtualServerUpdate(ctx context.Context, rd *schema.ResourceData, m
 					tagsMap[v.TagKey] = v.TagValue
 				}
 			}
-			_, err = inst.Client.BlockStorage.CreateBlockStorage(ctx, getCreatedBlockStorageRequest(addedExternalStorage, productGroup, rd.Id()), tagsMap)
+			_, err = inst.Client.BlockStorage.CreateBlockStorage(ctx, getCreatedBlockStorageRequest(addedExternalStorage, rd.Id()), tagsMap)
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -1595,7 +1588,7 @@ func detachAndAttachPublicIpId(ctx context.Context, rd *schema.ResourceData, ins
 	return nil
 }
 
-func getCreatedBlockStorageRequest(addedExternalStorage virtualserver.ExternalStorage, productGroup product.ProductGroupDetailResponse, virtualServerId string) blockstorage.CreateBlockStorageRequest {
+func getCreatedBlockStorageRequest(addedExternalStorage virtualserver.ExternalStorage, virtualServerId string) blockstorage.CreateBlockStorageRequest {
 	createBlockStorageRequest := blockstorage.CreateBlockStorageRequest{}
 	createBlockStorageRequest.Tags = make([]blockstorage.TagRequest, 0)
 	for _, tagRequest := range addedExternalStorage.Tags {
@@ -1607,7 +1600,7 @@ func getCreatedBlockStorageRequest(addedExternalStorage virtualserver.ExternalSt
 	createBlockStorageRequest.BlockStorageName = addedExternalStorage.BlockStorageName
 	createBlockStorageRequest.BlockStorageSize = addedExternalStorage.StorageSizeGb
 	createBlockStorageRequest.EncryptEnabled = addedExternalStorage.EncryptEnabled
-	createBlockStorageRequest.ProductId = getProductId(productGroup, addedExternalStorage.ProductName)
+	createBlockStorageRequest.DiskType = addedExternalStorage.ProductName
 	createBlockStorageRequest.SharedType = addedExternalStorage.SharedType
 	createBlockStorageRequest.VirtualServerId = virtualServerId
 	return createBlockStorageRequest

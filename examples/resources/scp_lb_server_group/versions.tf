@@ -2,7 +2,7 @@
 terraform {
   required_providers {
     scp = {
-      version = "3.5.2"
+      version = "3.5.3"
       source  = "SamsungSDSCloud/samsungcloudplatform"
     }
   }

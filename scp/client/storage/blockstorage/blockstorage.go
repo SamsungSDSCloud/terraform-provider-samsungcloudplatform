@@ -21,11 +21,11 @@ func NewClient(config *sdk.Configuration) *Client {
 }
 
 func (client *Client) CreateBlockStorage(ctx context.Context, request CreateBlockStorageRequest, tags map[string]interface{}) (blockstorage2.AsyncResponse, error) {
-	blockStorageCreateRequest := blockstorage2.BlockStorageCreateRequest{
+	blockStorageCreateRequest := blockstorage2.BlockStorageCreateV3Request{
 		BlockStorageName: request.BlockStorageName,
 		BlockStorageSize: request.BlockStorageSize,
 		EncryptEnabled:   &request.EncryptEnabled,
-		ProductId:        request.ProductId,
+		DiskType:         request.DiskType,
 		SharedType:       request.SharedType,
 		VirtualServerId:  request.VirtualServerId,
 		Tags:             client.sdkClient.ToTagRequestList(tags),
@@ -42,7 +42,7 @@ func (client *Client) CreateBlockStorage(ctx context.Context, request CreateBloc
 	//		SharedType:       request.SharedType,
 	//		VirtualServerId:  request.VirtualServerId,
 	//	})
-	result, _, err := client.sdkClient.BlockStorageControllerApi.CreateBlockStorage(ctx, client.config.ProjectId, blockStorageCreateRequest)
+	result, _, err := client.sdkClient.BlockStorageV3ControllerApi.CreateBlockStorageV3(ctx, client.config.ProjectId, blockStorageCreateRequest)
 
 	return result, err
 }
@@ -74,13 +74,12 @@ func (client *Client) ReadBlockStorageList(ctx context.Context, request ReadBloc
 }
 
 func (client *Client) ResizeBlockStorage(ctx context.Context, request UpdateBlockStorageRequest) (blockstorage2.AsyncResponse, error) {
-	result, _, err := client.sdkClient.BlockStorageControllerApi.ResizeBlockStorage(
+	result, _, err := client.sdkClient.BlockStorageV3ControllerApi.ResizeBlockStorageV3(
 		ctx,
 		client.config.ProjectId,
 		request.BlockStorageId,
-		blockstorage2.BlockStorageResizeRequest{
+		blockstorage2.BlockStorageResizeV3Request{
 			BlockStorageSize: request.BlockStorageSize,
-			ProductId:        request.ProductId,
 		})
 
 	return result, err

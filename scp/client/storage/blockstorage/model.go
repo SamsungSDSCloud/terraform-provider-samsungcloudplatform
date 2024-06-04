@@ -4,7 +4,7 @@ type CreateBlockStorageRequest struct {
 	BlockStorageName string
 	BlockStorageSize int32
 	EncryptEnabled   bool
-	ProductId        string
+	DiskType         string
 	SharedType       string
 	Tags             []TagRequest
 	VirtualServerId  string
@@ -28,7 +28,6 @@ type ReadBlockStorageRequest struct {
 type UpdateBlockStorageRequest struct {
 	BlockStorageId   string
 	BlockStorageSize int32
-	ProductId        string
 }
 
 type BlockStorageAttachRequest struct {

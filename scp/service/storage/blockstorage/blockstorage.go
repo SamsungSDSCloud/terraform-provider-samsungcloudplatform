@@ -124,20 +124,10 @@ func createBlockStorage(ctx context.Context, data *schema.ResourceData, meta int
 		finalVirtualServerId = virtualServerIds[0]
 	}
 
-	serverInfo, _, err := inst.Client.VirtualServer.GetVirtualServer(ctx, finalVirtualServerId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	productId, _ := client.FindProductId(ctx, inst.Client, serverInfo.ProductGroupId, common.ProductTypeDisk, data.Get("product_name").(string))
-	if len(productId) == 0 {
-		return diag.Errorf("Matching available productId not found")
-	}
-
 	encryptEnable := data.Get("encrypt_enable").(bool) // TODO : (add Validation) Virtual Server 암호화 True -> EncryptEnable도 True가능
 	sharedType := data.Get("shared_type").(string)
 
-	err = virtualserver.WaitForVirtualServerStatus(ctx, inst.Client, finalVirtualServerId, common.VirtualServerProcessingStates(), []string{common.RunningState, common.StoppedState}, false)
+	err := virtualserver.WaitForVirtualServerStatus(ctx, inst.Client, finalVirtualServerId, common.VirtualServerProcessingStates(), []string{common.RunningState, common.StoppedState}, false)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -146,15 +136,12 @@ func createBlockStorage(ctx context.Context, data *schema.ResourceData, meta int
 		BlockStorageName: data.Get("name").(string),
 		BlockStorageSize: (int32)(data.Get("storage_size_gb").(int)),
 		EncryptEnabled:   encryptEnable,
-		ProductId:        productId,
+		DiskType:         data.Get("product_name").(string),
 		SharedType:       sharedType,
 		VirtualServerId:  finalVirtualServerId,
 	}, data.Get("tags").(map[string]interface{}))
 
 	if err != nil {
-		if err.Error() == "400 Bad Request" {
-			return diag.Errorf("400 Bad Request (Adding an encryption disk is only available on an encrypted Virtual Server.)")
-		}
 		return diag.FromErr(err)
 	}
 
@@ -227,21 +214,9 @@ func updateBlockStorage(ctx context.Context, data *schema.ResourceData, meta int
 		for _, virtualServerId := range data.Get("virtual_server_ids").([]interface{}) {
 			virtualServerIds = append(virtualServerIds, virtualServerId.(string))
 		}
-
-		serverInfo, _, err := inst.Client.VirtualServer.GetVirtualServer(ctx, virtualServerIds[0])
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		productId, _ := client.FindProductId(ctx, inst.Client, serverInfo.ProductGroupId, common.ProductTypeDisk, data.Get("product_name").(string))
-		if len(productId) == 0 {
-			return diag.Errorf("Matching available productId not found")
-		}
-
 		_, err = inst.Client.BlockStorage.ResizeBlockStorage(ctx, blockstorage.UpdateBlockStorageRequest{
 			BlockStorageId:   data.Id(),
 			BlockStorageSize: (int32)(data.Get("storage_size_gb").(int)),
-			ProductId:        productId,
 		})
 		if err != nil {
 			return diag.FromErr(err)
