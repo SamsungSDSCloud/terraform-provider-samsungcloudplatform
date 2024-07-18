@@ -3,7 +3,7 @@ package virtualserver
 import (
 	"context"
 	"fmt"
-	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/blockstorage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/virtualserver"
@@ -383,14 +383,16 @@ func resourceVirtualServerCreate(ctx context.Context, rd *schema.ResourceData, m
 		return diag.Errorf("server_type must be specified with GPU image.")
 	}
 
-	if !isOsWindows && adminAccount != common.LinuxAdminAccount {
-		adminAccount = common.LinuxAdminAccount
-		log.Println("Linux admin account must be root")
-	}
+	if keyPairId == "" && adminAccount != "" {
+		if !isOsWindows && adminAccount != common.LinuxAdminAccount {
+			adminAccount = common.LinuxAdminAccount
+			log.Println("Linux admin account must be root")
+		}
 
-	if isOsWindows && (adminAccount == common.WindowsAdminAccount || len(adminAccount) < 5) {
-		diagnostics = diag.Errorf("Windows admin account must be 5 to 20 alpha-numeric characters with special character and not be 'administrator'.")
-		return
+		if isOsWindows && (adminAccount == common.WindowsAdminAccount || len(adminAccount) < 5) {
+			diagnostics = diag.Errorf("Windows admin account must be 5 to 20 alpha-numeric characters with special character and not be 'administrator'.")
+			return
+		}
 	}
 
 	if len(targetProductGroupId) == 0 {

@@ -49,6 +49,6 @@ type LinkFileStorageObjectRequest struct {
 }
 
 type LinkObjectRequest struct {
-	LinkObjectId string
-	Type         string
+	ObjectId string
+	Type     string
 }

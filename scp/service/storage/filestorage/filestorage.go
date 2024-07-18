@@ -3,7 +3,7 @@ package filestorage
 import (
 	"context"
 	"fmt"
-	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/filestorage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
@@ -226,7 +226,7 @@ func createFileStorage(ctx context.Context, rd *schema.ResourceData, meta interf
 		}
 
 	}
-	// if attach objects have
+	// TODO: if attach objects have
 	linkObjects, ok := rd.Get("link_objects").(map[string]interface{})
 	if ok {
 		if len(linkObjects) > 0 {
@@ -443,8 +443,8 @@ func getLinkObjectsArray(rd *schema.ResourceData) []filestorage.LinkObjectReques
 			continue
 		}
 		linkObjectRequest = append(linkObjectRequest, filestorage.LinkObjectRequest{
-			LinkObjectId: linkObjectMap["link_object_id"].(string),
-			Type:         linkObjectMap["type"].(string),
+			ObjectId: linkObjectMap["link_object_id"].(string),
+			Type:     linkObjectMap["type"].(string),
 		})
 	}
 	return linkObjectRequest
@@ -463,8 +463,8 @@ func getUnLinkObjectsArray(rd *schema.ResourceData) []filestorage.LinkObjectRequ
 			continue
 		}
 		unlinkObjectRequest = append(unlinkObjectRequest, filestorage.LinkObjectRequest{
-			LinkObjectId: linkObjectMap["link_object_id"].(string),
-			Type:         linkObjectMap["type"].(string),
+			ObjectId: linkObjectMap["link_object_id"].(string),
+			Type:     linkObjectMap["type"].(string),
 		})
 	}
 	return unlinkObjectRequest

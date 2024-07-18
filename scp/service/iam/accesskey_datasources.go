@@ -2,7 +2,7 @@ package iam
 
 import (
 	"context"
-	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/iam"
@@ -84,6 +84,7 @@ func datasourceAccessKeysElem() *schema.Resource {
 			"access_key_state":     {Type: schema.TypeString, Computed: true, Description: "Access key state"},
 			"expired_dt":           {Type: schema.TypeString, Computed: true, Description: "Expiration date"},
 			"project_name":         {Type: schema.TypeString, Computed: true, Description: "Project name"},
+			"secret_vault_count":   {Type: schema.TypeInt, Computed: true, Description: "Secret Valut count"},
 			"created_by":           {Type: schema.TypeString, Computed: true, Description: "Creator's ID"},
 			"created_by_name":      {Type: schema.TypeString, Computed: true, Description: "Creator's name"},
 			"created_by_email":     {Type: schema.TypeString, Computed: true, Description: "Creator's email"},

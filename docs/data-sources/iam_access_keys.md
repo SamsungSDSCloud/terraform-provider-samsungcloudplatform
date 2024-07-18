@@ -73,5 +73,6 @@ Read-Only:
 - `modified_dt` (String)
 - `project_id` (String)
 - `project_name` (String)
+- `secret_vault_count` (Number)
 
 

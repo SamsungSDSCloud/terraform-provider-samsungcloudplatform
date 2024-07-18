@@ -4,7 +4,7 @@ data "scp_obs_buckets" "buckets" {
 
 resource "scp_trail" "my_trail" {
   name          = var.name
-  obs_bucket_id = data.scp_obs_buckets.buckets.contents[0].obs_bucket_id
+  obs_bucket_id = data.scp_obs_buckets.buckets.contents[0].object_storage_bucket_id
   save_type     = var.save_type
 
   use_verification = true

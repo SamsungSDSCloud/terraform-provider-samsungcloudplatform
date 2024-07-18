@@ -112,30 +112,30 @@ func (client *Client) UpdateFileStorageFileRecoveryEnabled(ctx context.Context, 
 	return result, err
 }
 
-func (client *Client) UpdateFileStorageObjectsLink(ctx context.Context, fileStorageId string, reqeust LinkFileStorageObjectRequest) (filestorage2.AsyncResponse, error) {
+func (client *Client) UpdateFileStorageObjectsLink(ctx context.Context, fileStorageId string, request LinkFileStorageObjectRequest) (filestorage2.AsyncResponse, error) {
 
-	linkObjects := make([]filestorage2.LinkObjectRequest, 0)
-	unlinkObjects := make([]filestorage2.LinkObjectRequest, 0)
+	linkObjects := make([]filestorage2.LinkObjectV4Request, 0)
+	unlinkObjects := make([]filestorage2.LinkObjectV4Request, 0)
 
-	for _, LinkObject := range reqeust.LinkObjects {
-		linkObjects = append(linkObjects, filestorage2.LinkObjectRequest{
-			LinkObjectId: LinkObject.LinkObjectId,
-			Type_:        LinkObject.Type,
+	for _, LinkObject := range request.LinkObjects {
+		linkObjects = append(linkObjects, filestorage2.LinkObjectV4Request{
+			ObjectId: LinkObject.ObjectId,
+			Type_:    LinkObject.Type,
 		})
 	}
 
-	for _, UnlinkObject := range reqeust.UnlinkObjects {
-		unlinkObjects = append(unlinkObjects, filestorage2.LinkObjectRequest{
-			LinkObjectId: UnlinkObject.LinkObjectId,
-			Type_:        UnlinkObject.Type,
+	for _, UnlinkObject := range request.UnlinkObjects {
+		unlinkObjects = append(unlinkObjects, filestorage2.LinkObjectV4Request{
+			ObjectId: UnlinkObject.ObjectId,
+			Type_:    UnlinkObject.Type,
 		})
 	}
 
-	result, _, err := client.sdkClient.FileStorageOpenApiV3Api.LinkObjectToFileStorage1(
+	result, _, err := client.sdkClient.FileStorageOpenApiV4Api.LinkObjectToFileStorage(
 		ctx,
 		client.config.ProjectId,
 		fileStorageId,
-		filestorage2.LinkFileStorageObjectRequest{
+		filestorage2.LinkFileStorageObjectV4Request{
 			LinkObjects:   linkObjects,
 			UnlinkObjects: unlinkObjects,
 		})

@@ -2,7 +2,7 @@ package loggingaudit
 
 import (
 	"context"
-	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	loggingaudit2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/logging-audit"
@@ -279,7 +279,7 @@ func datasourceLoggingAuditRead(ctx context.Context, rd *schema.ResourceData, me
 	rd.Set("region", logInfo.Region)
 	rd.Set("requested_by", logInfo.RequestBy)
 	rd.Set("request_client_type", logInfo.RequestClientType)
-	rd.Set("request_dt", logInfo.RequestDt)
+	rd.Set("request_dt", logInfo.RequestDt.String())
 	rd.Set("resource_type", logInfo.ResourceType)
 	rd.Set("state", logInfo.State)
 	rd.Set("user_email", logInfo.UserEmail)

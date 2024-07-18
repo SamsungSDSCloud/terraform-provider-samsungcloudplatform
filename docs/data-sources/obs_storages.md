@@ -31,7 +31,7 @@ output "output_my_scp_obs_storages" {
 
 ### Optional
 
-- `is_multi_availability_zone` (Boolean) Is Multi AZ
+- `is_multi_availability_zone` (Boolean) Is Multi Availability Zone
 - `object_storage_name` (String) Object Storage Name
 - `page` (Number) Page start number from which to get the list
 - `size` (Number) Size to get list

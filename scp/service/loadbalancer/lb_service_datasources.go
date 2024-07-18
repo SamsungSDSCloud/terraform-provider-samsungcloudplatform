@@ -2,7 +2,7 @@ package loadbalancer
 
 import (
 	"context"
-	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/loadbalancer2"
@@ -36,7 +36,7 @@ func DatasourceLBServices() *schema.Resource {
 			"size":               {Type: schema.TypeInt, Optional: true, Default: 20, Description: "Size to get list"},
 			"sort":               {Type: schema.TypeString, Optional: true, Description: "Sort"},
 			"created_by":         {Type: schema.TypeString, Optional: true, Description: "The person who created the resource"},
-			"contents":           {Type: schema.TypeList, Optional: true, Description: "Load balancer service list", Elem: datasourceLbServiceElem()},
+			"contents":           {Type: schema.TypeList, Computed: true, Description: "Load balancer service list", Elem: datasourceLbServiceElem()},
 			"total_count":        {Type: schema.TypeInt, Computed: true},
 		},
 		Description: "Provides list of Load Balancer services",
@@ -109,7 +109,7 @@ func DatasourceLBServicesConnectableToAsg() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"vpc_id":      {Type: schema.TypeString, Required: true, Description: "VPC ID"},
-			"contents":    {Type: schema.TypeList, Optional: true, Description: "Load balancer service connectable to asg list", Elem: datasourceLBServiceConnectableOrConnectedToAsgElem()},
+			"contents":    {Type: schema.TypeList, Computed: true, Description: "Load balancer service connectable to asg list", Elem: datasourceLBServiceConnectableOrConnectedToAsgElem()},
 			"total_count": {Type: schema.TypeInt, Computed: true, Description: "Total list size"},
 		},
 		Description: "Provides list of load balancer service Connectable to ASG",
@@ -124,7 +124,7 @@ func DatasourceLBServicesConnectedToAsg() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"auto_scaling_group_id": {Type: schema.TypeString, Required: true, Description: "ASG ID"},
-			"contents":              {Type: schema.TypeList, Optional: true, Description: "Load balancer service connected to asg list", Elem: datasourceLBServiceConnectableOrConnectedToAsgElem()},
+			"contents":              {Type: schema.TypeList, Computed: true, Description: "Load balancer service connected to asg list", Elem: datasourceLBServiceConnectableOrConnectedToAsgElem()},
 			"total_count":           {Type: schema.TypeInt, Computed: true, Description: "Total list size"},
 		},
 		Description: "Provides list of load balancer service Connected to ASG",

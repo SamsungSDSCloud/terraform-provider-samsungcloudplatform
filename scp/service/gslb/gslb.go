@@ -3,7 +3,7 @@ package gslb
 import (
 	"context"
 	"fmt"
-	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/gslb"
 	common "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"

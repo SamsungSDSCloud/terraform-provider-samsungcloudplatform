@@ -16,6 +16,7 @@ import (
 	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/endpoint"
 	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/firewall"
 	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/gslb"
+	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/hpclitenew"
 	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/iam"
 	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/image"
 	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service/internetgateway"

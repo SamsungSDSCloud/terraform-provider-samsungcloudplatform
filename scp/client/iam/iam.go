@@ -46,7 +46,7 @@ func (client *Client) DeleteAccessKey(ctx context.Context, accessKeyId string) (
 }
 
 func (client *Client) ListAccessKeys(ctx context.Context, projectId string, accessKeyProjectType string, accessKeyState string, active optional.Bool, projectName string) (iam.PageResponseV2AccessKeysResponse, error) {
-	result, _, err := client.sdkClient.AccessKeyControllerApi.ListAccessKeys1(ctx, &iam.AccessKeyControllerApiListAccessKeys1Opts{
+	result, _, err := client.sdkClient.AccessKeyControllerApi.ListAccessKeys2(ctx, &iam.AccessKeyControllerApiListAccessKeys2Opts{
 		ProjectId:            optional.NewString(projectId),
 		AccessKeyProjectType: optional.NewString(accessKeyProjectType),
 		ActiveYn:             active,

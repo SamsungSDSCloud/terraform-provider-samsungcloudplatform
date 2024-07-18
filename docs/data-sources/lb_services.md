@@ -43,31 +43,31 @@ output "output_scp_public_ips" {
 
 ### Read-Only
 
-- `contents` (Block List) Load balancer service list (see [below for nested schema](#nestedblock--contents))
+- `contents` (List of Object) Load balancer service list (see [below for nested schema](#nestedatt--contents))
 - `id` (String) The ID of this resource.
 - `total_count` (Number)
 
-<a id="nestedblock--contents"></a>
+<a id="nestedatt--contents"></a>
 ### Nested Schema for `contents`
 
 Read-Only:
 
-- `block_id` (String) Block id of this region
-- `created_by` (String) The person who created the resource
-- `created_dt` (String) Creation date
-- `default_forwarding_ports` (String) Default forwarding ports
-- `layer_type` (String) Protocol layer type (L4, L7)
-- `lb_service_id` (String) Load balancer service id
-- `lb_service_ip_id` (String) Load balancer service ip id
-- `lb_service_name` (String) Load balancer service name
-- `lb_service_state` (String) Load balancer service status
-- `modified_by` (String) The person who modified the resource
-- `modified_dt` (String) Modification date
-- `nat_ip_address` (String) Nat ip address
-- `project_id` (String) Load balancer service ip id
-- `protocol` (String) Protocol
-- `service_ip_address` (String) Service ip address
-- `service_ports` (String) Service ports
-- `service_zone_id` (String) Service zone id
+- `block_id` (String)
+- `created_by` (String)
+- `created_dt` (String)
+- `default_forwarding_ports` (String)
+- `layer_type` (String)
+- `lb_service_id` (String)
+- `lb_service_ip_id` (String)
+- `lb_service_name` (String)
+- `lb_service_state` (String)
+- `modified_by` (String)
+- `modified_dt` (String)
+- `nat_ip_address` (String)
+- `project_id` (String)
+- `protocol` (String)
+- `service_ip_address` (String)
+- `service_ports` (String)
+- `service_zone_id` (String)
 
 

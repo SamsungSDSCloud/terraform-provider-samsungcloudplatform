@@ -18,6 +18,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/endpoint"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/firewall"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/gslb"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/hpclitenew"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/iam"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/image"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/image/customimage"
@@ -89,6 +90,7 @@ type SCPClient struct {
 	KeyPair        *keypair.Client
 	PlacementGroup *placementgroup.Client
 	AutoScaling    *autoscaling.Client
+	HpcLiteNew     *hpclitenew.Client
 
 	// Storage
 	FileStorage           *filestorage.Client
@@ -216,6 +218,7 @@ func NewSCPClient(providerConfig *Config) (*SCPClient, error) {
 		KeyPair:        keypair.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		PlacementGroup: placementgroup.NewClient(NewDefaultConfig(providerConfig, "oss2")),
 		AutoScaling:    autoscaling.NewClient(NewDefaultConfig(providerConfig, "oss2")),
+		HpcLiteNew:     hpclitenew.NewClient(NewDefaultConfig(providerConfig, "hpc")),
 
 		// Storage
 		FileStorage:           filestorage.NewClient(NewDefaultConfig(providerConfig, "")),

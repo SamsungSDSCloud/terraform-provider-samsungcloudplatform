@@ -2,7 +2,7 @@ package natgateway
 
 import (
 	"context"
-	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	natgateway2 "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/nat-gateway2"
 	"github.com/antihax/optional"
 

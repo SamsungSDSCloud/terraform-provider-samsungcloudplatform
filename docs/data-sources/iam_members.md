@@ -71,5 +71,6 @@ Read-Only:
 - `user_group_count` (Number)
 - `user_id` (String)
 - `user_name` (String)
+- `user_password_reuse_limit_count` (String)
 
 

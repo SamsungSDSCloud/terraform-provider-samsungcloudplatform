@@ -1,9 +1,9 @@
 variable "vdc_id" {
-  default = "VDC-XXXXXXXXXXXXXXXX"
+  default = "VDC-287GZVr3sLpT4HhnZVDN11"
 }
 
 variable "subnet_id" {
-  default = "VDC_SUBNET-XXXXXXXXXXXXXXXX"
+  default = "VDC_SUBNET-Qy0OZOsHsHmRPXyCU1W44n"
 }
 
 variable "image_name" {

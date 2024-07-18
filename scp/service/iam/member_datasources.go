@@ -2,7 +2,7 @@ package iam
 
 import (
 	"context"
-	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -136,22 +136,23 @@ func dataSourceMembersRead(ctx context.Context, rd *schema.ResourceData, meta in
 func datasourceMemberElem() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"company_name":      {Type: schema.TypeString, Computed: true, Description: "Company name"},
-			"email":             {Type: schema.TypeString, Computed: true, Description: "User email"},
-			"last_access_dt":    {Type: schema.TypeString, Computed: true, Description: "Last access date"},
-			"organization_id":   {Type: schema.TypeString, Computed: true, Description: "Organization ID"},
-			"position_name":     {Type: schema.TypeString, Computed: true, Description: "Position name"},
-			"user_group_count":  {Type: schema.TypeInt, Computed: true, Description: "User group count"},
-			"user_id":           {Type: schema.TypeString, Computed: true, Description: "User ID"},
-			"user_name":         {Type: schema.TypeString, Computed: true, Description: "User name"},
-			"created_by":        {Type: schema.TypeString, Computed: true, Description: "Creator's ID"},
-			"created_by_name":   {Type: schema.TypeString, Computed: true, Description: "Creator's name"},
-			"created_by_email":  {Type: schema.TypeString, Computed: true, Description: "Creator's email"},
-			"created_dt":        {Type: schema.TypeString, Computed: true, Description: "Created date"},
-			"modified_by":       {Type: schema.TypeString, Computed: true, Description: "Modifier's ID"},
-			"modified_by_name":  {Type: schema.TypeString, Computed: true, Description: "Modifier's name"},
-			"modified_by_email": {Type: schema.TypeString, Computed: true, Description: "Modifier's email"},
-			"modified_dt":       {Type: schema.TypeString, Computed: true, Description: "Modified date"},
+			"company_name":                    {Type: schema.TypeString, Computed: true, Description: "Company name"},
+			"email":                           {Type: schema.TypeString, Computed: true, Description: "User email"},
+			"last_access_dt":                  {Type: schema.TypeString, Computed: true, Description: "Last access date"},
+			"organization_id":                 {Type: schema.TypeString, Computed: true, Description: "Organization ID"},
+			"position_name":                   {Type: schema.TypeString, Computed: true, Description: "Position name"},
+			"user_group_count":                {Type: schema.TypeInt, Computed: true, Description: "User group count"},
+			"user_password_reuse_limit_count": {Type: schema.TypeString, Computed: true, Description: "User password reuse limit count"},
+			"user_id":                         {Type: schema.TypeString, Computed: true, Description: "User ID"},
+			"user_name":                       {Type: schema.TypeString, Computed: true, Description: "User name"},
+			"created_by":                      {Type: schema.TypeString, Computed: true, Description: "Creator's ID"},
+			"created_by_name":                 {Type: schema.TypeString, Computed: true, Description: "Creator's name"},
+			"created_by_email":                {Type: schema.TypeString, Computed: true, Description: "Creator's email"},
+			"created_dt":                      {Type: schema.TypeString, Computed: true, Description: "Created date"},
+			"modified_by":                     {Type: schema.TypeString, Computed: true, Description: "Modifier's ID"},
+			"modified_by_name":                {Type: schema.TypeString, Computed: true, Description: "Modifier's name"},
+			"modified_by_email":               {Type: schema.TypeString, Computed: true, Description: "Modifier's email"},
+			"modified_dt":                     {Type: schema.TypeString, Computed: true, Description: "Modified date"},
 		},
 	}
 }

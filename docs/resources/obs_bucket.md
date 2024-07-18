@@ -2,12 +2,12 @@
 page_title: "scp_obs_bucket Resource - scp"
 subcategory: ""
 description: |-
-  Provides an Object Storage resource.
+  Provides an Object Storage Bucket Resource.
 ---
 
 # Resource: scp_obs_bucket
 
-Provides an Object Storage resource.
+Provides an Object Storage Bucket Resource.
 
 
 ## Example Usage
@@ -42,6 +42,7 @@ resource "scp_obs_bucket" "my_scp_obs_bucket" {
 
 - `object_storage_bucket_file_encryption_enabled` (Boolean) Object Storage Bucket File Encryption Enabled
 - `object_storage_bucket_name` (String) Object Storage Bucket Name
+- `object_storage_bucket_version_enabled` (Boolean) Object Storage Bucket Version Enabled
 - `object_storage_id` (String) Object Storage ID
 - `product_names` (List of String) Product Names
 - `service_zone_id` (String) Service Zone ID
@@ -51,16 +52,15 @@ resource "scp_obs_bucket" "my_scp_obs_bucket" {
 - `access_control_rules` (Block List) Object Storage Bucket Access Control Rules (see [below for nested schema](#nestedblock--access_control_rules))
 - `object_storage_bucket_access_control_enabled` (Boolean) Object Storage Bucket Access Control Enabled
 - `object_storage_bucket_dr_enabled` (Boolean) Object Storage Bucket DR Enabled
-- `object_storage_bucket_dr_type` (String) Object Storage Bucket DR Type
-- `object_storage_bucket_purpose` (String) Object Storage Bucket Purpose
 - `object_storage_bucket_user_purpose` (String) Object Storage Bucket User Purpose
-- `object_storage_bucket_version_enabled` (Boolean) Object Storage Bucket Version Enabled
 - `sync_object_storage_bucket_id` (String) Sync Object Storage Bucket ID
 - `tags` (Map of String)
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+- `object_storage_bucket_dr_type` (String) Object Storage Bucket DR Type
+- `object_storage_bucket_purpose` (String) Object Storage Bucket Purpose
 
 <a id="nestedblock--access_control_rules"></a>
 ### Nested Schema for `access_control_rules`

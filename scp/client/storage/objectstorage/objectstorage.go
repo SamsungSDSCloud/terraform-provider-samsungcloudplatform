@@ -18,17 +18,9 @@ func NewClient(config *sdk.Configuration) *Client {
 	}
 }
 
-func (client *Client) ReadObjectStorageList(ctx context.Context, serviceZoneId string, request objectstorage.ObjectStorageV4ControllerApiListObjectStorageOpts) (objectstorage.ListResponseObjectStorageListV4Response, error) {
-	result, _, err := client.sdkClient.ObjectStorageV4ControllerApi.ListObjectStorage(ctx, client.config.ProjectId, serviceZoneId, &request)
+func (client *Client) ReadObjectStorageList(ctx context.Context, serviceZoneId string, request ReadObjectStorageListRequest) (objectstorage.ListResponseObjectStorageListV4Response, error) {
+	result, _, err := client.sdkClient.ObjectStorageV4ControllerApi.ListObjectStorage(ctx, client.config.ProjectId, serviceZoneId, (*objectstorage.ObjectStorageV4ControllerApiListObjectStorageOpts)(&request))
 	return result, err
-}
-
-func (client *Client) CheckBucketName(ctx context.Context, objectStorageId string, objectStorageBucketName string) (bool, error) {
-	result, _, err := client.sdkClient.ObjectStorageBucketV4ControllerApi.CheckObjectStorageBucketDuplication(ctx, client.config.ProjectId, objectStorageBucketName, objectStorageId)
-	if err != nil || result.Result == nil {
-		return true, err
-	}
-	return *result.Result, err
 }
 
 func (client *Client) CreateBucket(ctx context.Context, request CreateBucketRequest) (objectstorage.ObjectStorageBucketDetailV4Response, error) {
@@ -70,8 +62,8 @@ func (client *Client) ReadBucket(ctx context.Context, objectStorageBucketId stri
 	return result, statusCode, err
 }
 
-func (client *Client) ReadBucketList(ctx context.Context, request objectstorage.ObjectStorageBucketV4ControllerApiListObjectStorageBucketsOpts) (objectstorage.ListResponseObjectStorageBucketListV4Response, error) {
-	result, _, err := client.sdkClient.ObjectStorageBucketV4ControllerApi.ListObjectStorageBuckets(ctx, client.config.ProjectId, &request)
+func (client *Client) ReadBucketList(ctx context.Context, request ReadBucketListRequest) (objectstorage.ListResponseObjectStorageBucketListV4Response, error) {
+	result, _, err := client.sdkClient.ObjectStorageBucketV4ControllerApi.ListObjectStorageBuckets(ctx, client.config.ProjectId, (*objectstorage.ObjectStorageBucketV4ControllerApiListObjectStorageBucketsOpts)(&request))
 	return result, err
 }
 

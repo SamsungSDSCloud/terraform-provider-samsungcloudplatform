@@ -32,31 +32,31 @@ output "result_scp_lb_services_connectable_to_asg" {
 
 ### Read-Only
 
-- `contents` (Block List) Load balancer service connectable to asg list (see [below for nested schema](#nestedblock--contents))
+- `contents` (List of Object) Load balancer service connectable to asg list (see [below for nested schema](#nestedatt--contents))
 - `id` (String) The ID of this resource.
 - `total_count` (Number) Total list size
 
-<a id="nestedblock--contents"></a>
+<a id="nestedatt--contents"></a>
 ### Nested Schema for `contents`
 
 Read-Only:
 
-- `auto_scale_group_ids` (List of String) Auto Scaling Group ID
-- `default_forwarding_ports` (String) Default Forwarding Ports
-- `layer_type` (String) Layer Type
-- `lb_rules` (List of Object) (see [below for nested schema](#nestedatt--contents--lb_rules))
-- `lb_service_id` (String) LB Service ID
-- `lb_service_ip_address` (String) LB Service IP Address
-- `lb_service_name` (String) LB Service Name
-- `lb_service_state` (String) LB Service State
-- `load_balancer_id` (String) Load Balancer ID
-- `load_balancer_name` (String) Load Balancer Name
-- `nat_ip_address` (String) NAT IP Address
-- `persistence` (String) Persistence Type
-- `protocol` (String) Protocol
-- `service_ports` (String) Service Ports
+- `auto_scale_group_ids` (List of String)
+- `default_forwarding_ports` (String)
+- `layer_type` (String)
+- `lb_rules` (List of Object) (see [below for nested schema](#nestedobjatt--contents--lb_rules))
+- `lb_service_id` (String)
+- `lb_service_ip_address` (String)
+- `lb_service_name` (String)
+- `lb_service_state` (String)
+- `load_balancer_id` (String)
+- `load_balancer_name` (String)
+- `nat_ip_address` (String)
+- `persistence` (String)
+- `protocol` (String)
+- `service_ports` (String)
 
-<a id="nestedatt--contents--lb_rules"></a>
+<a id="nestedobjatt--contents--lb_rules"></a>
 ### Nested Schema for `contents.lb_rules`
 
 Read-Only:

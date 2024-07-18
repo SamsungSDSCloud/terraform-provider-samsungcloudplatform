@@ -50,6 +50,7 @@ output "result_my_member" {
 - `tags` (List of Object) Tag list (see [below for nested schema](#nestedatt--tags))
 - `user_group_count` (Number) User group count
 - `user_name` (String) User name
+- `user_password_reuse_limit_count` (String) User password reuse limit count
 - `user_srn` (String) User SRN
 
 <a id="nestedatt--tags"></a>

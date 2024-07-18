@@ -3,15 +3,14 @@ package objectstorage
 import (
 	"context"
 	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
-	"github.com/antihax/optional"
-	"time"
-
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/client/storage/objectstorage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/common"
-	objectstorage "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/object-storage"
+	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	uuid "github.com/satori/go.uuid"
+	"time"
 )
 
 func init() {
@@ -27,7 +26,7 @@ func DatasourceObjectStorages() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
-			"is_multi_availability_zone": {Type: schema.TypeBool, Optional: true, Description: "Is Multi AZ"},
+			"is_multi_availability_zone": {Type: schema.TypeBool, Optional: true, Description: "Is Multi Availability Zone"},
 			"object_storage_name":        {Type: schema.TypeString, Optional: true, Description: "Object Storage Name"},
 			"service_zone_id":            {Type: schema.TypeString, Required: true, Description: "Service Zone ID"},
 			"page":                       {Type: schema.TypeInt, Optional: true, Default: 0, Description: "Page start number from which to get the list"},
@@ -65,7 +64,7 @@ func datasourceObjectStoragesRead(ctx context.Context, rd *schema.ResourceData, 
 		sort = optional.NewInterface(v.([]interface{}))
 	}
 
-	responses, err := inst.Client.ObjectStorage.ReadObjectStorageList(ctx, rd.Get("service_zone_id").(string), objectstorage.ObjectStorageV4ControllerApiListObjectStorageOpts{
+	responses, err := inst.Client.ObjectStorage.ReadObjectStorageList(ctx, rd.Get("service_zone_id").(string), objectstorage.ReadObjectStorageListRequest{
 		IsMultiAvailabilityZone: isMultiAvailabilityZone,
 		ObjectStorageName:       objectStorageName,
 		Page:                    page,
@@ -90,7 +89,7 @@ func datasourceObjectStorageElem() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"block_id":                   {Type: schema.TypeString, Computed: true, Description: "Block ID"},
-			"is_multi_availability_zone": {Type: schema.TypeBool, Computed: true, Description: "Is Multi AZ"},
+			"is_multi_availability_zone": {Type: schema.TypeBool, Computed: true, Description: "Is Multi Availability Zone"},
 			"object_storage_id":          {Type: schema.TypeString, Computed: true, Description: "Object Storage ID"},
 			"object_storage_name":        {Type: schema.TypeString, Computed: true, Description: "Object Storage Name"},
 			"service_zone_id":            {Type: schema.TypeString, Computed: true, Description: "Service Zone ID"},
@@ -111,9 +110,9 @@ func DatasourceObjectStorageBuckets() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
-			"object_storage_system_bucket_enabled": {Type: schema.TypeBool, Optional: true, Description: "Is Object Storage System Bucket enabled (true | false)"},
-			"object_storage_id":                    {Type: schema.TypeString, Optional: true, Description: "Object Storage Bucket Name"},
-			"object_storage_bucket_name":           {Type: schema.TypeString, Optional: true, Description: "Object Storage Bucket Name (Like)"},
+			"object_storage_system_bucket_enabled": {Type: schema.TypeBool, Optional: true, Description: "Object Storage System Bucket Enabled"},
+			"object_storage_id":                    {Type: schema.TypeString, Optional: true, Description: "Object Storage ID"},
+			"object_storage_bucket_name":           {Type: schema.TypeString, Optional: true, Description: "Object Storage Bucket Name"},
 			"end_modified_dt":                      {Type: schema.TypeString, Optional: true, Description: "Object Storage Bucket Query End Date"},
 			"start_modified_dt":                    {Type: schema.TypeString, Optional: true, Description: "Object Storage Bucket Query Start Date"},
 			"object_storage_bucket_state":          {Type: schema.TypeString, Optional: true, Description: "Object Storage Bucket State"},
@@ -203,7 +202,7 @@ func datasourceObjectStorageBucketsRead(ctx context.Context, rd *schema.Resource
 		sort = optional.NewInterface(v.([]interface{}))
 	}
 
-	responses, err := inst.Client.ObjectStorage.ReadBucketList(ctx, objectstorage.ObjectStorageBucketV4ControllerApiListObjectStorageBucketsOpts{
+	responses, err := inst.Client.ObjectStorage.ReadBucketList(ctx, objectstorage.ReadBucketListRequest{
 		ObjectStorageSystemBucketEnabled: objectStorageSystemBucketEnabled,
 		ObjectStorageId:                  objectStorageId,
 		ObjectStorageBucketName:          objectStorageBucketName,
@@ -240,11 +239,11 @@ func datasourceObjectStorageBucketElem() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"project_id": {Type: schema.TypeString, Computed: true, Description: "Project ID"},
 			"object_storage_bucket_access_control_enabled": {Type: schema.TypeBool, Computed: true, Description: "Object Storage Bucket Access Control Enabled"},
-			"object_storage_bucket_dr_enabled":             {Type: schema.TypeBool, Computed: true, Description: "Object Storage Bucket Dr Enabled"},
+			"object_storage_bucket_dr_enabled":             {Type: schema.TypeBool, Computed: true, Description: "Object Storage Bucket DR Enabled"},
 			"object_storage_bucket_dr_type":                {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket DR Type"},
 			"object_storage_bucket_id":                     {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket ID"},
 			"object_storage_bucket_name":                   {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket Name"},
-			"object_storage_bucket_purpose":                {Type: schema.TypeString, Computed: true, Description: "ObjectStorageBucketPurpose"},
+			"object_storage_bucket_purpose":                {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket Purpose"},
 			"object_storage_bucket_user_purpose":           {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket User Purpose"},
 			"object_storage_bucket_state":                  {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket State"},
 			"object_storage_bucket_version_enabled":        {Type: schema.TypeBool, Computed: true, Description: "Object Storage Bucket Version Enabled"},
@@ -270,7 +269,7 @@ func DatasourceObjectStorageBucketInfo() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
-			common.ToSnakeCase("ProjectId"):                               {Type: schema.TypeString, Computed: true, Description: "Project Id"},
+			common.ToSnakeCase("ProjectId"):                               {Type: schema.TypeString, Computed: true, Description: "Project ID"},
 			common.ToSnakeCase("IsMultiAvailabilityZone"):                 {Type: schema.TypeBool, Computed: true, Description: "Is Multi Availability Zone"},
 			common.ToSnakeCase("IsSyncInProgress"):                        {Type: schema.TypeBool, Computed: true, Description: "Is Sync In-progress"},
 			common.ToSnakeCase("ObjectStorageBucketAccessControlEnabled"): {Type: schema.TypeBool, Computed: true, Description: "Object Storage Bucket Access Control Enabled"},
@@ -280,12 +279,12 @@ func DatasourceObjectStorageBucketInfo() *schema.Resource {
 						"rule_type": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "Rule Type",
+							Description: "Access Control Rule Type",
 						},
 						"rule_value": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "Rule Value",
+							Description: "Access Control Rule Value",
 						},
 					},
 				},
@@ -312,7 +311,7 @@ func DatasourceObjectStorageBucketInfo() *schema.Resource {
 			common.ToSnakeCase("ObjectStorageQuotaName"):                     {Type: schema.TypeString, Computed: true, Description: "Object Storage Quota Name"},
 			common.ToSnakeCase("ObjectStorageSystemBucketEnabled"):           {Type: schema.TypeBool, Computed: true, Description: "Object Storage System Bucket Enabled"},
 			common.ToSnakeCase("ObjectStorageTenantName"):                    {Type: schema.TypeString, Computed: true, Description: "Object Storage Tenant Name"},
-			common.ToSnakeCase("ServiceZoneId"):                              {Type: schema.TypeString, Computed: true, Description: "Service Zone Id"},
+			common.ToSnakeCase("ServiceZoneId"):                              {Type: schema.TypeString, Computed: true, Description: "Service Zone ID"},
 			common.ToSnakeCase("SyncObjectStorageBucketId"):                  {Type: schema.TypeString, Computed: true, Description: "Sync Object Storage Bucket ID"},
 			common.ToSnakeCase("SyncObjectStorageBucketName"):                {Type: schema.TypeString, Computed: true, Description: "Sync Object Storage Bucket Name"},
 			common.ToSnakeCase("SyncObjectStorageBucketServiceZoneId"):       {Type: schema.TypeString, Computed: true, Description: "Sync Object Storage Bucket Service Zone ID"},
@@ -329,7 +328,7 @@ func DatasourceObjectStorageBucketInfo() *schema.Resource {
 			common.ToSnakeCase("ModifiedBy"): {Type: schema.TypeString, Computed: true, Description: "Modified By"},
 			common.ToSnakeCase("ModifiedDt"): {Type: schema.TypeString, Computed: true, Description: "Modified Date"},
 		},
-		Description: "Provides Object Bucket Info.",
+		Description: "Provides information of Object Storage Bucket.",
 	}
 }
 

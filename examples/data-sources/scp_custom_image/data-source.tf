@@ -1,7 +1,12 @@
-data "scp_custom_image" "my_scp_custom_image" {
-  image_id = "IMAGE_XXXXX"
+data "scp_region" "region" {
 }
 
-output "output_my_scp_custom_image" {
-  value = data.scp_custom_image.my_scp_custom_image
+data "scp_custom_images" "my_scp_custom_images" {
+  service_group = "COMPUTE"
+  service       = "Virtual Server"
+  region = data.scp_region.region.location
+}
+
+output "output_my_scp_custom_images" {
+  value = data.scp_custom_images.my_scp_custom_images
 }
