@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp"
-	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/scp/service"
+	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/samsungcloudplatform"
+	_ "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/samsungcloudplatform/service"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 )
 
@@ -16,7 +16,7 @@ func main() {
 	flag.Parse()
 
 	opts := &plugin.ServeOpts{
-		ProviderFunc: scp.Provider,
+		ProviderFunc: samsungcloudplatform.Provider,
 		Debug:        debugMode,
 		ProviderAddr: "SamsungSDSCloud/samsungcloudplatform",
 	}
