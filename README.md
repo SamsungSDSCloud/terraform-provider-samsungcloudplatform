@@ -3,9 +3,9 @@
 ## Directory structure
 
 - `docs` : Auto-generated documentation
-- `examples` : Example scp terraform files for testing & documentation
+- `examples` : Example samsungcloudplatform terraform files for testing & documentation
 - `internal` : (OLD) User profile management
-- `scp` : SCP terraform provider source code
+- `samsungcloudplatform` : Samsungcloudplatform terraform provider source code
 - `tools` : Tool modules
 
 ## Build Requirements
@@ -30,7 +30,7 @@ mkdir ".scp"
 
 Create `config.json` and `credentials.json` in `.scp` directory
 
-### Add SCP configuration
+### Add Samsungcloudplatform configuration
 
 Insert following parameters in `.scp/config.json` file
 
@@ -60,10 +60,10 @@ Insert following parameters in `.scp/credentials.json` file
 ### Build provider executable
 
 Build a dummy plugin for placeholder
- 1. Build terraform debug executable `go build -o terraform-provider-scp.exe`
- 2. Copy to predefined location. On Windows : `%APPDATA%\terraform.d\plugins\registry.terraform.io\samsungsds\scp\0.0.1\windows_amd64`
- 3. Go to `*.tf` example directory
- 4. Use `terraform init` to initialize plugin
+1. Build terraform debug executable `go build -o terraform-provider-samsungcloudplatform.exe`
+2. Copy to predefined location. On Windows : `%APPDATA%\terraform.d\plugins\registry.terraform.io\SamsungSDSCloud\samsungcloudplatform\3.7.1\windows_amd64`
+3. Go to `*.tf` example directory
+4. Use `terraform init` to initialize plugin
     * When succeeded, following message will appear
       ```
       Initializing provider plugins...
@@ -80,30 +80,30 @@ Build a dummy plugin for placeholder
       ```
 
 Run plugin with debug mode
- * `go run main.go -- --debug`
+* `go run main.go -- --debug`
 
 
 ### Development guideline
 
- * Use `error` interface to handle errors
- * Create test cases when possible
- * Let the linter format your code
-   * See `go lint`
- * Use special go comments to auto generate documentation (See `godoc`)
-   * Comment right before `package`, `func`, `struct`, ... will auto-detect as description
-   * `// BUGS(author) ` will detect as bug comment
-   * Function names are auto-detected
-   * Comment with more than 2 spaces will be detected as code
-     ```
-     // Comment
-     //  fmt.Println("Hello, World!")
-     // Comment
-     ```
+* Use `error` interface to handle errors
+* Create test cases when possible
+* Let the linter format your code
+    * See `go lint`
+* Use special go comments to auto generate documentation (See `godoc`)
+    * Comment right before `package`, `func`, `struct`, ... will auto-detect as description
+    * `// BUGS(author) ` will detect as bug comment
+    * Function names are auto-detected
+    * Comment with more than 2 spaces will be detected as code
+      ```
+      // Comment
+      //  fmt.Println("Hello, World!")
+      // Comment
+      ```
 
 
 ## License
 
 Copyright 2024. Samsung SDS Co., Ltd. All rights reserved.
 
-See [LICENSE](LICENSE) for details.
+See [LICENSE](LICENSE_MPL2.0) for details.
 
