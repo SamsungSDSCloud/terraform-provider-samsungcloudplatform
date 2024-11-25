@@ -73,6 +73,7 @@ func dataSourceElem() *schema.Resource {
 			common.ToSnakeCase("TransitGatewayName"):        {Type: schema.TypeString, Computed: true, Description: "TransitGateway Name"},
 			common.ToSnakeCase("TransitGatewayState"):       {Type: schema.TypeString, Computed: true, Description: "TransitGateway State"},
 			common.ToSnakeCase("TransitGatewayDescription"): {Type: schema.TypeString, Computed: true, Description: "TransitGateway Description"},
+			common.ToSnakeCase("productGroupId"):            {Type: schema.TypeString, Computed: true, Description: "productGroupId"},
 			common.ToSnakeCase("UplinkEnabled"):             {Type: schema.TypeBool, Computed: true, Description: "UplinkEnabled"},
 			common.ToSnakeCase("BandwidthGbps"):             {Type: schema.TypeInt, Computed: true, Description: "BandwidthGbps"},
 			common.ToSnakeCase("vpcCount"):                  {Type: schema.TypeInt, Computed: true, Description: "vpcCount"},

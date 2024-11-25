@@ -48,6 +48,7 @@ Read-Only:
 - `created_dt` (String) Creation date
 - `modified_by` (String) User ID who modified the resources last
 - `modified_dt` (String) Modification date
+- `product_group_id` (String) productGroupId
 - `project_id` (String) Project id
 - `service_zone_id` (String) Service zone id
 - `transit_gateway_description` (String) TransitGateway Description
