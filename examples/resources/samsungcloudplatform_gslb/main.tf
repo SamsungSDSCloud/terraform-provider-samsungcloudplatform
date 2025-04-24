@@ -18,15 +18,17 @@ resource "samsungcloudplatform_gslb" "my_gslb" {
     gslb_resource_description       = "test resource 1"
   }
   gslb_resources {
-      gslb_destination            = "192.168.0.2"
-      gslb_region    = "KR-EAST-1"
-      gslb_resource_weight = 20
-      gslb_resource_description       = "test resource 2"
+    gslb_destination            = "192.168.0.2"
+    gslb_region    = "KR-EAST-1"
+    gslb_resource_weight = 20
+    gslb_resource_disable = true
+    gslb_resource_description       = "test resource 2"
   }
   gslb_resources {
     gslb_destination            = "192.168.0.3"
     gslb_region    = "KR-EAST-1"
     gslb_resource_weight = 15
+    gslb_resource_disable = false
     gslb_resource_description       = "test resource 3"
   }
 }

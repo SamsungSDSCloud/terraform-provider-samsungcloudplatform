@@ -88,7 +88,7 @@ func (client *Client) UpdateGslbHealthCheck(ctx context.Context, gslbId string, 
 	return result, statusCode, err
 }
 
-func (client *Client) UpdateGslbResources(ctx context.Context, gslbId string, gslbResources []gslb2.GslbResourceMappingRequest) (gslb2.AsyncResponse, int, error) {
+func (client *Client) UpdateGslbResources(ctx context.Context, gslbId string, gslbResources []gslb2.GslbResourceMappingRequestVo) (gslb2.AsyncResponse, int, error) {
 	result, c, err := client.sdkClient.GslbOpenApiV2ControllerApi.UpdateGslbResources(ctx, client.config.ProjectId, gslbId, gslb2.ChangeGslbResourceMappingRequest{
 		GslbResources: gslbResources,
 	})

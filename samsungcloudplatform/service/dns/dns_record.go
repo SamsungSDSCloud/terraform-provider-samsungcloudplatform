@@ -66,7 +66,7 @@ func ResourceDnsRecord() *schema.Resource {
 			"dns_record_mapping": {
 				Type:        schema.TypeSet,
 				Required:    true,
-				Description: "DNS Record Mappings",
+				Description: "DNS Record Mappings. Record Type CNAME, SPF, TXT can have only one record mapping. Record Type A, AAAA, MX can have 1 or more record mappings.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"record_destination": {

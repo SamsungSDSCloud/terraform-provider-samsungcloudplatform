@@ -188,7 +188,9 @@ func ResourceSqlserver() *schema.Resource {
 			"block_storages": {
 				Type:        schema.TypeList,
 				Required:    true,
-				Description: "block storage. (It can't be deleted.)",
+				MinItems:    1,
+				MaxItems:    10,
+				Description: "block storage.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"block_storage_size": {
@@ -219,6 +221,8 @@ func ResourceSqlserver() *schema.Resource {
 			"sqlserver_servers": {
 				Type:        schema.TypeList,
 				Required:    true,
+				MinItems:    1,
+				MaxItems:    2,
 				Description: "MS SQL Server servers (HA configuration when entering two server specifications)",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -567,7 +571,12 @@ func resourceSqlserverRead(ctx context.Context, rd *schema.ResourceData, meta in
 	backup := database_common.HclListObject{}
 	if sqlserverClusterDetail.BackupConfig != nil {
 		backupInfo := database_common.HclKeyValueObject{}
-		backupInfo["object_storage_id"] = rd.Get("backup").(*schema.Set).List()[0].(map[string]interface{})["object_storage_id"]
+		backupList := rd.Get("backup").(*schema.Set).List()
+		if len(backupList) == 0 {
+			backupInfo["object_storage_id"] = nil
+		} else {
+			backupInfo["object_storage_id"] = backupList[0].(map[string]interface{})["object_storage_id"]
+		}
 		backupInfo["archive_backup_schedule_frequency"] = sqlserverClusterDetail.BackupConfig.FullBackupConfig.ArchiveBackupScheduleFrequency
 		backupInfo["backup_retention_period"] = sqlserverClusterDetail.BackupConfig.FullBackupConfig.BackupRetentionPeriod
 		backupInfo["backup_start_hour"] = sqlserverClusterDetail.BackupConfig.FullBackupConfig.BackupStartHour

@@ -510,7 +510,7 @@ func resourceVirtualServerCreate(ctx context.Context, rd *schema.ResourceData, m
 
 	// settings by types
 	imageType, err := inst.Client.Image.GetImageType(ctx, imageId)
-	if imageType == "STANDARD" {
+	if imageType != "CUSTOM" {
 		for _, extStorageInfo := range externalStorageInfoList {
 			extStorages = append(extStorages, virtualserver.BlockStorageInfo{
 				BlockStorageName: extStorageInfo.Name,

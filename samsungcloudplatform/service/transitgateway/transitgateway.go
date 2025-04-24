@@ -53,7 +53,7 @@ func ResourceTransitGateway() *schema.Resource {
 				Type:             schema.TypeInt,
 				Required:         true,
 				ForceNew:         true,
-				Description:      "Bandwidth Gbps(UplinkEnable=false : 1, UplinkEnable=true : 1/10, Reserved for designated: 20/40)",
+				Description:      "Bandwidth Gbps(UplinkEnable=false : 1, UplinkEnable=true : 1 or 10, Reserved for designated: 20 or 40)",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IntInSlice([]int{1, 10})),
 			},
 			"transit_gateway_description": {

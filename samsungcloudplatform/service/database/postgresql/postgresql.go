@@ -123,6 +123,8 @@ func ResourcePostgresql() *schema.Resource {
 			"block_storages": {
 				Type:        schema.TypeList,
 				Required:    true,
+				MinItems:    1,
+				MaxItems:    10,
 				Description: "block storage.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -160,6 +162,8 @@ func ResourcePostgresql() *schema.Resource {
 			"postgresql_servers": {
 				Type:        schema.TypeList,
 				Required:    true,
+				MinItems:    1,
+				MaxItems:    2,
 				Description: "postgresql servers (HA configuration when entering two server specifications)",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -503,7 +507,12 @@ func resourcePostgresqlRead(ctx context.Context, rd *schema.ResourceData, meta i
 	backup := database_common.HclListObject{}
 	if dbInfo.BackupConfig != nil {
 		backupInfo := database_common.HclKeyValueObject{}
-		backupInfo["object_storage_id"] = rd.Get("backup").(*schema.Set).List()[0].(map[string]interface{})["object_storage_id"]
+		backupList := rd.Get("backup").(*schema.Set).List()
+		if len(backupList) == 0 {
+			backupInfo["object_storage_id"] = nil
+		} else {
+			backupInfo["object_storage_id"] = backupList[0].(map[string]interface{})["object_storage_id"]
+		}
 		backupInfo["archive_backup_schedule_frequency"] = dbInfo.BackupConfig.FullBackupConfig.ArchiveBackupScheduleFrequency
 		backupInfo["backup_retention_period"] = dbInfo.BackupConfig.FullBackupConfig.BackupRetentionPeriod
 		backupInfo["backup_start_hour"] = dbInfo.BackupConfig.FullBackupConfig.BackupStartHour

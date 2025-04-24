@@ -36,15 +36,34 @@ func RegisterResource(name string, resourceSchema *schema.Resource) {
 	if scpResources == nil {
 		scpResources = make(map[string]*schema.Resource)
 	}
+
+	if os.Getenv("SCP_DOCGEN") == "true" {
+		setSchemaForDocument(resourceSchema.Schema)
+	}
 	scpResources[name] = resourceSchema
 }
 
 // RegisterDatasource Register datasource terraform for Samsungcloudplatform
-func RegisterDataSource(name string, DataSourceSchema *schema.Resource) {
+func RegisterDataSource(name string, dataSourceSchema *schema.Resource) {
 	if scpDataSources == nil {
 		scpDataSources = make(map[string]*schema.Resource)
 	}
-	scpDataSources[name] = DataSourceSchema
+	if os.Getenv("SCP_DOCGEN") == "true" {
+		setSchemaForDocument(dataSourceSchema.Schema)
+	}
+	scpDataSources[name] = dataSourceSchema
+}
+
+func setSchemaForDocument(schemas map[string]*schema.Schema) {
+	for _, s := range schemas {
+		if s.Computed == true && (s.Type == schema.TypeList || s.Type == schema.TypeMap || s.Type == schema.TypeSet) {
+			s.Optional = true
+		}
+		child, ok := s.Elem.(*schema.Resource)
+		if ok == true {
+			setSchemaForDocument(child.Schema)
+		}
+	}
 }
 
 type authResponse struct {

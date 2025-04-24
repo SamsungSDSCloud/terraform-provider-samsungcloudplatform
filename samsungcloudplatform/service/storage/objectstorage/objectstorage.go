@@ -8,6 +8,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/samsungcloudplatform/client/storage/objectstorage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/samsungcloudplatform/common"
 	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/samsungcloudplatform/service/tag"
+	"github.com/antihax/optional"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -19,17 +20,20 @@ import (
 var accessControlRuleTypes = []string{
 	"IP_ADDRESS_RANGE",
 	"VIRTUAL_SERVER",
+	"GPU_SERVER",
 	"BARE_METAL_SERVER",
 	"MULTI_GPU_CLUSTER",
-	"HADOOP",
-	"GPU_SERVER",
-	"VPC_ENDPOINT",
 	"MY_SQL",
 	"MARIA_DB",
 	"TIBERO",
 	"SQL_SERVER",
 	"POSTGRE_SQL",
 	"EPAS",
+	"CACHESTORE",
+	"EVENT_STREAMS",
+	"SEARCH_ENGINE",
+	"HADOOP",
+	"VPC_ENDPOINT",
 }
 
 var objectStorageBucketUserPurposes = []string{
@@ -214,7 +218,7 @@ func createBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}
 	inst := meta.(*client.Instance)
 
 	// input access control rules conversion and validation
-	// TODO: add invalid acces control rule value case
+	// TODO: add invalid access control rule value case
 	accessControlRules, err := convertAccessIpAddressRanges(rd.Get("access_control_rules").(common.HclListObject))
 	if err != nil {
 		if err.Error() == "invalid access control rule type" {
@@ -228,29 +232,12 @@ func createBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}
 		return diag.Errorf("\"IP_ADDRESS_RANGE\" type of rule cannot exceed 200")
 	}
 
-	// input service zone id validation
-	ServiceZoneId := rd.Get("service_zone_id").(string)
-	projectInfo, err := inst.Client.Project.GetProjectInfo(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	var ServiceZoneIds []string
-	for _, response := range projectInfo.ServiceZones {
-		ServiceZoneIds = append(ServiceZoneIds, response.ServiceZoneId)
-	}
-	err = CheckStringInStringList(ServiceZoneIds, ServiceZoneId)
-	if err != nil {
-		if err.Error() == "input string is not in the string list" {
-			return diag.Errorf("Input \"Service Zone ID\" is invalid. Check if the Service Zone ID is valid in the project.")
-		}
-		return diag.Errorf("\"Service Zone ID\" validation check failed.")
-	}
-
 	// input object storage id validation
+	ServiceZoneId := rd.Get("service_zone_id").(string)
 	ObjectStorageId := rd.Get("object_storage_id").(string)
 	readObjectStorageListResponses, err := inst.Client.ObjectStorage.ReadObjectStorageList(ctx, ServiceZoneId, objectstorage.ReadObjectStorageListRequest{})
 	if err != nil {
-		return diag.Errorf("\"Object Storage ID\" validation check failed.")
+		return diag.FromErr(err)
 	} else {
 		var ObjectStorageIds []string
 		for _, response := range readObjectStorageListResponses.Contents {
@@ -282,16 +269,18 @@ func createBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}
 	} else if objectStorageBucketDrEnabled && objectStorageBucketVersionEnabled {
 		/*
 			TODO: add DR available service zone check
-			- cannot check the sync object storage bucket is in DR capable service zone.
+			- Cannot check the sync object storage bucket is in DR capable service zone.
+			- There is no Open API for verification.
 		*/
 		if syncObjectStorageBucketId != "" {
 			syncBucketInfo, _, err := inst.Client.ObjectStorage.ReadBucket(ctx, syncObjectStorageBucketId)
 			if err != nil {
-				return diag.Errorf("Can not get the information of input sync object storage bucket.")
+				return diag.Errorf("Cannot get the information of input sync object storage bucket.")
 			} else {
 				if !*syncBucketInfo.ObjectStorageBucketVersionEnabled {
 					return diag.Errorf("To use DR, an object storage bucket versioning of input sync object storage bucket must be enabled.")
-				} else if *syncBucketInfo.ObjectStorageBucketDrEnabled {
+				}
+				if *syncBucketInfo.ObjectStorageBucketDrEnabled {
 					return diag.Errorf("To use DR, a DR control of input sync object storage bucket must be disabled.")
 				}
 			}
@@ -300,12 +289,25 @@ func createBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}
 		}
 	}
 
-	/*
-		TODO: add object storage bucket name duplication check
-		- cannot get other user's private bucket info. by ReadBucketList
-		- cannot get exact object storage bucket name search result by ReadBucketList(only support 'LIKE')
-	*/
+	// input object storage bucket name duplication check
+	ObjectStorageBucketName := rd.Get("object_storage_bucket_name").(string)
+	bucketListResponse, err := inst.Client.ObjectStorage.ReadBucketList(ctx, objectstorage.ReadBucketListRequest{
+		ObjectStorageBucketName: optional.NewString(ObjectStorageBucketName),
+		ObjectStorageId:         optional.NewString(ObjectStorageId),
+		Size:                    optional.NewInt32(10000), // Maximum size
+	})
+	if err != nil {
+		return diag.FromErr(err)
+	} else {
+		// 버킷 목록 조회는 contains 조건이기 때문에 결과를 exact match 형태로 필터링 필요함
+		for _, item := range bucketListResponse.Contents {
+			if item.ObjectStorageBucketName == ObjectStorageBucketName {
+				return diag.Errorf("Input \"Object Storage Bucket Name\" is duplicated within the endpoint URL. Choose a unique name.")
+			}
+		}
+	}
 
+	// 버킷 생성
 	response, err := inst.Client.ObjectStorage.CreateBucket(ctx, objectstorage.CreateBucketRequest{
 		ObjectStorageBucketAccessControlEnabled:  rd.Get("object_storage_bucket_access_control_enabled").(bool),
 		AccessControlRules:                       accessControlRules,
@@ -318,7 +320,6 @@ func createBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}
 		ProductNames:                             ProductNames,
 		Tags:                                     rd.Get("tags").(map[string]interface{}),
 	})
-
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -429,7 +430,26 @@ func updateBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}
 	objectStorageBucketDrChanged := rd.HasChanges("object_storage_bucket_dr_enabled")
 	objectStorageBucketVersionEnabled := rd.Get("object_storage_bucket_version_enabled").(bool)
 	objectStorageBucketDrEnabled := rd.Get("object_storage_bucket_dr_enabled").(bool)
+
+	syncObjectStorageBucketIdChanged := rd.HasChanges("sync_object_storage_bucket_id")
 	syncObjectStorageBucketId := rd.Get("sync_object_storage_bucket_id").(string)
+
+	// sync object storage bucket validation
+	if syncObjectStorageBucketIdChanged {
+		_, _, err := inst.Client.ObjectStorage.ReadBucket(ctx, syncObjectStorageBucketId)
+		if err != nil {
+			return diag.Errorf("Cannot get the information of input sync object storage bucket.")
+		}
+
+		if objectStorageBucketDrEnabled && !objectStorageBucketDrChanged {
+			diags := append(diag.Diagnostics{}, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Change of \"Sync Object Storage Bucket ID\" is not applied",
+				Detail:   "The Object Storage bucket is already synchronizing with another bucket for DR.",
+			})
+			return diags
+		}
+	}
 
 	switch rd.Get("object_storage_bucket_dr_type") {
 	case "":
@@ -477,7 +497,6 @@ func updateBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}
 			// nothing to update
 		}
 	case "ORIGIN":
-		// TODO: add unadapted change error(same sync bucket id validation)
 		if objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
 			if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
 				// versioning false -> true && DR false -> true
@@ -517,7 +536,6 @@ func updateBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}
 			// nothing to update
 		}
 	case "CLONE":
-		// TODO: add unadapted change error(same sync bucket id validation)
 		if objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
 			if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
 				// versioning false -> true && DR false -> true
@@ -717,12 +735,13 @@ func changeDRControl(inst *client.Instance, ctx context.Context, rd *schema.Reso
 	if syncBucketId != "" {
 		syncBucketInfo, _, err := inst.Client.ObjectStorage.ReadBucket(ctx, syncBucketId)
 		if err != nil {
-			return diag.Errorf("Can not get the information of input sync object storage bucket.")
+			return diag.Errorf("Cannot get the information of input sync object storage bucket.")
 		} else {
 			if drEnabled { // drEnabled == true
 				/*
 					TODO: add DR available service zone check
 					- cannot check the sync object storage bucket is in DR capable service zone.
+					- There is no Open API for verification.
 				*/
 				if !*syncBucketInfo.ObjectStorageBucketVersionEnabled {
 					return diag.Errorf("To use DR, an object storage bucket versioning of input sync object storage bucket must be enabled.")

@@ -15,6 +15,7 @@ resource "samsungcloudplatform_obs_bucket" "my_scp_obs_bucket" {
       rule_type = access_control_rules.value["rule_type"]
     }
   }
+  sync_object_storage_bucket_id = "S3_OBS_BUCKET-XXXXXX"
   tags = {test1:"test2",test3:"test4"}
-  object_storage_bucket_dr_enabled = false
+  object_storage_bucket_dr_enabled = true
 }

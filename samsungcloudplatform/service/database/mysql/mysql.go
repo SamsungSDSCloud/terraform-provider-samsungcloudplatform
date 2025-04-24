@@ -117,6 +117,8 @@ func ResourceMysql() *schema.Resource {
 			"block_storages": {
 				Type:        schema.TypeList,
 				Required:    true,
+				MinItems:    1,
+				MaxItems:    10,
 				Description: "block storage.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -154,6 +156,8 @@ func ResourceMysql() *schema.Resource {
 			"mysql_servers": {
 				Type:        schema.TypeList,
 				Required:    true,
+				MinItems:    1,
+				MaxItems:    2,
 				Description: "Mysql servers (HA configuration when entering two server specifications)",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -494,7 +498,12 @@ func resourceMysqlRead(ctx context.Context, rd *schema.ResourceData, meta interf
 	backup := database_common.HclListObject{}
 	if dbInfo.BackupConfig != nil {
 		backupInfo := database_common.HclKeyValueObject{}
-		backupInfo["object_storage_id"] = rd.Get("backup").(*schema.Set).List()[0].(map[string]interface{})["object_storage_id"]
+		backupList := rd.Get("backup").(*schema.Set).List()
+		if len(backupList) == 0 {
+			backupInfo["object_storage_id"] = nil
+		} else {
+			backupInfo["object_storage_id"] = backupList[0].(map[string]interface{})["object_storage_id"]
+		}
 		backupInfo["archive_backup_schedule_frequency"] = dbInfo.BackupConfig.FullBackupConfig.ArchiveBackupScheduleFrequency
 		backupInfo["backup_retention_period"] = dbInfo.BackupConfig.FullBackupConfig.BackupRetentionPeriod
 		backupInfo["backup_start_hour"] = dbInfo.BackupConfig.FullBackupConfig.BackupStartHour

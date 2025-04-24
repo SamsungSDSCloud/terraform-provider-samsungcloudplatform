@@ -135,6 +135,11 @@ func ResourceGslb() *schema.Resource {
 							Description:  "Gslb Resource Weight",
 							ValidateFunc: validation.IntBetween(0, 100),
 						},
+						"gslb_resource_disable": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Gslb Resource Disabled or not",
+						},
 						"gslb_resource_description": {
 							Type:         schema.TypeString,
 							Optional:     true,
@@ -230,6 +235,7 @@ func checkStringLength(str string, min int, max int) error {
 	}
 }
 
+// GSLB 생성 시에만 사용하는 converter
 func convertGslbResources(list common.HclListObject) ([]gslb.GslbResourceRequest, error) {
 	var result []gslb.GslbResourceRequest
 	for _, l := range list {
@@ -348,6 +354,7 @@ func resourceGslbRead(ctx context.Context, rd *schema.ResourceData, meta interfa
 			"gslb_destination":          gslbResource.GslbDestination,
 			"gslb_region":               gslbResource.GslbRegion,
 			"gslb_resource_weight":      gslbResource.GslbResourceWeight,
+			"gslb_resource_disable":     gslbResource.GslbResourceDisable,
 			"gslb_resource_description": gslbResource.GslbResourceDescription,
 		})
 	}
@@ -417,7 +424,7 @@ func resourceGslbUpdate(ctx context.Context, rd *schema.ResourceData, meta inter
 	if rd.HasChanges("gslb_resources") {
 		gslbResourceList := rd.Get("gslb_resources").(*schema.Set).List()
 
-		gslbResources := make([]gslb2.GslbResourceMappingRequest, len(gslbResourceList))
+		gslbResources := make([]gslb2.GslbResourceMappingRequestVo, len(gslbResourceList))
 
 		for i, gslbResource := range gslbResourceList {
 			r := gslbResource.(map[string]interface{})
@@ -429,6 +436,10 @@ func resourceGslbUpdate(ctx context.Context, rd *schema.ResourceData, meta inter
 			}
 			if v, ok := r["gslb_resource_weight"]; ok {
 				gslbResources[i].GslbResourceWeight = int32(v.(int))
+			}
+			if t, ok := r["gslb_resource_disable"]; ok {
+				enabled := t.(bool)
+				gslbResources[i].GslbResourceDisable = &enabled
 			}
 			if t, ok := r["gslb_resource_description"]; ok {
 				gslbResources[i].GslbResourceDescription = t.(string)

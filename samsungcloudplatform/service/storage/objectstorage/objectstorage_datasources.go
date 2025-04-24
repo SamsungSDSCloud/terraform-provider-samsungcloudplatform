@@ -278,12 +278,12 @@ func DatasourceObjectStorageBucketInfo() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"rule_type": {
 							Type:        schema.TypeString,
-							Required:    true,
+							Computed:    true,
 							Description: "Access Control Rule Type",
 						},
 						"rule_value": {
 							Type:        schema.TypeString,
-							Required:    true,
+							Computed:    true,
 							Description: "Access Control Rule Value",
 						},
 					},

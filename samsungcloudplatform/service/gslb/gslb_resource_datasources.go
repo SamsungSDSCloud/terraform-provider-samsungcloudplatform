@@ -29,7 +29,7 @@ func DatasourceGslbResources() *schema.Resource {
 			"contents":                      {Type: schema.TypeList, Computed: true, Description: "List of GSLB Resource", Elem: dataSourceGslbResourceElem()},
 			"total_count":                   {Type: schema.TypeInt, Computed: true, Description: "Total list size"},
 		},
-		Description: "Provides List of DNS Record.",
+		Description: "Provides List of GSLB Resources.",
 	}
 }
 
@@ -64,6 +64,7 @@ func dataSourceGslbResourceElem() *schema.Resource {
 			common.ToSnakeCase("GslbResourceId"):          {Type: schema.TypeString, Computed: true, Description: "GSLB Resource Id"},
 			common.ToSnakeCase("GslbResourceName"):        {Type: schema.TypeString, Computed: true, Description: "GSLB Resource Name"},
 			common.ToSnakeCase("GslbResourceWeight"):      {Type: schema.TypeInt, Computed: true, Description: "GSLB Resource Weight"},
+			common.ToSnakeCase("GslbResourceDisable"):     {Type: schema.TypeBool, Computed: true, Description: "GSLB Resource Disable or not"},
 			common.ToSnakeCase("GslbResourceDescription"): {Type: schema.TypeString, Computed: true, Description: "GSLB Resource Description"},
 		},
 	}
