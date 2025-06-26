@@ -8,7 +8,7 @@ data "samsungcloudplatform_standard_image" "ubuntu_image" {
 
   filter {
     name      = "image_name"
-    values    = ["Ubuntu 18.04 (Kubernetes)-v1.24.8"]
+    values    = ["Ubuntu 22.04 (Kubernetes)-v1.31.8"]
     use_regex = false
   }
 }
@@ -31,4 +31,13 @@ resource "samsungcloudplatform_kubernetes_node_pool" "pool" {
   min_node_count     = null
   max_node_count     = null
   auto_recovery      = false
+  labels {
+    key = "test"
+    value = "test"
+  }
+  taints {
+    effect = "NoSchedule"
+    key = "test"
+    value = "test"
+  }
 }

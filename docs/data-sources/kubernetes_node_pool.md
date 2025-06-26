@@ -32,6 +32,11 @@ output "result_scp_kubernetes" {
 - `kubernetes_engine_id` (String) Kubernetes Engine Id
 - `node_pool_id` (String) Node Pool Id
 
+### Optional
+
+- `labels` (Block List) labels (see [below for nested schema](#nestedblock--labels))
+- `taints` (Block List) Taints (see [below for nested schema](#nestedblock--taints))
+
 ### Read-Only
 
 - `auto_recovery` (Boolean) AutoRecovery
@@ -58,5 +63,23 @@ output "result_scp_kubernetes" {
 - `storage_id` (String) StorageId
 - `storage_size` (String) StorageSize
 - `upgradable` (Boolean) Upgradable
+
+<a id="nestedblock--labels"></a>
+### Nested Schema for `labels`
+
+Optional:
+
+- `key` (String) Label Key
+- `value` (String) Label Value
+
+
+<a id="nestedblock--taints"></a>
+### Nested Schema for `taints`
+
+Optional:
+
+- `effect` (String) Taint Effect
+- `key` (String) Taint Key
+- `value` (String) Taint Value
 
 

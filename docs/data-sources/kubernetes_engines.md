@@ -46,6 +46,7 @@ output "result_scp_kubernetes_engines" {
 
 Read-Only:
 
+- `cifs_volume_id` (String) File storage cifs volume id
 - `created_by` (String) The person who created the resource
 - `created_dt` (String) Creation time
 - `k8s_version` (String) K8s version

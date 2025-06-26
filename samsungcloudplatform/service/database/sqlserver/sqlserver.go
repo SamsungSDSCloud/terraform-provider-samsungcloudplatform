@@ -196,8 +196,8 @@ func ResourceSqlserver() *schema.Resource {
 						"block_storage_size": {
 							Type:             schema.TypeInt,
 							Required:         true,
-							Description:      "Block Storage Size (10 to 7168)",
-							ValidateDiagFunc: database_common.ValidateIntegerInRange(10, 7168),
+							Description:      "Block Storage Size (10 to 5120)",
+							ValidateDiagFunc: database_common.ValidateIntegerInRange(10, 5120),
 						},
 						"block_storage_type": {
 							Type:             schema.TypeString,

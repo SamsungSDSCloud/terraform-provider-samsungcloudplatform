@@ -1,7 +1,7 @@
 # Check available subnet
 data "samsungcloudplatform_kubernetes_subnet" "my_scp_kubernetes_subnet" {
-  vpc_id    = "vpc id"
-  subnet_id = "subnet id"
+  vpc_id    = "VPC-XXXXXXXXX"
+  subnet_id = "SUBNET-XXXXXXXXX"
 }
 
 output "result_scp_kubernetes_subnet" {

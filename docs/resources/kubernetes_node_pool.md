@@ -23,7 +23,7 @@ data "samsungcloudplatform_standard_image" "ubuntu_image" {
 
   filter {
     name      = "image_name"
-    values    = ["Ubuntu 18.04 (Kubernetes)-v1.24.8"]
+    values    = ["Ubuntu 22.04 (Kubernetes)-v1.31.8"]
     use_regex = false
   }
 }
@@ -46,6 +46,15 @@ resource "samsungcloudplatform_kubernetes_node_pool" "pool" {
   min_node_count     = null
   max_node_count     = null
   auto_recovery      = false
+  labels {
+    key = "test"
+    value = "test"
+  }
+  taints {
+    effect = "NoSchedule"
+    key = "test"
+    value = "test"
+  }
 }
 ```
 
@@ -65,16 +74,37 @@ resource "samsungcloudplatform_kubernetes_node_pool" "pool" {
 - `availability_zone_name` (String) Availability zone name.
 - `desired_node_count` (Number) Desired node count in the pool (Desired node count is 0 when auto_scale is enabled)
 - `encrypt_enabled` (Boolean) Encrypt enabled
+- `labels` (Block List) labels (see [below for nested schema](#nestedblock--labels))
 - `max_node_count` (Number) Maximum node count
 - `min_node_count` (Number) Minimum node count
 - `scale_name` (String) Scale name
 - `storage_name` (String) Storage name (Currently only SSD is supported)
 - `storage_size_gb` (String) Storage size in GB (default 100)
+- `taints` (Block List) Taints (see [below for nested schema](#nestedblock--taints))
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+<a id="nestedblock--labels"></a>
+### Nested Schema for `labels`
+
+Optional:
+
+- `key` (String) Label Key
+- `value` (String) Label Value
+
+
+<a id="nestedblock--taints"></a>
+### Nested Schema for `taints`
+
+Optional:
+
+- `effect` (String) Taint Effect
+- `key` (String) Taint Key
+- `value` (String) Taint Value
+
 
 <a id="nestedblock--timeouts"></a>
 ### Nested Schema for `timeouts`

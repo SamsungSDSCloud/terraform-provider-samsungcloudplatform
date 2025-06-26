@@ -14,7 +14,7 @@ Provides Kubernetes Engine Detail
 
 ```terraform
 data "samsungcloudplatform_kubernetes_kubeconfig" "engine" {
-  kubernetes_engine_id = "HSCLUSTER-XXXXXXXXX"
+  kubernetes_engine_id = "HSCLUSTER-YqvFkVY8tHbN7NTlXsIyCa"
   kubeconfig_type = "private"
 }
 

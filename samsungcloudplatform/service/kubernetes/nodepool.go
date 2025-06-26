@@ -162,6 +162,49 @@ func ResourceKubernetesNodePool() *schema.Resource {
 				Default:     "100",
 				Description: "Storage size in GB (default 100)",
 			},
+			"labels": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Label Key",
+						},
+						"value": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Label Value",
+						},
+					},
+				},
+				Description: "labels",
+			},
+			"taints": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"effect": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Taint Effect",
+						},
+						"key": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Taint Key",
+						},
+						"value": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Taint Value",
+						},
+					},
+				},
+				Description: "Taints",
+			},
 		},
 		Description: "Provides a K8s Node Pool resource.",
 	}
@@ -213,6 +256,8 @@ func createNodePool(ctx context.Context, data *schema.ResourceData, meta interfa
 			ServiceLevelName:     "None",
 			StorageName:          data.Get("storage_name").(string),
 			StorageSize:          data.Get("storage_size_gb").(string),
+			Labels:               toLabelRequestList(data.Get("labels").([]interface{})),
+			Taints:               toTaintRequestList(data.Get("taints").([]interface{})),
 		})
 
 	if err != nil {
@@ -314,12 +359,80 @@ func readNodePool(ctx context.Context, data *schema.ResourceData, meta interface
 	data.Set("storage_type", storage.ProductName)
 	data.Set("storage_size_gb", nodePool.StorageSize)
 	data.Set("name", nodePool.NodePoolName)
+	data.Set("labels", nodePool.Labels)
+	data.Set("Taints", nodePool.Taints)
 
 	return
 }
 
 func updateNodePool(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
+
+	if data.HasChanges("labels") {
+		engineId := data.Get("engine_id").(string)
+
+		if len(data.Get("labels").([]interface{})) == 0 {
+			var request []kubernetesengine.LabelRequestToUpdate
+			_, _, err := inst.Client.KubernetesEngine.UpdateNodePoolLabels(ctx, engineId, data.Id(), kubernetesengine.UpdateNodePoolLabelsRequest{
+				LabelRequestToUpdate: request,
+			})
+
+			time.Sleep(5 * time.Second)
+
+			//FAIL, ERROR, NOT READY, RUNNING
+			err = client.WaitForStatus(ctx, inst.Client, []string{}, []string{"Running"}, refreshNodePool(ctx, meta, engineId, data.Id(), true))
+
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		} else {
+			_, _, err := inst.Client.KubernetesEngine.UpdateNodePoolLabels(ctx, engineId, data.Id(), kubernetesengine.UpdateNodePoolLabelsRequest{
+				LabelRequestToUpdate: toLabelRequestListToUpdate(data.Get("labels").([]interface{})),
+			})
+
+			time.Sleep(5 * time.Second)
+
+			//FAIL, ERROR, NOT READY, RUNNING
+			err = client.WaitForStatus(ctx, inst.Client, []string{}, []string{"Running"}, refreshNodePool(ctx, meta, engineId, data.Id(), true))
+
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	}
+
+	if data.HasChanges("taints") {
+		engineId := data.Get("engine_id").(string)
+
+		if len(data.Get("taints").([]interface{})) == 0 {
+			var request []kubernetesengine.TaintRequestToUpdate
+			_, _, err := inst.Client.KubernetesEngine.UpdateNodePoolTaints(ctx, engineId, data.Id(), kubernetesengine.UpdateNodePoolTatintsRequest{
+				TaintRequestToUpdate: request,
+			})
+
+			time.Sleep(5 * time.Second)
+
+			//FAIL, ERROR, NOT READY, RUNNING
+			err = client.WaitForStatus(ctx, inst.Client, []string{}, []string{"Running"}, refreshNodePool(ctx, meta, engineId, data.Id(), true))
+
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		} else {
+			_, _, err := inst.Client.KubernetesEngine.UpdateNodePoolTaints(ctx, engineId, data.Id(), kubernetesengine.UpdateNodePoolTatintsRequest{
+				TaintRequestToUpdate: toTaintRequestListToUpdate(data.Get("taints").([]interface{})),
+			})
+
+			time.Sleep(5 * time.Second)
+
+			//FAIL, ERROR, NOT READY, RUNNING
+			err = client.WaitForStatus(ctx, inst.Client, []string{}, []string{"Running"}, refreshNodePool(ctx, meta, engineId, data.Id(), true))
+
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	}
 
 	if data.HasChanges("auto_recovery", "auto_scale", "desired_node_count", "max_node_count", "min_node_count") {
 
@@ -482,4 +595,94 @@ func getImageInfo(ctx context.Context, imageId string, meta interface{}) (string
 	osVersion := standardImage.Properties["os.version"]
 	productId := standardImage.Products[0].ProductId
 	return standardImage.ImageType, standardImage.OsType, k8sVersion, osVersion, productId, err
+}
+
+func toLabelRequestList(list []interface{}) []kubernetesengine.LabelRequest {
+	if len(list) == 0 {
+		return nil
+	}
+	for _, val := range list {
+		if val == nil {
+			return nil
+		}
+	}
+
+	var result []kubernetesengine.LabelRequest
+
+	for _, val := range list {
+		kv := val.(common.HclKeyValueObject)
+
+		result = append(result, kubernetesengine.LabelRequest{
+			Key:   kv["key"].(string),
+			Value: kv["value"].(string),
+		})
+	}
+	return result
+}
+
+func toLabelRequestListToUpdate(list []interface{}) []kubernetesengine.LabelRequestToUpdate {
+	if len(list) == 0 {
+		return nil
+	}
+	var result []kubernetesengine.LabelRequestToUpdate
+
+	for _, val := range list {
+		kv := val.(common.HclKeyValueObject)
+
+		if kv["key"] == "" {
+			break
+		}
+
+		result = append(result, kubernetesengine.LabelRequestToUpdate{
+			Key:   kv["key"].(string),
+			Value: kv["value"].(string),
+		})
+	}
+	return result
+}
+
+func toTaintRequestList(list []interface{}) []kubernetesengine.TaintRequest {
+	if len(list) == 0 {
+		return nil
+	}
+	for _, val := range list {
+		if val == nil {
+			return nil
+		}
+	}
+
+	var result []kubernetesengine.TaintRequest
+
+	for _, val := range list {
+		kv := val.(common.HclKeyValueObject)
+
+		result = append(result, kubernetesengine.TaintRequest{
+			Effect: kv["effect"].(string),
+			Key:    kv["key"].(string),
+			Value:  kv["value"].(string),
+		})
+	}
+	return result
+}
+
+func toTaintRequestListToUpdate(list []interface{}) []kubernetesengine.TaintRequestToUpdate {
+	if len(list) == 0 {
+		return nil
+	}
+	var result []kubernetesengine.TaintRequestToUpdate
+
+	for _, val := range list {
+		kv := val.(common.HclKeyValueObject)
+
+		if kv["key"] == "" {
+			break
+		}
+
+		result = append(result, kubernetesengine.TaintRequestToUpdate{
+			Effect: kv["effect"].(string),
+			Key:    kv["key"].(string),
+			Value:  kv["value"].(string),
+		})
+	}
+	return result
 }

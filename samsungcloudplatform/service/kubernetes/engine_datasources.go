@@ -79,6 +79,7 @@ func datasourceElem() *schema.Resource {
 			"security_group_id":        {Type: schema.TypeString, Computed: true, Description: "Security group id"},
 			"subnet_id":                {Type: schema.TypeString, Computed: true, Description: "Subnet id"},
 			"volume_id":                {Type: schema.TypeString, Computed: true, Description: "File storage volume id"},
+			"cifs_volume_id":           {Type: schema.TypeString, Computed: true, Description: "File storage cifs volume id"},
 			"vpc_id":                   {Type: schema.TypeString, Computed: true, Description: "Vpc id"},
 			"created_by":               {Type: schema.TypeString, Computed: true, Description: "The person who created the resource"},
 			"created_dt":               {Type: schema.TypeString, Computed: true, Description: "Creation time"},

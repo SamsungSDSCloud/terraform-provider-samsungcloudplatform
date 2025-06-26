@@ -29,6 +29,7 @@ output "result_scp_kubernetes_engine_versions" {
 
 - `page` (Number) Page start number from which to get the list
 - `size` (Number) Size to get list
+- `total_count` (Number) total count
 
 ### Read-Only
 
@@ -40,7 +41,9 @@ output "result_scp_kubernetes_engine_versions" {
 
 Read-Only:
 
+- `eos_date` (String) eos date
 - `k8s_version` (String) K8s version
+- `k8s_version_description` (String) k8s version description
 - `project_id` (String) Project id
 
 

@@ -1,5 +1,5 @@
 data "samsungcloudplatform_kubernetes_engine" "engine" {
-  kubernetes_engine_id = "HSCLUSTER-jlJ62a08tTfPlHZTmvIocg"
+  kubernetes_engine_id = "HSCLUSTER-XXXXXXXXX"
 }
 
 output "output_kubernetes_engine" {

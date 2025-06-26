@@ -1054,9 +1054,11 @@ func resourceVirtualServerRead(ctx context.Context, rd *schema.ResourceData, met
 		if len(publicIpInfo.Contents) != 0 {
 			rd.Set("public_ip_id", publicIpInfo.Contents[0].PublicIpAddressId)
 		}
+		rd.Set("nat_enabled", true)
 
 	} else {
 		rd.Set("public_ip_id", "")
+		rd.Set("nat_enabled", false)
 	}
 	rd.Set("state", virtualServerInfo.VirtualServerState)
 	rd.Set("key_pair_id", virtualServerInfo.KeyPairId)
@@ -1562,23 +1564,28 @@ func resourceVirtualServerUpdate(ctx context.Context, rd *schema.ResourceData, m
 	return resourceVirtualServerRead(ctx, rd, meta)
 }
 
+// 기존 nat 를 detach 하고, 새로운 nat 를 attach 하는 로직 ( public_ip_id 정보가 있다면 해당 정보로 nat attach )
 func detachAndAttachPublicIpId(ctx context.Context, rd *schema.ResourceData, inst *client.Instance, virtualServerId string, nicId string, natEnabled bool) error {
 	_, n := rd.GetChange("public_ip_id")
-	newPublicId := n.(string)
+	newPublicIpId := n.(string)
 
-	_, _, err := inst.Client.VirtualServer.DetachPublicIp(ctx, virtualServerId, nicId)
-	// skip 'Nic's nat is empty.' error
-	const ErrorCodeNicNatIsEmpty = "PRODUCT-VIRTUALSERVER-INTERNAL-00022"
-	if err != nil && !strings.Contains(err.Error(), ErrorCodeNicNatIsEmpty) {
-		return err
-	}
-	err = WaitForVirtualServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
-	if err != nil {
-		return err
+	// 현재 스키마 형상에서 nat_ipv4 정보의 존재 여부가, nat 가 연결 여부를 나타냄.
+	// nat 가 연결되어 있는 경우, detach 수행
+	natIp := rd.Get("nat_ipv4").(string)
+
+	if natIp != "" {
+		_, _, err := inst.Client.VirtualServer.DetachPublicIp(ctx, virtualServerId, nicId)
+		if err != nil {
+			return err
+		}
+		err = WaitForVirtualServerStatus(ctx, inst.Client, rd.Id(), common.VirtualServerProcessingStates(), []string{common.RunningState}, true)
+		if err != nil {
+			return err
+		}
 	}
 
-	if natEnabled == true || len(newPublicId) > 0 {
-		_, _, err = inst.Client.VirtualServer.AttachPublicIp(ctx, virtualServerId, nicId, newPublicId)
+	if natEnabled == true || len(newPublicIpId) > 0 {
+		_, _, err := inst.Client.VirtualServer.AttachPublicIp(ctx, virtualServerId, nicId, newPublicIpId)
 		if err != nil {
 			return err
 		}

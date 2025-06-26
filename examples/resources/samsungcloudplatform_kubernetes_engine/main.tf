@@ -10,7 +10,7 @@ data "samsungcloudplatform_virtual_servers" "virtual_server_list" {
 
 resource "samsungcloudplatform_kubernetes_engine" "engine" {
   name               = var.name
-  kubernetes_version = "v1.24.8"
+  kubernetes_version = "v1.31.8"
 
   vpc_id            = data.terraform_remote_state.vpc.outputs.id
   subnet_id         = data.terraform_remote_state.subnet.outputs.id

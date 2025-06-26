@@ -23,9 +23,10 @@ func DatasourceEngineVersions() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
-			"contents": {Type: schema.TypeList, Optional: true, Description: "K8s engine list", Elem: datasourceVersionElem()},
-			"page":     {Type: schema.TypeInt, Optional: true, Default: 0, Description: "Page start number from which to get the list"},
-			"size":     {Type: schema.TypeInt, Optional: true, Default: 20, Description: "Size to get list"},
+			"contents":    {Type: schema.TypeList, Optional: true, Description: "K8s engine list", Elem: datasourceVersionElem()},
+			"page":        {Type: schema.TypeInt, Optional: true, Default: 0, Description: "Page start number from which to get the list"},
+			"size":        {Type: schema.TypeInt, Optional: true, Default: 20, Description: "Size to get list"},
+			"total_count": {Type: schema.TypeInt, Optional: true, Default: 20, Description: "total count"},
 		},
 		Description: "Provides list of K8s versions",
 	}
@@ -55,8 +56,10 @@ func dataSourceVersionList(ctx context.Context, rd *schema.ResourceData, meta in
 func datasourceVersionElem() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"project_id":  {Type: schema.TypeString, Computed: true, Description: "Project id"},
-			"k8s_version": {Type: schema.TypeString, Computed: true, Description: "K8s version"},
+			"project_id":              {Type: schema.TypeString, Computed: true, Description: "Project id"},
+			"k8s_version":             {Type: schema.TypeString, Computed: true, Description: "K8s version"},
+			"k8s_version_description": {Type: schema.TypeString, Computed: true, Description: "k8s version description"},
+			"eos_date":                {Type: schema.TypeString, Computed: true, Description: "eos date"},
 		},
 	}
 }

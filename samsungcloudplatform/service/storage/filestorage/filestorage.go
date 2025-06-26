@@ -118,6 +118,16 @@ func ResourceFileStorage() *schema.Resource {
 				Optional:    true,
 				Description: "File Unit Recovery",
 			},
+			"vpc_endpoint_info": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "VPC Endpoint Information",
+			},
+			"vpc_endpoint_volume_pool_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "VPC Endpoint Volume Pool ID",
+			},
 			"link_objects": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -284,6 +294,8 @@ func readFileStorage(ctx context.Context, rd *schema.ResourceData, meta interfac
 	rd.Set("service_zone_id", info.ServiceZoneId)
 	rd.Set("cifs_id", info.CifsId)
 	rd.Set("file_unit_recovery_enabled", info.FileUnitRecoveryEnabled)
+	rd.Set("vpc_endpoint_info", info.VpcEndpointInfo)
+	rd.Set("vpc_endpoint_volume_pool_id", info.VpcEndpointVolumePoolId)
 	if len(linkedObjects) > 0 {
 		rd.Set("link_objects", linkedObjects)
 	}

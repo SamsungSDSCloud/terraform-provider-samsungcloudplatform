@@ -204,6 +204,24 @@ func (client *Client) GetEngineVersionList(ctx context.Context, request *kuberne
 }
 
 func (client *Client) CreateNodePool(ctx context.Context, engineId string, request CreateNodePoolRequest) (kubernetesengine2.AsyncResponse, int, error) {
+
+	labels := make([]kubernetesengine2.NodePoolLabelVo, 0)
+	for _, label := range request.Labels {
+		labels = append(labels, kubernetesengine2.NodePoolLabelVo{
+			Key:   label.Key,
+			Value: label.Value,
+		})
+	}
+
+	taints := make([]kubernetesengine2.NodePoolTaintVo, 0)
+	for _, taint := range request.Taints {
+		taints = append(taints, kubernetesengine2.NodePoolTaintVo{
+			Effect: taint.Effect,
+			Key:    taint.Key,
+			Value:  taint.Value,
+		})
+	}
+
 	result, response, err := client.sdk.NodePoolV4Api.CreateNodePoolV4(
 		ctx,
 		client.config.ProjectId,
@@ -224,6 +242,8 @@ func (client *Client) CreateNodePool(ctx context.Context, engineId string, reque
 			ServiceLevelName:     request.ServiceLevelName,
 			StorageName:          request.StorageName,
 			StorageSize:          request.StorageSize,
+			Labels:               labels,
+			Taints:               taints,
 		})
 
 	var statusCode int
@@ -261,6 +281,49 @@ func (client *Client) UpdateNodePool(ctx context.Context, engineId string, nodeP
 
 func (client *Client) UpgradeNodePool(ctx context.Context, engineId string, nodePoolId string) (kubernetesengine2.AsyncResponse, int, error) {
 	result, response, err := client.sdk.NodePoolV2Api.UpgradeNodePoolV2(ctx, client.config.ProjectId, engineId, nodePoolId)
+	var statusCode int
+	if response != nil {
+		statusCode = response.StatusCode
+	}
+	return result, statusCode, err
+}
+
+func (client *Client) UpdateNodePoolLabels(ctx context.Context, engineId string, nodePoolId string, request UpdateNodePoolLabelsRequest) (kubernetesengine2.AsyncResponse, int, error) {
+
+	labels := make([]kubernetesengine2.NodePoolLabelVo, 0)
+	for _, label := range request.LabelRequestToUpdate {
+		labels = append(labels, kubernetesengine2.NodePoolLabelVo{
+			Key:   label.Key,
+			Value: label.Value,
+		})
+	}
+
+	result, response, err := client.sdk.NodePoolV2Api.UpdateNodePoolLabelsV2(ctx, client.config.ProjectId, engineId, nodePoolId, kubernetesengine2.NodePoolLabelsUpdateV2Request{
+		Labels: labels,
+	})
+
+	var statusCode int
+	if response != nil {
+		statusCode = response.StatusCode
+	}
+	return result, statusCode, err
+}
+
+func (client *Client) UpdateNodePoolTaints(ctx context.Context, engineId string, nodePoolId string, request UpdateNodePoolTatintsRequest) (kubernetesengine2.AsyncResponse, int, error) {
+
+	taints := make([]kubernetesengine2.NodePoolTaintVo, 0)
+	for _, taint := range request.TaintRequestToUpdate {
+		taints = append(taints, kubernetesengine2.NodePoolTaintVo{
+			Effect: taint.Effect,
+			Key:    taint.Key,
+			Value:  taint.Value,
+		})
+	}
+
+	result, response, err := client.sdk.NodePoolV2Api.UpdateNodePoolTaintsV2(ctx, client.config.ProjectId, engineId, nodePoolId, kubernetesengine2.NodePoolTaintsUpdateV2Request{
+		Taints: taints,
+	})
+
 	var statusCode int
 	if response != nil {
 		statusCode = response.StatusCode

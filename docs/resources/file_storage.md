@@ -49,6 +49,8 @@ resource "samsungcloudplatform_file_storage" "my_scp_file_storage" {
 - `snapshot_schedule` (Map of String) Snapshot schedule
 - `tags` (Map of String)
 - `unlink_objects` (Block List) Unlink Objects (see [below for nested schema](#nestedblock--unlink_objects))
+- `vpc_endpoint_info` (String) VPC Endpoint Information
+- `vpc_endpoint_volume_pool_id` (String) VPC Endpoint Volume Pool ID
 
 ### Read-Only
 

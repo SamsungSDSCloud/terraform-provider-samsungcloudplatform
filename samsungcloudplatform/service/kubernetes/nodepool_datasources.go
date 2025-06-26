@@ -129,10 +129,53 @@ func DatasourceNodePool() *schema.Resource {
 			common.ToSnakeCase("ServiceLevelId"):   {Type: schema.TypeString, Computed: true, Description: "ServiceLevelId"},
 			common.ToSnakeCase("CurrentNodeCount"): {Type: schema.TypeInt, Computed: true, Description: "CurrentNodeCount"},
 			common.ToSnakeCase("DesiredNodeCount"): {Type: schema.TypeInt, Computed: true, Description: "DesiredNodeCount"},
-			common.ToSnakeCase("CreatedBy"):        {Type: schema.TypeString, Computed: true, Description: "Created By"},
-			common.ToSnakeCase("CreatedDt"):        {Type: schema.TypeString, Computed: true, Description: "Created Dt"},
-			common.ToSnakeCase("ModifiedBy"):       {Type: schema.TypeString, Computed: true, Description: "Modified By"},
-			common.ToSnakeCase("ModifiedDt"):       {Type: schema.TypeString, Computed: true, Description: "Modified Dt"},
+			common.ToSnakeCase("Labels"): {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Label Key",
+						},
+						"value": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Label Value",
+						},
+					},
+				},
+				Description: "labels",
+			},
+			common.ToSnakeCase("Taints"): {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"effect": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Taint Effect",
+						},
+						"key": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Taint Key",
+						},
+						"value": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Taint Value",
+						},
+					},
+				},
+				Description: "Taints",
+			},
+			common.ToSnakeCase("CreatedBy"):  {Type: schema.TypeString, Computed: true, Description: "Created By"},
+			common.ToSnakeCase("CreatedDt"):  {Type: schema.TypeString, Computed: true, Description: "Created Dt"},
+			common.ToSnakeCase("ModifiedBy"): {Type: schema.TypeString, Computed: true, Description: "Modified By"},
+			common.ToSnakeCase("ModifiedDt"): {Type: schema.TypeString, Computed: true, Description: "Modified Dt"},
 		},
 		Description: "Provides Kubernetes Engine Detail",
 	}
@@ -170,6 +213,25 @@ func nodePoolDetail(ctx context.Context, rd *schema.ResourceData, meta interface
 	rd.Set(common.ToSnakeCase("ServiceLevelId"), response.ServiceLevelId)
 	rd.Set(common.ToSnakeCase("CurrentNodeCount"), response.CurrentNodeCount)
 	rd.Set(common.ToSnakeCase("DesiredNodeCount"), response.DesiredNodeCount)
+	var labels common.HclSetObject
+	for _, label := range response.Labels {
+		kv := common.HclKeyValueObject{
+			"key":   label.Key,
+			"value": label.Value,
+		}
+		labels = append(labels, kv)
+	}
+	rd.Set(common.ToSnakeCase("Labels"), labels)
+	var taints common.HclSetObject
+	for _, taint := range response.Taints {
+		kv := common.HclKeyValueObject{
+			"effect": taint.Effect,
+			"key":    taint.Key,
+			"value":  taint.Value,
+		}
+		taints = append(taints, kv)
+	}
+	rd.Set(common.ToSnakeCase("Taints"), taints)
 	rd.Set(common.ToSnakeCase("CreatedBy"), response.CreatedBy)
 	rd.Set(common.ToSnakeCase("CreatedDt"), response.CreatedDt.String())
 	rd.Set(common.ToSnakeCase("ModifiedBy"), response.ModifiedBy)

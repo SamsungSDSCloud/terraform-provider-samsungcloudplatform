@@ -140,7 +140,7 @@ resource "samsungcloudplatform_sqlserver" "my_ms_sql" {
 
 Required:
 
-- `block_storage_size` (Number) Block Storage Size (10 to 7168)
+- `block_storage_size` (Number) Block Storage Size (10 to 5120)
 - `block_storage_type` (String) Storage product name. (SSD|HDD)
 
 Read-Only:

@@ -67,6 +67,8 @@ type CreateNodePoolRequest struct {
 	ServiceLevelName     string
 	StorageName          string
 	StorageSize          string
+	Labels               []LabelRequest
+	Taints               []TaintRequest
 }
 
 type NodePoolUpdateRequest struct {
@@ -85,6 +87,22 @@ type NodePoolUpdateRequest struct {
 	StorageSize      string
 }
 
+type UpdateNodePoolLabelsRequest struct {
+	LabelRequestToUpdate []LabelRequestToUpdate
+}
+
+type UpdateNodePoolTatintsRequest struct {
+	TaintRequestToUpdate []TaintRequestToUpdate
+}
+
+type UpdateLabelsRequest struct {
+	Labels []LabelRequestToUpdate
+}
+
+type UpdateTaintsRequest struct {
+	Taints []TaintRequestToUpdate
+}
+
 type PrivateAclResourcesRequest struct {
 	Id    string
 	Type  string
@@ -95,4 +113,26 @@ type PrivateAclResourcesRequestToUpdate struct {
 	ResourceId    string
 	ResourceType  string
 	ResourceValue string
+}
+
+type LabelRequest struct {
+	Key   string
+	Value string
+}
+
+type LabelRequestToUpdate struct {
+	Key   string
+	Value string
+}
+
+type TaintRequest struct {
+	Effect string
+	Key    string
+	Value  string
+}
+
+type TaintRequestToUpdate struct {
+	Effect string
+	Key    string
+	Value  string
 }
