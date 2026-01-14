@@ -151,7 +151,6 @@ func createTlsConfig(serverHost string) *tls.Config {
 	return &tls.Config{
 		RootCAs:            certPool,
 		InsecureSkipVerify: true,
-		ServerName:         serverHost,
 	}
 }
 
@@ -172,7 +171,7 @@ func NewDefaultConfig(config *Config, servicePath string) *scpsdk.Configuration 
 	cfg := &scpsdk.Configuration{
 		BasePath:      basePath,
 		DefaultHeader: make(map[string]string),
-		UserAgent:     "scpclient/0.0.1",
+		UserAgent:     "scp-trf/3.16.1",
 		ProjectId:     config.ProjectId,
 		UserId:        config.UserId,
 		Email:         config.Email,

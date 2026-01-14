@@ -4,7 +4,7 @@ go 1.24.0
 
 toolchain go1.24.7
 
-require github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3 v3.16.0
+require github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3 v3.16.1
 
 
 
