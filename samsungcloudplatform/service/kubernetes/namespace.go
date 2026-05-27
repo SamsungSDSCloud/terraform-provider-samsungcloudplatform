@@ -2,6 +2,8 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/samsungcloudplatform"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/samsungcloudplatform/client"
@@ -22,7 +24,20 @@ func ResourceKubernetesNamespace() *schema.Resource {
 		DeleteContext: deleteNamespace,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			// Composite import id: "<engineId>/<namespaceName>". Read uses
+			// data.Get("engine_id") so passthrough alone leaves it empty,
+			// causing a 400 from the API on the import refresh.
+			StateContext: func(ctx context.Context, d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
+				parts := strings.SplitN(d.Id(), "/", 2)
+				if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+					return nil, fmt.Errorf("import id must be in format <engineId>/<namespaceName>, got %q", d.Id())
+				}
+				if err := d.Set("engine_id", parts[0]); err != nil {
+					return nil, err
+				}
+				d.SetId(parts[1])
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 
 		Schema: map[string]*schema.Schema{
