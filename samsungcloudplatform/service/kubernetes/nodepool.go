@@ -79,7 +79,21 @@ func ResourceKubernetesNodePool() *schema.Resource {
 		),
 
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			// Composite import id: "<engineId>/<nodePoolId>". The Read function
+			// depends on engine_id being populated; passthrough alone doesn't set
+			// it, which is why upstream `terraform import` returned 400 from the
+			// API (URL ended up with an empty {kubernetesEngineId} segment).
+			StateContext: func(ctx context.Context, d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
+				parts := strings.SplitN(d.Id(), "/", 2)
+				if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+					return nil, fmt.Errorf("import id must be in format <engineId>/<nodePoolId>, got %q", d.Id())
+				}
+				if err := d.Set("engine_id", parts[0]); err != nil {
+					return nil, err
+				}
+				d.SetId(parts[1])
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -391,22 +405,30 @@ func readNodePool(ctx context.Context, data *schema.ResourceData, meta interface
 		return diag.FromErr(err)
 	}
 
-	if *nodePool.AutoScale {
-		data.Set("max_node_count", nodePool.MaxNodeCount)
-		data.Set("min_node_count", nodePool.MinNodeCount)
-	} else {
-		data.Set("desired_node_count", nodePool.DesiredNodeCount)
-	}
+	// Populate min/max/desired unconditionally so the imported state matches
+	// reality regardless of which knobs the user has set in HCL. (Original
+	// upstream only set min/max when auto_scale=true, which surfaced as
+	// "(known after apply)" drift on imported pools with auto_scale=false.)
+	data.Set("max_node_count", nodePool.MaxNodeCount)
+	data.Set("min_node_count", nodePool.MinNodeCount)
+	data.Set("desired_node_count", nodePool.DesiredNodeCount)
 
-	data.Set("service_level", serviceLevel.ProductName)
+	// The schema declares "scale_name" + "storage_name" (Optional+ForceNew),
+	// not "service_level" + "storage_type" — those keys were silent no-ops.
+	// Populating the right ones avoids destroy/recreate during a refresh of
+	// an imported pool. Also fixes the "taints" key case and adds the
+	// previously-missing "encrypt_enabled" attribute.
+	data.Set("scale_name", scale.ProductName)
 	data.Set("auto_recovery", nodePool.AutoRecovery)
 	data.Set("auto_scale", nodePool.AutoScale)
+	data.Set("encrypt_enabled", nodePool.EncryptEnabled)
 	data.Set("image_id", nodePool.ImageId)
-	data.Set("storage_type", storage.ProductName)
+	data.Set("storage_name", storage.ProductName)
 	data.Set("storage_size_gb", nodePool.StorageSize)
 	data.Set("name", nodePool.NodePoolName)
 	data.Set("labels", nodePool.Labels)
-	data.Set("Taints", nodePool.Taints)
+	data.Set("taints", nodePool.Taints)
+	_ = serviceLevel // intentionally unused; "service_level" not in schema
 
 	return
 }
