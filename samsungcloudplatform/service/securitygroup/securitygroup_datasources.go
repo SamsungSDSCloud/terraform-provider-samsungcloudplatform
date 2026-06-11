@@ -15,13 +15,14 @@ import (
 )
 
 func init() {
-	samsungcloudplatform.RegisterDataSource("Security Group", "samsungcloudplatform_security_group", DatasourceSecurityGroupInfo())
-	samsungcloudplatform.RegisterDataSource("Security Group", "samsungcloudplatform_security_groups", DatasourceSecurityGroups())
-	samsungcloudplatform.RegisterDataSource("Security Group", "samsungcloudplatform_security_group_user_ips", DatasourceSecurityGroupUserIps())
-	samsungcloudplatform.RegisterDataSource("Security Group", "samsungcloudplatform_security_group_rule", DatasourceSecurityGroupRuleInfo())
-	samsungcloudplatform.RegisterDataSource("Security Group", "samsungcloudplatform_security_group_rules", DatasourceSecurityGroupRules())
-	samsungcloudplatform.RegisterDataSource("Security Group", "samsungcloudplatform_security_group_log_storage", DatasourceSecurityGroupLogStorageInfo())
-	samsungcloudplatform.RegisterDataSource("Security Group", "samsungcloudplatform_security_group_log_storages", DatasourceSecurityGroupLogStorages())
+	const DatasourceCategory string = "Security Group"
+	samsungcloudplatform.RegisterDataSource(DatasourceCategory, "samsungcloudplatform_security_group", DatasourceSecurityGroupInfo())
+	samsungcloudplatform.RegisterDataSource(DatasourceCategory, "samsungcloudplatform_security_groups", DatasourceSecurityGroups())
+	samsungcloudplatform.RegisterDataSource(DatasourceCategory, "samsungcloudplatform_security_group_user_ips", DatasourceSecurityGroupUserIps())
+	samsungcloudplatform.RegisterDataSource(DatasourceCategory, "samsungcloudplatform_security_group_rule", DatasourceSecurityGroupRuleInfo())
+	samsungcloudplatform.RegisterDataSource(DatasourceCategory, "samsungcloudplatform_security_group_rules", DatasourceSecurityGroupRules())
+	samsungcloudplatform.RegisterDataSource(DatasourceCategory, "samsungcloudplatform_security_group_log_storage", DatasourceSecurityGroupLogStorageInfo())
+	samsungcloudplatform.RegisterDataSource(DatasourceCategory, "samsungcloudplatform_security_group_log_storages", DatasourceSecurityGroupLogStorages())
 }
 
 func DatasourceSecurityGroups() *schema.Resource {

@@ -6,6 +6,9 @@ import (
 	"testing"
 )
 
+const VALID_VALUE string = "valid value"
+const INVALID_VALUE string = "invalid value"
+
 func initPath(v string) cty.Path {
 	path := cty.Path{cty.GetAttrStep{Name: v}}
 	return path
@@ -20,12 +23,12 @@ func TestValidateIntegerInRange(t *testing.T) {
 		input         int
 		expectedError bool
 	}{
-		{"valid value", 10, false},
-		{"valid value", 20, false},
-		{"invalid value", 9, true},
-		{"invalid value", 21, true},
-		{"invalid value", 0, true},
-		{"invalid value", -10, true},
+		{VALID_VALUE, 10, false},
+		{VALID_VALUE, 20, false},
+		{INVALID_VALUE, 9, true},
+		{INVALID_VALUE, 21, true},
+		{INVALID_VALUE, 0, true},
+		{INVALID_VALUE, -10, true},
 	}
 
 	// Run tests
@@ -51,10 +54,10 @@ func TestValidateIntegerGreaterEqualThan(t *testing.T) {
 		input         int
 		expectedError bool
 	}{
-		{"valid value", 10, false},
-		{"valid value", 15, false},
-		{"invalid value", 9, true},
-		{"invalid value", 0, true},
+		{VALID_VALUE, 10, false},
+		{VALID_VALUE, 15, false},
+		{INVALID_VALUE, 9, true},
+		{INVALID_VALUE, 0, true},
 	}
 
 	// Run tests
@@ -80,10 +83,10 @@ func TestValidateIntegerLessEqualThan(t *testing.T) {
 		input         int
 		expectedError bool
 	}{
-		{"valid value", 10, false},
-		{"valid value", 5, false},
-		{"invalid value", 11, true},
-		{"invalid value", 10000, true},
+		{VALID_VALUE, 10, false},
+		{VALID_VALUE, 5, false},
+		{INVALID_VALUE, 11, true},
+		{INVALID_VALUE, 10000, true},
 	}
 
 	// Run tests
@@ -109,13 +112,13 @@ func TestValidateStringInOptions(t *testing.T) {
 		input         string
 		expectedError bool
 	}{
-		{"valid value", "option1", false},
-		{"valid value", "option2", false},
-		{"valid value", "option3", false},
-		{"invalid value", "option", true},
-		{"invalid value", "", true},
-		{"invalid value", "option33", true},
-		{"invalid value", "AZ1", true},
+		{VALID_VALUE, "option1", false},
+		{VALID_VALUE, "option2", false},
+		{VALID_VALUE, "option3", false},
+		{INVALID_VALUE, "option", true},
+		{INVALID_VALUE, "", true},
+		{INVALID_VALUE, "option33", true},
+		{INVALID_VALUE, "AZ1", true},
 	}
 
 	// Run tests

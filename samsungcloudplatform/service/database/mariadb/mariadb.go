@@ -418,15 +418,7 @@ func resourceMariadbCreate(ctx context.Context, rd *schema.ResourceData, meta in
 	return resourceMariadbRead(ctx, rd, meta)
 }
 
-func resourceMariadbRead(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
-	var err error = nil
-	defer func() {
-		if err != nil {
-			rd.SetId("")
-			diagnostics = diag.FromErr(err)
-		}
-	}()
-
+func resourceMariadbRead(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
 	dbInfo, _, err := inst.Client.Mariadb.DetailMariadbCluster(ctx, rd.Id())
@@ -440,9 +432,10 @@ func resourceMariadbRead(ctx context.Context, rd *schema.ResourceData, meta inte
 	}
 
 	if len(dbInfo.MariadbServerGroup.MariadbServers) == 0 {
-		diagnostics = diag.Errorf("no server found")
-		return
+		return diag.Errorf("no server found")
 	}
+
+	fs := &common.FieldSetter{Rd: rd}
 
 	//TODO BlockStorageGroupId, BlockStorageName 받아올 지 확인
 	blockStorages := database_common.HclListObject{}
@@ -489,97 +482,35 @@ func resourceMariadbRead(ctx context.Context, rd *schema.ResourceData, meta inte
 	sort.SliceStable(MariadbServers, func(i, j int) bool {
 		return MariadbServers[i].(map[string]interface{})["server_role_type"].(string) < MariadbServers[j].(map[string]interface{})["server_role_type"].(string)
 	})
+	fs.Set("audit_enabled", dbInfo.AuditEnabled)
+	fs.Set("image_id", dbInfo.ImageId)
+	fs.Set("nat_public_ip_id", rd.Get("nat_public_ip_id").(string))
+	fs.Set("mariadb_cluster_name", dbInfo.MariadbClusterName)
+	fs.Set("mariadb_cluster_state", dbInfo.MariadbClusterState)
+	fs.Set("database_character_set", dbInfo.MariadbInitialConfig.DatabaseCharacterSet)
+	fs.Set("database_name", dbInfo.MariadbInitialConfig.DatabaseName)
+	fs.Set("database_port", dbInfo.MariadbInitialConfig.DatabasePort)
+	fs.Set("database_user_name", dbInfo.MariadbInitialConfig.DatabaseUserName)
+	fs.Set("block_storages", blockStorages)
+	fs.Set("encryption_enabled", dbInfo.MariadbServerGroup.EncryptionEnabled)
+	fs.Set("mariadb_servers", MariadbServers)
+	fs.Set("server_type", dbInfo.MariadbServerGroup.ServerType)
+	fs.Set("security_group_ids", dbInfo.SecurityGroupIds)
+	fs.Set("service_zone_id", dbInfo.ServiceZoneId)
+	fs.Set("subnet_id", dbInfo.SubnetId)
+	fs.Set("timezone", dbInfo.Timezone)
+	fs.Set("backup", backup)
+	fs.Set("virtual_ip_address", dbInfo.MariadbServerGroup.VirtualIpAddress)
+	fs.Set("nat_ip_address", dbInfo.NatIpAddress)
+	fs.Set("vpc_id", dbInfo.VpcId)
 
-	err = rd.Set("audit_enabled", dbInfo.AuditEnabled)
-	if err != nil {
-		return diag.FromErr(err)
+	if diags := fs.Diags(); diags != nil {
+		rd.SetId("")
+		return diags
 	}
-	err = rd.Set("image_id", dbInfo.ImageId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("nat_public_ip_id", rd.Get("nat_public_ip_id").(string))
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("mariadb_cluster_name", dbInfo.MariadbClusterName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("mariadb_cluster_state", dbInfo.MariadbClusterState)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = rd.Set("database_character_set", dbInfo.MariadbInitialConfig.DatabaseCharacterSet)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_name", dbInfo.MariadbInitialConfig.DatabaseName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_port", dbInfo.MariadbInitialConfig.DatabasePort)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_user_name", dbInfo.MariadbInitialConfig.DatabaseUserName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = rd.Set("block_storages", blockStorages)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("encryption_enabled", dbInfo.MariadbServerGroup.EncryptionEnabled)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("mariadb_servers", MariadbServers)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("server_type", dbInfo.MariadbServerGroup.ServerType)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = rd.Set("security_group_ids", dbInfo.SecurityGroupIds)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("service_zone_id", dbInfo.ServiceZoneId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("subnet_id", dbInfo.SubnetId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("timezone", dbInfo.Timezone)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("backup", backup)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("virtual_ip_address", dbInfo.MariadbServerGroup.VirtualIpAddress)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("nat_ip_address", dbInfo.NatIpAddress)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("vpc_id", dbInfo.VpcId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
 	err = tfTags.SetTags(ctx, rd, meta, rd.Id())
 	if err != nil {
+		rd.SetId("")
 		return diag.FromErr(err)
 	}
 

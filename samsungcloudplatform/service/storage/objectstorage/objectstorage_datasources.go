@@ -2,6 +2,7 @@ package objectstorage
 
 import (
 	"context"
+	"regexp"
 	"time"
 
 	scp "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/samsungcloudplatform"
@@ -11,6 +12,7 @@ import (
 	"github.com/antihax/optional"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -35,6 +37,12 @@ func DatasourceObjectStorages() *schema.Resource {
 			"sort":                       {Type: schema.TypeList, Optional: true, Elem: &schema.Schema{Type: schema.TypeString, Description: "Sort"}, Description: "Sort"},
 			"contents":                   {Type: schema.TypeList, Computed: true, Description: "Object Storage List", Elem: datasourceObjectStorageElem()},
 			"total_count":                {Type: schema.TypeInt, Computed: true, Description: "Total List Size"},
+			"object_storage_disk_type": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "Object Storage Disk Type",
+				ValidateFunc: validation.StringMatch(regexp.MustCompile(`SSD|HDD`), "\nko : 오브젝트 스토리지 디스크 유형은 \"HDD\", \"SSD\" 중 하나이어야 합니다.\nen : Object Storage disk type must be one of \"HDD\", \"SSD\".\n"),
+			},
 		},
 		Description: "Provides list of Object Storages.",
 	}
@@ -44,7 +52,7 @@ func datasourceObjectStoragesRead(ctx context.Context, rd *schema.ResourceData, 
 	inst := meta.(*client.Instance)
 
 	var isMultiAvailabilityZone optional.Bool
-	var objectStorageName optional.String
+	var objectStorageName, objectStorageDiskType optional.String
 	var page optional.Int32
 	var size optional.Int32
 	var sort optional.Interface
@@ -64,6 +72,9 @@ func datasourceObjectStoragesRead(ctx context.Context, rd *schema.ResourceData, 
 	if v, ok := rd.GetOk("sort"); ok {
 		sort = optional.NewInterface(v.([]interface{}))
 	}
+	if v, ok := rd.GetOk("object_storage_disk_type"); ok {
+		objectStorageDiskType = optional.NewString(v.(string))
+	}
 
 	responses, err := inst.Client.ObjectStorage.ReadObjectStorageList(ctx, rd.Get("service_zone_id").(string), objectstorage.ReadObjectStorageListRequest{
 		IsMultiAvailabilityZone: isMultiAvailabilityZone,
@@ -71,6 +82,7 @@ func datasourceObjectStoragesRead(ctx context.Context, rd *schema.ResourceData, 
 		Page:                    page,
 		Size:                    size,
 		Sort:                    sort,
+		ObjectStorageDiskType:   objectStorageDiskType,
 	})
 
 	if err != nil {
@@ -91,6 +103,7 @@ func datasourceObjectStorageElem() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"block_id":                   {Type: schema.TypeString, Computed: true, Description: "Block ID"},
 			"is_multi_availability_zone": {Type: schema.TypeBool, Computed: true, Description: "Is Multi Availability Zone"},
+			"object_storage_disk_type":   {Type: schema.TypeString, Computed: true, Description: "Object Storage Disk Type"},
 			"object_storage_id":          {Type: schema.TypeString, Computed: true, Description: "Object Storage ID"},
 			"object_storage_name":        {Type: schema.TypeString, Computed: true, Description: "Object Storage Name"},
 			"service_zone_id":            {Type: schema.TypeString, Computed: true, Description: "Service Zone ID"},
@@ -290,6 +303,7 @@ func DatasourceObjectStorageBucketInfo() *schema.Resource {
 					},
 				},
 			},
+			common.ToSnakeCase("ObjectStorageBucketDiskType"):                {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket Disk Type"},
 			common.ToSnakeCase("ObjectStorageBucketDrEnabled"):               {Type: schema.TypeBool, Computed: true, Description: "Object Storage Bucket DR Enabled"},
 			common.ToSnakeCase("ObjectStorageBucketDrType"):                  {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket DR Type"},
 			common.ToSnakeCase("ObjectStorageBucketFileEncryptionAlgorithm"): {Type: schema.TypeString, Computed: true, Description: "Object Storage Bucket File Encryption Algorithm"},
@@ -370,6 +384,7 @@ func datasourceObjectStorageBucketInfoRead(ctx context.Context, rd *schema.Resou
 	rd.Set(common.ToSnakeCase("IsMultiAvailabilityZone"), info.IsMultiAvailabilityZone)
 	rd.Set(common.ToSnakeCase("ObjectStorageBucketAccessControlEnabled"), info.ObjectStorageBucketAccessControlEnabled)
 	rd.Set(common.ToSnakeCase("ObjectStorageBucketAccessControlRules"), s)
+	rd.Set(common.ToSnakeCase("ObjectStorageBucketDiskType"), info.ObjectStorageBucketDiskType)
 	rd.Set(common.ToSnakeCase("ObjectStorageBucketDrEnabled"), info.ObjectStorageBucketDrEnabled)
 	rd.Set(common.ToSnakeCase("ObjectStorageBucketDrType"), info.ObjectStorageBucketDrType)
 	rd.Set(common.ToSnakeCase("ObjectStorageBucketFileEncryptionAlgorithm"), info.ObjectStorageBucketFileEncryptionAlgorithm)

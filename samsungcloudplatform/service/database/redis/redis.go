@@ -445,14 +445,6 @@ func resourceRedisCreate(ctx context.Context, rd *schema.ResourceData, meta inte
 }
 
 func resourceRedisRead(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
-	var err error = nil
-	defer func() {
-		if err != nil {
-			rd.SetId("")
-			diagnostics = diag.FromErr(err)
-		}
-	}()
-
 	inst := meta.(*client.Instance)
 
 	dbInfo, _, err := inst.Client.Redis.DetailRedis(ctx, rd.Id())
@@ -466,8 +458,7 @@ func resourceRedisRead(ctx context.Context, rd *schema.ResourceData, meta interf
 	}
 
 	if len(dbInfo.RedisServerGroup.RedisServers) == 0 {
-		diagnostics = diag.Errorf("no server found")
-		return
+		return diag.Errorf("no server found")
 	}
 
 	blockStorages := database_common.HclListObject{}
@@ -525,73 +516,32 @@ func resourceRedisRead(ctx context.Context, rd *schema.ResourceData, meta interf
 		return redisServers[i].(map[string]interface{})["server_role_type"].(string) < redisServers[j].(map[string]interface{})["server_role_type"].(string)
 	})
 
-	err = rd.Set("redis_name", dbInfo.RedisName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("service_zone_id", dbInfo.ServiceZoneId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("image_id", dbInfo.ImageId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("timezone", dbInfo.Timezone)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("subnet_id", dbInfo.SubnetId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("security_group_ids", dbInfo.SecurityGroupIds)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("nat_enabled", rd.Get("nat_enabled").(bool))
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_port", dbInfo.RedisInitialConfig.DatabasePort)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("server_type", dbInfo.RedisServerGroup.ServerType)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("encryption_enabled", dbInfo.RedisServerGroup.EncryptionEnabled)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("block_storages", blockStorages)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("redis_servers", redisServers)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("redis_sentinel_server", redisSentinelServer)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("redis_state", dbInfo.RedisState)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("backup", backup)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("vpc_id", dbInfo.VpcId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs := &common.FieldSetter{Rd: rd}
 
+	fs.Set("redis_name", dbInfo.RedisName)
+	fs.Set("service_zone_id", dbInfo.ServiceZoneId)
+	fs.Set("image_id", dbInfo.ImageId)
+	fs.Set("timezone", dbInfo.Timezone)
+	fs.Set("subnet_id", dbInfo.SubnetId)
+	fs.Set("security_group_ids", dbInfo.SecurityGroupIds)
+	fs.Set("nat_enabled", rd.Get("nat_enabled").(bool))
+	fs.Set("database_port", dbInfo.RedisInitialConfig.DatabasePort)
+	fs.Set("server_type", dbInfo.RedisServerGroup.ServerType)
+	fs.Set("encryption_enabled", dbInfo.RedisServerGroup.EncryptionEnabled)
+	fs.Set("block_storages", blockStorages)
+	fs.Set("redis_servers", redisServers)
+	fs.Set("redis_sentinel_server", redisSentinelServer)
+	fs.Set("redis_state", dbInfo.RedisState)
+	fs.Set("backup", backup)
+	fs.Set("vpc_id", dbInfo.VpcId)
+
+	if diags := fs.Diags(); diags != nil {
+		rd.SetId("")
+		return diags
+	}
 	err = tfTags.SetTags(ctx, rd, meta, rd.Id())
 	if err != nil {
+		rd.SetId("")
 		return diag.FromErr(err)
 	}
 

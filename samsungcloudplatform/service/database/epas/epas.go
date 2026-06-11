@@ -427,14 +427,6 @@ func resourceEpasCreate(ctx context.Context, rd *schema.ResourceData, meta inter
 }
 
 func resourceEpasRead(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
-	var err error = nil
-	defer func() {
-		if err != nil {
-			rd.SetId("")
-			diagnostics = diag.FromErr(err)
-		}
-	}()
-
 	inst := meta.(*client.Instance)
 
 	dbInfo, _, err := inst.Client.Epas.DetailEpasCluster(ctx, rd.Id())
@@ -453,6 +445,7 @@ func resourceEpasRead(ctx context.Context, rd *schema.ResourceData, meta interfa
 	}
 
 	//TODO BlockStorageGroupId, BlockStorageName 받아올 지 확인
+	fs := &common.FieldSetter{Rd: rd}
 	blockStorages := database_common.HclListObject{}
 	for i, bs := range dbInfo.EpasServerGroup.BlockStorages {
 		// Skip OS Storage
@@ -497,101 +490,36 @@ func resourceEpasRead(ctx context.Context, rd *schema.ResourceData, meta interfa
 	sort.SliceStable(epasServers, func(i, j int) bool {
 		return epasServers[i].(map[string]interface{})["server_role_type"].(string) < epasServers[j].(map[string]interface{})["server_role_type"].(string)
 	})
+	fs.Set("audit_enabled", dbInfo.AuditEnabled)
+	fs.Set("image_id", dbInfo.ImageId)
+	fs.Set("nat_public_ip_id", rd.Get("nat_public_ip_id").(string))
+	fs.Set("epas_cluster_name", dbInfo.EpasClusterName)
+	fs.Set("epas_cluster_state", dbInfo.EpasClusterState)
+	fs.Set("database_encoding", dbInfo.EpasInitialConfig.DatabaseEncoding)
+	fs.Set("database_locale", dbInfo.EpasInitialConfig.DatabaseLocale)
+	fs.Set("database_name", dbInfo.EpasInitialConfig.DatabaseName)
+	fs.Set("database_port", dbInfo.EpasInitialConfig.DatabasePort)
+	fs.Set("database_user_name", dbInfo.EpasInitialConfig.DatabaseUserName)
+	fs.Set("block_storages", blockStorages)
+	fs.Set("encryption_enabled", dbInfo.EpasServerGroup.EncryptionEnabled)
+	fs.Set("epas_servers", epasServers)
+	fs.Set("server_type", dbInfo.EpasServerGroup.ServerType)
+	fs.Set("security_group_ids", dbInfo.SecurityGroupIds)
+	fs.Set("service_zone_id", dbInfo.ServiceZoneId)
+	fs.Set("subnet_id", dbInfo.SubnetId)
+	fs.Set("timezone", dbInfo.Timezone)
+	fs.Set("backup", backup)
+	fs.Set("virtual_ip_address", dbInfo.EpasServerGroup.VirtualIpAddress)
+	fs.Set("nat_ip_address", dbInfo.NatIpAddress)
+	fs.Set("vpc_id", dbInfo.VpcId)
 
-	err = rd.Set("audit_enabled", dbInfo.AuditEnabled)
-	if err != nil {
-		return diag.FromErr(err)
+	if diags := fs.Diags(); diags != nil {
+		rd.SetId("")
+		return diags
 	}
-	err = rd.Set("image_id", dbInfo.ImageId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("nat_public_ip_id", rd.Get("nat_public_ip_id").(string))
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("epas_cluster_name", dbInfo.EpasClusterName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("epas_cluster_state", dbInfo.EpasClusterState)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = rd.Set("database_encoding", dbInfo.EpasInitialConfig.DatabaseEncoding)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_locale", dbInfo.EpasInitialConfig.DatabaseLocale)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_name", dbInfo.EpasInitialConfig.DatabaseName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_port", dbInfo.EpasInitialConfig.DatabasePort)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_user_name", dbInfo.EpasInitialConfig.DatabaseUserName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = rd.Set("block_storages", blockStorages)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("encryption_enabled", dbInfo.EpasServerGroup.EncryptionEnabled)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("epas_servers", epasServers)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("server_type", dbInfo.EpasServerGroup.ServerType)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = rd.Set("security_group_ids", dbInfo.SecurityGroupIds)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("service_zone_id", dbInfo.ServiceZoneId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("subnet_id", dbInfo.SubnetId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("timezone", dbInfo.Timezone)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("backup", backup)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("virtual_ip_address", dbInfo.EpasServerGroup.VirtualIpAddress)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("nat_ip_address", dbInfo.NatIpAddress)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("vpc_id", dbInfo.VpcId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
 	err = tfTags.SetTags(ctx, rd, meta, rd.Id())
 	if err != nil {
+		rd.SetId("")
 		return diag.FromErr(err)
 	}
 

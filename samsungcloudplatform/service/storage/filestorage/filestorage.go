@@ -320,77 +320,20 @@ func updateFileStorage(ctx context.Context, rd *schema.ResourceData, meta interf
 	inst := meta.(*client.Instance)
 
 	if rd.HasChanges("link_objects", "unlink_objects") {
-		unlinkObjects := rd.Get("unlink_objects").([]interface{})
-		linkObjects := rd.Get("link_objects").([]interface{})
-		if (len(linkObjects) > 0) || (len(unlinkObjects) > 0) {
-			if _, err := inst.Client.FileStorage.UpdateFileStorageObjectsLink(ctx, rd.Id(), filestorage.LinkFileStorageObjectRequest{
-				LinkObjects:   getLinkObjectsArray(rd),
-				UnlinkObjects: getUnLinkObjectsArray(rd),
-			}); err != nil {
-				return diag.FromErr(err)
-			}
-			err := waitForFileStorageStatus(ctx, inst.Client, rd.Id(), []string{}, []string{"ACTIVE"}, true)
-			if err != nil {
-				return diag.FromErr(err)
-			}
+		if diags := updateLinkObjects(ctx, inst, rd); diags != nil {
+			return diags
 		}
 	}
 
 	if rd.HasChanges("file_unit_recovery_enabled") {
-		fileUnitRecoveryEnabled := rd.Get("file_unit_recovery_enabled").(bool)
-		if _, err := inst.Client.FileStorage.UpdateFileStorageFileRecoveryEnabled(ctx, rd.Id(), fileUnitRecoveryEnabled); err != nil {
-			return diag.FromErr(err)
-		}
-		err := waitForFileStorageStatus(ctx, inst.Client, rd.Id(), []string{}, []string{"ACTIVE"}, true)
-		if err != nil {
-			return diag.FromErr(err)
+		if diags := updateFileUnitRecovery(ctx, inst, rd); diags != nil {
+			return diags
 		}
 	}
 
 	if rd.HasChanges("snapshot_retention_count", "snapshot_schedule.day_of_week", "snapshot_schedule.frequency", "snapshot_schedule.hour") {
-		newDayOfWeek := rd.Get("snapshot_schedule.day_of_week").(string)
-		oldFrequencyTmp, newFrequencyTmp := rd.GetChange("snapshot_schedule.frequency")
-		beforeHour := rd.Get("snapshot_schedule.hour").(string)
-		hourInt, numerr := strconv.Atoi(beforeHour)
-		if numerr != nil {
-			// 변환 오류 처리
-			log.Printf("Error converting hour string to int: %v\n", numerr)
-		}
-		newHour := int32(hourInt)
-		oldRetentionCountTmp, newRetentionCountTmp := rd.GetChange("snapshot_retention_count")
-		oldFrequency := oldFrequencyTmp.(string)
-		newFrequency := newFrequencyTmp.(string)
-		oldRetentionCount := (int32)(oldRetentionCountTmp.(int))
-		newRetentionCount := (int32)(newRetentionCountTmp.(int))
-
-		state := "UPDATE"
-
-		if len(oldFrequency) == 0 && len(newFrequency) > 0 && oldRetentionCount == 0 && newRetentionCount > 0 {
-			state = "CREATE"
-		} else if len(oldFrequency) > 0 && len(newFrequency) == 0 && oldRetentionCount > 0 && newRetentionCount == 0 {
-			state = "DELETE"
-		}
-
-		if state == "CREATE" {
-			if _, err := inst.Client.FileStorage.CreateFileStorageSnapshotSchedule(ctx, rd.Id(), newRetentionCount, &filestorage.SnapshotSchedule{
-				DayOfWeek: newDayOfWeek,
-				Frequency: newFrequency,
-				Hour:      &newHour,
-			}); err != nil {
-				return diag.FromErr(err)
-			}
-		} else if state == "DELETE" {
-			if _, err := inst.Client.FileStorage.DeleteFileStorageSnapshotSchedule(ctx, rd.Id()); err != nil {
-				return diag.FromErr(err)
-			}
-		} else {
-			if _, err := inst.Client.FileStorage.UpdateFileStorageSnapshotSchedule(ctx, rd.Id(), newRetentionCount, &filestorage.SnapshotSchedule{
-				DayOfWeek: newDayOfWeek,
-				Frequency: newFrequency,
-				Hour:      &newHour,
-			}); err != nil {
-				return diag.FromErr(err)
-			}
+		if diags := updateSnapshotSchedule(ctx, inst, rd); diags != nil {
+			return diags
 		}
 	}
 
@@ -405,6 +348,78 @@ func updateFileStorage(ctx context.Context, rd *schema.ResourceData, meta interf
 	}
 
 	return readFileStorage(ctx, rd, meta)
+}
+
+func updateLinkObjects(ctx context.Context, inst *client.Instance, rd *schema.ResourceData) diag.Diagnostics {
+	unlinkObjects := rd.Get("unlink_objects").([]interface{})
+	linkObjects := rd.Get("link_objects").([]interface{})
+	if (len(linkObjects) > 0) || (len(unlinkObjects) > 0) {
+		if _, err := inst.Client.FileStorage.UpdateFileStorageObjectsLink(ctx, rd.Id(), filestorage.LinkFileStorageObjectRequest{
+			LinkObjects:   getLinkObjectsArray(rd),
+			UnlinkObjects: getUnLinkObjectsArray(rd),
+		}); err != nil {
+			return diag.FromErr(err)
+		}
+		err := waitForFileStorageStatus(ctx, inst.Client, rd.Id(), []string{}, []string{"ACTIVE"}, true)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	return nil
+}
+
+func updateFileUnitRecovery(ctx context.Context, inst *client.Instance, rd *schema.ResourceData) diag.Diagnostics {
+	fileUnitRecoveryEnabled := rd.Get("file_unit_recovery_enabled").(bool)
+	if _, err := inst.Client.FileStorage.UpdateFileStorageFileRecoveryEnabled(ctx, rd.Id(), fileUnitRecoveryEnabled); err != nil {
+		return diag.FromErr(err)
+	}
+	err := waitForFileStorageStatus(ctx, inst.Client, rd.Id(), []string{}, []string{"ACTIVE"}, true)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
+}
+
+func updateSnapshotSchedule(ctx context.Context, inst *client.Instance, rd *schema.ResourceData) diag.Diagnostics {
+	newDayOfWeek := rd.Get("snapshot_schedule.day_of_week").(string)
+	oldFrequencyTmp, newFrequencyTmp := rd.GetChange("snapshot_schedule.frequency")
+	beforeHour := rd.Get("snapshot_schedule.hour").(string)
+	hourInt, numerr := strconv.Atoi(beforeHour)
+	if numerr != nil {
+		// 변환 오류 처리
+		log.Printf("Error converting hour string to int: %v\n", numerr)
+	}
+	newHour := int32(hourInt)
+	oldRetentionCountTmp, newRetentionCountTmp := rd.GetChange("snapshot_retention_count")
+	oldFrequency := oldFrequencyTmp.(string)
+	newFrequency := newFrequencyTmp.(string)
+	oldRetentionCount := (int32)(oldRetentionCountTmp.(int))
+	newRetentionCount := (int32)(newRetentionCountTmp.(int))
+
+	state := determineSnapshotState(oldFrequency, newFrequency, oldRetentionCount, newRetentionCount)
+
+	if state == "CREATE" {
+		if _, err := inst.Client.FileStorage.CreateFileStorageSnapshotSchedule(ctx, rd.Id(), newRetentionCount, &filestorage.SnapshotSchedule{
+			DayOfWeek: newDayOfWeek,
+			Frequency: newFrequency,
+			Hour:      &newHour,
+		}); err != nil {
+			return diag.FromErr(err)
+		}
+	} else if state == "DELETE" {
+		if _, err := inst.Client.FileStorage.DeleteFileStorageSnapshotSchedule(ctx, rd.Id()); err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
+		if _, err := inst.Client.FileStorage.UpdateFileStorageSnapshotSchedule(ctx, rd.Id(), newRetentionCount, &filestorage.SnapshotSchedule{
+			DayOfWeek: newDayOfWeek,
+			Frequency: newFrequency,
+			Hour:      &newHour,
+		}); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	return nil
 }
 
 func deleteFileStorage(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -479,6 +494,16 @@ func getUnLinkObjectsArray(rd *schema.ResourceData) []filestorage.LinkObjectRequ
 		})
 	}
 	return unlinkObjectRequest
+}
+
+func determineSnapshotState(oldFrequency, newFrequency string, oldRetention, newRetention int32) string {
+	if oldFrequency == "" && newFrequency != "" && oldRetention == 0 && newRetention > 0 {
+		return "CREATE"
+	}
+	if oldFrequency != "" && newFrequency == "" && oldRetention > 0 && newRetention == 0 {
+		return "DELETE"
+	}
+	return "UPDATE"
 }
 
 func getSnapshotSchedule(rd *schema.ResourceData) filestorage.SnapshotSchedule {

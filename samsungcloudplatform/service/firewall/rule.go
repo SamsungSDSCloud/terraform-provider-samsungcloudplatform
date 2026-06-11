@@ -314,13 +314,10 @@ func expandDestinationsIpv4(rd *schema.ResourceData) []string {
 }
 
 func expandRules(rd *schema.ResourceData) ([]firewall2.FirewallCreateRuleRequest, error) {
-
 	ruleSet := rd.Get("rule").(*schema.Set).List()
 	rules := make([]firewall2.FirewallCreateRuleRequest, len(ruleSet))
 
 	for i, rule := range ruleSet {
-		fmt.Println(rule)
-
 		itemObject := rule.(common.HclKeyValueObject)
 
 		if direction, ok := itemObject["direction"]; ok {
@@ -337,23 +334,8 @@ func expandRules(rd *schema.ResourceData) ([]firewall2.FirewallCreateRuleRequest
 
 		}
 
-		if sourceAddressesIpv4, ok := itemObject["source_addresses_ipv4"]; ok {
-			s := make([]string, 0)
-			for _, sourceAddressIpv4 := range sourceAddressesIpv4.([]interface{}) {
-				s = append(s, sourceAddressIpv4.(string))
-				fmt.Println(s)
-			}
-			rules[i].SourceIpAddresses = s
-		}
-
-		if destinationAddressesIpv4, ok := itemObject["destination_addresses_ipv4"]; ok {
-			s := make([]string, 0)
-			for _, destinationAddressIpv4 := range destinationAddressesIpv4.([]interface{}) {
-				s = append(s, destinationAddressIpv4.(string))
-				fmt.Println(s)
-			}
-			rules[i].DestinationIpAddresses = s
-		}
+		rules[i].SourceIpAddresses = interfaceSliceToStringSlice(itemObject, "source_addresses_ipv4")
+		rules[i].DestinationIpAddresses = interfaceSliceToStringSlice(itemObject, "destination_addresses_ipv4")
 
 		if services, ok := itemObject["service"]; ok {
 
@@ -383,6 +365,18 @@ func expandRules(rd *schema.ResourceData) ([]firewall2.FirewallCreateRuleRequest
 	}
 
 	return rules, nil
+}
+
+func interfaceSliceToStringSlice(item common.HclKeyValueObject, key string) []string {
+	v, ok := item[key]
+	if !ok {
+		return nil
+	}
+	out := make([]string, 0)
+	for _, item := range v.([]interface{}) {
+		out = append(out, item.(string))
+	}
+	return out
 }
 
 func addSubnetMask(ipAddress []string) []string {

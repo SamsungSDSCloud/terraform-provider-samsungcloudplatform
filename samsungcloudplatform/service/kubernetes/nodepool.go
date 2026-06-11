@@ -517,7 +517,7 @@ func updateNodePool(ctx context.Context, data *schema.ResourceData, meta interfa
 			return diag.FromErr(err)
 		}
 
-		if afterImageType == "" || afterImageType == "" || afterImageType == "" || afterK8sVersion == "" {
+		if afterImageType == "" || afterK8sVersion == "" {
 			return diag.Errorf("It is not kubernetes image (" + afterImageid + ")")
 		}
 

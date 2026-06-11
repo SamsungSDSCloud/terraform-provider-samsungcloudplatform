@@ -427,14 +427,6 @@ func resourcePostgresqlCreate(ctx context.Context, rd *schema.ResourceData, meta
 }
 
 func resourcePostgresqlRead(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
-	var err error = nil
-	defer func() {
-		if err != nil {
-			rd.SetId("")
-			diagnostics = diag.FromErr(err)
-		}
-	}()
-
 	inst := meta.(*client.Instance)
 
 	dbInfo, _, err := inst.Client.Postgresql.DetailPostgresqlCluster(ctx, rd.Id())
@@ -448,8 +440,7 @@ func resourcePostgresqlRead(ctx context.Context, rd *schema.ResourceData, meta i
 	}
 
 	if len(dbInfo.PostgresqlServerGroup.PostgresqlServers) == 0 {
-		diagnostics = diag.Errorf("no server found")
-		return
+		return diag.Errorf("no server found")
 	}
 
 	//TODO BlockStorageGroupId, BlockStorageName 받아올 지 확인
@@ -498,100 +489,40 @@ func resourcePostgresqlRead(ctx context.Context, rd *schema.ResourceData, meta i
 		return postgresqlServers[i].(map[string]interface{})["server_role_type"].(string) < postgresqlServers[j].(map[string]interface{})["server_role_type"].(string)
 	})
 
-	err = rd.Set("audit_enabled", dbInfo.AuditEnabled)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("image_id", dbInfo.ImageId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("nat_public_ip_id", rd.Get("nat_public_ip_id").(string))
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("postgresql_cluster_name", dbInfo.PostgresqlClusterName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("postgresql_cluster_state", dbInfo.PostgresqlClusterState)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs := &common.FieldSetter{Rd: rd}
 
-	err = rd.Set("database_encoding", dbInfo.PostgresqlInitialConfig.DatabaseEncoding)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_locale", dbInfo.PostgresqlInitialConfig.DatabaseLocale)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_name", dbInfo.PostgresqlInitialConfig.DatabaseName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_port", dbInfo.PostgresqlInitialConfig.DatabasePort)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_user_name", dbInfo.PostgresqlInitialConfig.DatabaseUserName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("audit_enabled", dbInfo.AuditEnabled)
+	fs.Set("image_id", dbInfo.ImageId)
+	fs.Set("nat_public_ip_id", rd.Get("nat_public_ip_id").(string))
+	fs.Set("postgresql_cluster_name", dbInfo.PostgresqlClusterName)
+	fs.Set("postgresql_cluster_state", dbInfo.PostgresqlClusterState)
 
-	err = rd.Set("block_storages", blockStorages)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("encryption_enabled", dbInfo.PostgresqlServerGroup.EncryptionEnabled)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("postgresql_servers", postgresqlServers)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("server_type", dbInfo.PostgresqlServerGroup.ServerType)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("database_encoding", dbInfo.PostgresqlInitialConfig.DatabaseEncoding)
+	fs.Set("database_locale", dbInfo.PostgresqlInitialConfig.DatabaseLocale)
+	fs.Set("database_name", dbInfo.PostgresqlInitialConfig.DatabaseName)
+	fs.Set("database_port", dbInfo.PostgresqlInitialConfig.DatabasePort)
+	fs.Set("database_user_name", dbInfo.PostgresqlInitialConfig.DatabaseUserName)
 
-	err = rd.Set("security_group_ids", dbInfo.SecurityGroupIds)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("service_zone_id", dbInfo.ServiceZoneId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("subnet_id", dbInfo.SubnetId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("timezone", dbInfo.Timezone)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("backup", backup)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("virtual_ip_address", dbInfo.PostgresqlServerGroup.VirtualIpAddress)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("nat_ip_address", dbInfo.NatIpAddress)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("vpc_id", dbInfo.VpcId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("block_storages", blockStorages)
+	fs.Set("encryption_enabled", dbInfo.PostgresqlServerGroup.EncryptionEnabled)
+	fs.Set("postgresql_servers", postgresqlServers)
+	fs.Set("server_type", dbInfo.PostgresqlServerGroup.ServerType)
 
+	fs.Set("security_group_ids", dbInfo.SecurityGroupIds)
+	fs.Set("service_zone_id", dbInfo.ServiceZoneId)
+	fs.Set("subnet_id", dbInfo.SubnetId)
+	fs.Set("timezone", dbInfo.Timezone)
+	fs.Set("backup", backup)
+	fs.Set("virtual_ip_address", dbInfo.PostgresqlServerGroup.VirtualIpAddress)
+	fs.Set("nat_ip_address", dbInfo.NatIpAddress)
+	fs.Set("vpc_id", dbInfo.VpcId)
+	if diags := fs.Diags(); diags != nil {
+		rd.SetId("")
+		return diags
+	}
 	err = tfTags.SetTags(ctx, rd, meta, rd.Id())
 	if err != nil {
+		rd.SetId("")
 		return diag.FromErr(err)
 	}
 

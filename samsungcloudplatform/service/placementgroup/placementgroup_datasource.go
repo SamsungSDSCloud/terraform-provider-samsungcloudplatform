@@ -106,8 +106,6 @@ func dataSourceList(ctx context.Context, rd *schema.ResourceData, meta interface
 
 	}
 	return nil
-
-	return nil
 }
 
 func getListPlacementGroupsRequestParam(rd *schema.ResourceData) *placementgroup.ListPlacementGroupsRequestParam {

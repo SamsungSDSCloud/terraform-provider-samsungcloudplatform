@@ -501,14 +501,6 @@ func resourceSqlserverCreate(ctx context.Context, rd *schema.ResourceData, meta 
 func resourceSqlserverRead(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
 	const BlockStorageDataRoleTypeIndex = 1
 
-	var err error = nil
-	defer func() {
-		if err != nil {
-			rd.SetId("")
-			diagnostics = diag.FromErr(err)
-		}
-	}()
-
 	inst := meta.(*client.Instance)
 
 	sqlserverClusterDetail, _, err := inst.Client.Sqlserver.DetailSqlserverCluster(ctx, rd.Id())
@@ -521,8 +513,7 @@ func resourceSqlserverRead(ctx context.Context, rd *schema.ResourceData, meta in
 	}
 
 	if len(sqlserverClusterDetail.SqlserverServerGroup.SqlserverServers) == 0 {
-		diagnostics = diag.Errorf("no server found")
-		return
+		return diag.Errorf("no server found")
 	}
 
 	sqlserverServerGroup := sqlserverClusterDetail.SqlserverServerGroup
@@ -564,100 +555,41 @@ func resourceSqlserverRead(ctx context.Context, rd *schema.ResourceData, meta in
 		return sqlserverServers[i].(map[string]interface{})["server_role_type"].(string) < sqlserverServers[j].(map[string]interface{})["server_role_type"].(string)
 	})
 
-	err = rd.Set("audit_enabled", sqlserverClusterDetail.AuditEnabled)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("image_id", sqlserverClusterDetail.ImageId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("nat_public_ip_id", rd.Get("nat_public_ip_id").(string))
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("sqlserver_cluster_name", sqlserverClusterDetail.SqlserverClusterName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("sqlserver_cluster_state", sqlserverClusterDetail.SqlserverClusterState)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs := &common.FieldSetter{Rd: rd}
 
-	err = rd.Set("database_collation", sqlserverClusterDetail.SqlserverInitialConfig.DatabaseCollation)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_names", sqlserverClusterDetail.SqlserverInitialConfig.DatabaseNames)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_port", sqlserverClusterDetail.SqlserverInitialConfig.DatabasePort)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_service_name", sqlserverClusterDetail.SqlserverInitialConfig.DatabaseServiceName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_user_name", sqlserverClusterDetail.SqlserverInitialConfig.DatabaseUserName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("audit_enabled", sqlserverClusterDetail.AuditEnabled)
+	fs.Set("image_id", sqlserverClusterDetail.ImageId)
+	fs.Set("nat_public_ip_id", rd.Get("nat_public_ip_id").(string))
+	fs.Set("sqlserver_cluster_name", sqlserverClusterDetail.SqlserverClusterName)
+	fs.Set("sqlserver_cluster_state", sqlserverClusterDetail.SqlserverClusterState)
 
-	err = rd.Set("block_storages", sqlserverBlockStorages)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("encryption_enabled", sqlserverClusterDetail.SqlserverServerGroup.EncryptionEnabled)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("sqlserver_servers", sqlserverServers)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("server_type", sqlserverClusterDetail.SqlserverServerGroup.ServerType)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("database_collation", sqlserverClusterDetail.SqlserverInitialConfig.DatabaseCollation)
+	fs.Set("database_names", sqlserverClusterDetail.SqlserverInitialConfig.DatabaseNames)
+	fs.Set("database_port", sqlserverClusterDetail.SqlserverInitialConfig.DatabasePort)
+	fs.Set("database_service_name", sqlserverClusterDetail.SqlserverInitialConfig.DatabaseServiceName)
+	fs.Set("database_user_name", sqlserverClusterDetail.SqlserverInitialConfig.DatabaseUserName)
 
-	err = rd.Set("security_group_ids", sqlserverClusterDetail.SecurityGroupIds)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("service_zone_id", sqlserverClusterDetail.ServiceZoneId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("subnet_id", sqlserverClusterDetail.SubnetId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("timezone", sqlserverClusterDetail.Timezone)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("backup", backup)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("virtual_ip_address", sqlserverClusterDetail.SqlserverServerGroup.VirtualIpAddress)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("nat_ip_address", sqlserverClusterDetail.NatIpAddress)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("vpc_id", sqlserverClusterDetail.VpcId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("block_storages", sqlserverBlockStorages)
+	fs.Set("encryption_enabled", sqlserverClusterDetail.SqlserverServerGroup.EncryptionEnabled)
+	fs.Set("sqlserver_servers", sqlserverServers)
+	fs.Set("server_type", sqlserverClusterDetail.SqlserverServerGroup.ServerType)
 
+	fs.Set("security_group_ids", sqlserverClusterDetail.SecurityGroupIds)
+	fs.Set("service_zone_id", sqlserverClusterDetail.ServiceZoneId)
+	fs.Set("subnet_id", sqlserverClusterDetail.SubnetId)
+	fs.Set("timezone", sqlserverClusterDetail.Timezone)
+	fs.Set("backup", backup)
+	fs.Set("virtual_ip_address", sqlserverClusterDetail.SqlserverServerGroup.VirtualIpAddress)
+	fs.Set("nat_ip_address", sqlserverClusterDetail.NatIpAddress)
+	fs.Set("vpc_id", sqlserverClusterDetail.VpcId)
+
+	if diags := fs.Diags(); diags != nil {
+		rd.SetId("")
+		return diags
+	}
 	err = tfTags.SetTags(ctx, rd, meta, rd.Id())
 	if err != nil {
+		rd.SetId("")
 		return diag.FromErr(err)
 	}
 

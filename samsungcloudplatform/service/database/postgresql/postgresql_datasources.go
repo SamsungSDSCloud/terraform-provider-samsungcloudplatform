@@ -222,47 +222,21 @@ func dataSourcePostgresqlSingle(ctx context.Context, rd *schema.ResourceData, me
 	}
 
 	if len(dbInfo.PostgresqlServerGroup.PostgresqlServers) == 0 {
-		diagnostics = diag.Errorf("no server found")
-		return
+		return diag.Errorf("no server found")
 	}
 
 	rd.SetId(uuid.NewV4().String())
-	err = rd.Set("project_id", dbInfo.ProjectId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("block_id", dbInfo.BlockId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("service_zone_id", dbInfo.ServiceZoneId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("postgresql_cluster_id", dbInfo.PostgresqlClusterId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("postgresql_cluster_name", dbInfo.PostgresqlClusterName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("postgresql_cluster_state", dbInfo.PostgresqlClusterState)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("image_id", dbInfo.ImageId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_version", dbInfo.DatabaseVersion)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("timezone", dbInfo.Timezone)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs := &common.FieldSetter{Rd: rd}
+
+	fs.Set("project_id", dbInfo.ProjectId)
+	fs.Set("block_id", dbInfo.BlockId)
+	fs.Set("service_zone_id", dbInfo.ServiceZoneId)
+	fs.Set("postgresql_cluster_id", dbInfo.PostgresqlClusterId)
+	fs.Set("postgresql_cluster_name", dbInfo.PostgresqlClusterName)
+	fs.Set("postgresql_cluster_state", dbInfo.PostgresqlClusterState)
+	fs.Set("image_id", dbInfo.ImageId)
+	fs.Set("database_version", dbInfo.DatabaseVersion)
+	fs.Set("timezone", dbInfo.Timezone)
 
 	contract := database_common.HclListObject{}
 	if dbInfo.Contract != nil {
@@ -275,31 +249,13 @@ func dataSourcePostgresqlSingle(ctx context.Context, rd *schema.ResourceData, me
 
 		contract = append(contract, contractInfo)
 	}
-	err = rd.Set("contract", contract)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("contract", contract)
 
-	err = rd.Set("vpc_id", dbInfo.VpcId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("subnet_id", dbInfo.SubnetId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("security_group_ids", dbInfo.SecurityGroupIds)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("audit_enabled", dbInfo.AuditEnabled)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("nat_ip_address", dbInfo.NatIpAddress)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("vpc_id", dbInfo.VpcId)
+	fs.Set("subnet_id", dbInfo.SubnetId)
+	fs.Set("security_group_ids", dbInfo.SecurityGroupIds)
+	fs.Set("audit_enabled", dbInfo.AuditEnabled)
+	fs.Set("nat_ip_address", dbInfo.NatIpAddress)
 
 	postgresqlInitialConfig := database_common.HclListObject{}
 	if dbInfo.PostgresqlInitialConfig != nil {
@@ -312,10 +268,7 @@ func dataSourcePostgresqlSingle(ctx context.Context, rd *schema.ResourceData, me
 
 		postgresqlInitialConfig = append(postgresqlInitialConfig, postgresqlInitialConfigInfo)
 	}
-	err = rd.Set("postgresql_initial_config", postgresqlInitialConfig)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("postgresql_initial_config", postgresqlInitialConfig)
 
 	postgresqlServerGroup := database_common.HclListObject{}
 	if dbInfo.PostgresqlServerGroup != nil {
@@ -359,20 +312,10 @@ func dataSourcePostgresqlSingle(ctx context.Context, rd *schema.ResourceData, me
 
 		postgresqlServerGroup = append(postgresqlServerGroup, postgresqlServerGroupInfo)
 	}
+	fs.Set("postgresql_server_group", postgresqlServerGroup)
 
-	err = rd.Set("postgresql_server_group", postgresqlServerGroup)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = rd.Set("postgresql_replica_cluster_ids", dbInfo.PostgresqlReplicaClusterIds)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("postgresql_master_cluster_id", dbInfo.PostgresqlMasterClusterId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("postgresql_replica_cluster_ids", dbInfo.PostgresqlReplicaClusterIds)
+	fs.Set("postgresql_master_cluster_id", dbInfo.PostgresqlMasterClusterId)
 
 	maintenance := database_common.HclListObject{}
 	if dbInfo.Maintenance != nil {
@@ -383,10 +326,7 @@ func dataSourcePostgresqlSingle(ctx context.Context, rd *schema.ResourceData, me
 
 		maintenance = append(maintenance, maintenanceInfo)
 	}
-	err = rd.Set("maintenance", maintenance)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("maintenance", maintenance)
 
 	backupConfig := database_common.HclListObject{}
 	if dbInfo.BackupConfig != nil {
@@ -417,27 +357,12 @@ func dataSourcePostgresqlSingle(ctx context.Context, rd *schema.ResourceData, me
 		backupConfigInfo["incremental_backup_config"] = incrementalBackupConfig
 		backupConfig = append(backupConfig, backupConfigInfo)
 	}
-	err = rd.Set("backup_config", backupConfig)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("backup_config", backupConfig)
 
-	err = rd.Set("created_by", dbInfo.CreatedBy)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("created_dt", dbInfo.CreatedDt.String())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("modified_by", dbInfo.ModifiedBy)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("modified_dt", dbInfo.ModifiedDt.String())
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("created_by", dbInfo.CreatedBy)
+	fs.Set("created_dt", dbInfo.CreatedDt.String())
+	fs.Set("modified_by", dbInfo.ModifiedBy)
+	fs.Set("modified_dt", dbInfo.ModifiedDt.String())
 
-	return nil
+	return fs.Diags()
 }

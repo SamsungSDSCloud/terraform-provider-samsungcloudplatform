@@ -245,87 +245,44 @@ func updateEngine(ctx context.Context, data *schema.ResourceData, meta interface
 	}
 
 	if data.HasChanges("load_balancer_id") {
-		if len(data.Get("load_balancer_id").(string)) == 0 {
-			_, _, err := inst.Client.KubernetesEngine.UpdateLoadBalancerEngine(ctx, data.Id(), kubernetesengine.UpdateEngineLoadBalancerRequest{
-				LbId: data.Get("load_balancer_id").(string),
-			})
+		_, _, err := inst.Client.KubernetesEngine.UpdateLoadBalancerEngine(ctx, data.Id(), kubernetesengine.UpdateEngineLoadBalancerRequest{
+			LbId: data.Get("load_balancer_id").(string),
+		})
 
-			if err != nil {
-				return diag.FromErr(err)
-			}
-		} else {
-			_, _, err := inst.Client.KubernetesEngine.UpdateLoadBalancerEngine(ctx, data.Id(), kubernetesengine.UpdateEngineLoadBalancerRequest{
-				LbId: data.Get("load_balancer_id").(string),
-			})
-
-			if err != nil {
-				return diag.FromErr(err)
-			}
+		if err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
 	if data.HasChanges("cifs_volume_id") {
-		if len(data.Get("cifs_volume_id").(string)) == 0 {
-			_, _, err := inst.Client.KubernetesEngine.UpdateCifsVolumeEngine(ctx, data.Id(), kubernetesengine.UpdateEngineCifsVolumeRequest{
-				CifsVolumeId: data.Get("cifs_volume_id").(string),
-			})
+		_, _, err := inst.Client.KubernetesEngine.UpdateCifsVolumeEngine(ctx, data.Id(), kubernetesengine.UpdateEngineCifsVolumeRequest{
+			CifsVolumeId: data.Get("cifs_volume_id").(string),
+		})
 
-			if err != nil {
-				return diag.FromErr(err)
-			}
+		if err != nil {
+			return diag.FromErr(err)
+		}
 
-			time.Sleep(10 * time.Second)
-			err = client.WaitForStatus(ctx, inst.Client, []string{"UPDATING"}, []string{"RUNNING"}, refreshEngine(ctx, meta, data.Id(), true))
-			if err != nil {
-				return diag.FromErr(err)
-			}
-		} else {
-			_, _, err := inst.Client.KubernetesEngine.UpdateCifsVolumeEngine(ctx, data.Id(), kubernetesengine.UpdateEngineCifsVolumeRequest{
-				CifsVolumeId: data.Get("cifs_volume_id").(string),
-			})
-
-			if err != nil {
-				return diag.FromErr(err)
-			}
-
-			time.Sleep(10 * time.Second)
-			err = client.WaitForStatus(ctx, inst.Client, []string{"UPDATING"}, []string{"RUNNING"}, refreshEngine(ctx, meta, data.Id(), true))
-			if err != nil {
-				return diag.FromErr(err)
-			}
+		time.Sleep(10 * time.Second)
+		err = client.WaitForStatus(ctx, inst.Client, []string{"UPDATING"}, []string{"RUNNING"}, refreshEngine(ctx, meta, data.Id(), true))
+		if err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
 	if data.HasChanges("private_acl_resources") {
-		if len(data.Get("private_acl_resources").([]interface{})) == 0 {
-			var request []kubernetesengine.PrivateAclResourcesRequestToUpdate
-			_, _, err := inst.Client.KubernetesEngine.UpdatePrivateAclEngine(ctx, data.Id(), kubernetesengine.UpdateEnginePrivateAclRequest{
-				PrivateAclResourcesToUpdate: request,
-			})
+		_, _, err := inst.Client.KubernetesEngine.UpdatePrivateAclEngine(ctx, data.Id(), kubernetesengine.UpdateEnginePrivateAclRequest{
+			PrivateAclResourcesToUpdate: toPrivateAclResourcesRequestListToUpdate(data.Get("private_acl_resources").([]interface{})),
+		})
 
-			if err != nil {
-				return diag.FromErr(err)
-			}
+		if err != nil {
+			return diag.FromErr(err)
+		}
 
-			time.Sleep(10 * time.Second)
-			err = client.WaitForStatus(ctx, inst.Client, []string{"UPDATING"}, []string{"RUNNING"}, refreshEngine(ctx, meta, data.Id(), true))
-			if err != nil {
-				return diag.FromErr(err)
-			}
-		} else {
-			_, _, err := inst.Client.KubernetesEngine.UpdatePrivateAclEngine(ctx, data.Id(), kubernetesengine.UpdateEnginePrivateAclRequest{
-				PrivateAclResourcesToUpdate: toPrivateAclResourcesRequestListToUpdate(data.Get("private_acl_resources").([]interface{})),
-			})
-
-			if err != nil {
-				return diag.FromErr(err)
-			}
-
-			time.Sleep(10 * time.Second)
-			err = client.WaitForStatus(ctx, inst.Client, []string{"UPDATING"}, []string{"RUNNING"}, refreshEngine(ctx, meta, data.Id(), true))
-			if err != nil {
-				return diag.FromErr(err)
-			}
+		time.Sleep(10 * time.Second)
+		err = client.WaitForStatus(ctx, inst.Client, []string{"UPDATING"}, []string{"RUNNING"}, refreshEngine(ctx, meta, data.Id(), true))
+		if err != nil {
+			return diag.FromErr(err)
 		}
 	}
 

@@ -194,47 +194,21 @@ func dataSourceKafkaSingle(ctx context.Context, rd *schema.ResourceData, meta in
 	}
 
 	if len(dbInfo.BrokerNodeGroup.BrokerNodes) == 0 {
-		diagnostics = diag.Errorf("no server found")
-		return
+		return diag.Errorf("no server found")
 	}
 
 	rd.SetId(uuid.NewV4().String())
-	err = rd.Set("kafka_cluster_name", dbInfo.KafkaClusterName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("kafka_cluster_state", dbInfo.KafkaClusterState)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("image_id", dbInfo.ImageId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("timezone", dbInfo.Timezone)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("vpc_id", dbInfo.VpcId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("subnet_id", dbInfo.SubnetId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("security_group_ids", dbInfo.SecurityGroupIds)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_version", dbInfo.DatabaseVersion)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("nat_ip_address", dbInfo.NatIpAddress)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs := &common.FieldSetter{Rd: rd}
+
+	fs.Set("kafka_cluster_name", dbInfo.KafkaClusterName)
+	fs.Set("kafka_cluster_state", dbInfo.KafkaClusterState)
+	fs.Set("image_id", dbInfo.ImageId)
+	fs.Set("timezone", dbInfo.Timezone)
+	fs.Set("vpc_id", dbInfo.VpcId)
+	fs.Set("subnet_id", dbInfo.SubnetId)
+	fs.Set("security_group_ids", dbInfo.SecurityGroupIds)
+	fs.Set("database_version", dbInfo.DatabaseVersion)
+	fs.Set("nat_ip_address", dbInfo.NatIpAddress)
 
 	contract := database_common.HclListObject{}
 	if dbInfo.Contract != nil {
@@ -246,11 +220,7 @@ func dataSourceKafkaSingle(ctx context.Context, rd *schema.ResourceData, meta in
 		contractInfo["next_contract_end_date"] = dbInfo.Contract.NextContractEndDate
 		contract = append(contract, contractInfo)
 	}
-
-	err = rd.Set("contract", contract)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("contract", contract)
 
 	kafkaInitialConfig := database_common.HclListObject{}
 	if dbInfo.KafkaInitialConfig != nil {
@@ -283,11 +253,7 @@ func dataSourceKafkaSingle(ctx context.Context, rd *schema.ResourceData, meta in
 
 		kafkaInitialConfig = append(kafkaInitialConfig, kafkaInitialConfigInfo)
 	}
-
-	err = rd.Set("kafka_initial_config", kafkaInitialConfig)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("kafka_initial_config", kafkaInitialConfig)
 
 	// BrokerNodeGroup 세팅
 	brokerNodeGroup := database_common.HclListObject{}
@@ -326,10 +292,7 @@ func dataSourceKafkaSingle(ctx context.Context, rd *schema.ResourceData, meta in
 
 		brokerNodeGroup = append(brokerNodeGroup, brokerNodeGroupInfo)
 	}
-	err = rd.Set("broker_node_group", brokerNodeGroup)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("broker_node_group", brokerNodeGroup)
 
 	// ZookeeperNodeGroup 세팅
 	zookeeperNodeGroup := database_common.HclListObject{}
@@ -368,10 +331,7 @@ func dataSourceKafkaSingle(ctx context.Context, rd *schema.ResourceData, meta in
 
 		zookeeperNodeGroup = append(zookeeperNodeGroup, zookeeperNodeGroupInfo)
 	}
-	err = rd.Set("zookeeper_node_group", zookeeperNodeGroup)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("zookeeper_node_group", zookeeperNodeGroup)
 
 	// AkhqNodeGroup 세팅
 	akhqNodeGroup := database_common.HclListObject{}
@@ -391,10 +351,7 @@ func dataSourceKafkaSingle(ctx context.Context, rd *schema.ResourceData, meta in
 		akhqNodeGroupInfo["availability_zone_name"] = dbInfo.AkhqNodeGroup.AvailabilityZoneName
 		akhqNodeGroup = append(akhqNodeGroup, akhqNodeGroupInfo)
 	}
-	err = rd.Set("akhq_node_group", akhqNodeGroup)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("akhq_node_group", akhqNodeGroup)
 
 	// Maintenance
 	maintenance := database_common.HclListObject{}
@@ -405,40 +362,15 @@ func dataSourceKafkaSingle(ctx context.Context, rd *schema.ResourceData, meta in
 		maintenanceInfo["maintenance_period"] = dbInfo.Maintenance.MaintenancePeriod
 		maintenance = append(maintenance, maintenanceInfo)
 	}
+	fs.Set("maintenance", maintenance)
 
-	err = rd.Set("maintenance", maintenance)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("project_id", dbInfo.ProjectId)
+	fs.Set("service_zone_id", dbInfo.ServiceZoneId)
+	fs.Set("block_id", dbInfo.BlockId)
+	fs.Set("created_by", dbInfo.CreatedBy)
+	fs.Set("created_dt", dbInfo.CreatedDt.String())
+	fs.Set("modified_by", dbInfo.ModifiedBy)
+	fs.Set("modified_dt", dbInfo.ModifiedDt.String())
 
-	err = rd.Set("project_id", dbInfo.ProjectId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("service_zone_id", dbInfo.ServiceZoneId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("block_id", dbInfo.BlockId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("created_by", dbInfo.CreatedBy)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("created_dt", dbInfo.CreatedDt.String())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("modified_by", dbInfo.ModifiedBy)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("modified_dt", dbInfo.ModifiedDt.String())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	return fs.Diags()
 }

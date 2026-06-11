@@ -60,6 +60,7 @@ resource "samsungcloudplatform_obs_bucket" "my_scp_obs_bucket" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+- `object_storage_bucket_disk_type` (String) Object Storage Bucket Disk Type
 - `object_storage_bucket_dr_type` (String) Object Storage Bucket DR Type
 - `object_storage_bucket_purpose` (String) Object Storage Bucket Purpose
 

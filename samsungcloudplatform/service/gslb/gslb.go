@@ -261,6 +261,30 @@ func convertGslbResources(list common.HclListObject) ([]gslb.GslbResourceRequest
 	return result, nil
 }
 
+func convertGslbResourceMapping(list []interface{}) []gslb2.GslbResourceMappingRequestVo {
+	res := make([]gslb2.GslbResourceMappingRequestVo, len(list))
+	for i, item := range list {
+		r := item.(map[string]interface{})
+		if t, ok := r["gslb_destination"]; ok {
+			res[i].GslbDestination = t.(string)
+		}
+		if t, ok := r["gslb_region"]; ok {
+			res[i].GslbRegion = t.(string)
+		}
+		if v, ok := r["gslb_resource_weight"]; ok {
+			res[i].GslbResourceWeight = int32(v.(int))
+		}
+		if t, ok := r["gslb_resource_disable"]; ok {
+			val := t.(bool)
+			res[i].GslbResourceDisable = &val
+		}
+		if t, ok := r["gslb_resource_description"]; ok {
+			res[i].GslbResourceDescription = t.(string)
+		}
+	}
+	return res
+}
+
 func resourceGslbCreate(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
 	var err error = nil
 	defer func() {
@@ -423,29 +447,7 @@ func resourceGslbUpdate(ctx context.Context, rd *schema.ResourceData, meta inter
 	}
 
 	if rd.HasChanges("gslb_resources") {
-		gslbResourceList := rd.Get("gslb_resources").(*schema.Set).List()
-
-		gslbResources := make([]gslb2.GslbResourceMappingRequestVo, len(gslbResourceList))
-
-		for i, gslbResource := range gslbResourceList {
-			r := gslbResource.(map[string]interface{})
-			if t, ok := r["gslb_destination"]; ok {
-				gslbResources[i].GslbDestination = t.(string)
-			}
-			if t, ok := r["gslb_region"]; ok {
-				gslbResources[i].GslbRegion = t.(string)
-			}
-			if v, ok := r["gslb_resource_weight"]; ok {
-				gslbResources[i].GslbResourceWeight = int32(v.(int))
-			}
-			if t, ok := r["gslb_resource_disable"]; ok {
-				enabled := t.(bool)
-				gslbResources[i].GslbResourceDisable = &enabled
-			}
-			if t, ok := r["gslb_resource_description"]; ok {
-				gslbResources[i].GslbResourceDescription = t.(string)
-			}
-		}
+		gslbResources := convertGslbResourceMapping(rd.Get("gslb_resources").(*schema.Set).List())
 
 		validateErr := validateGslbTimeResourceCount(rd)
 		if validateErr != nil {

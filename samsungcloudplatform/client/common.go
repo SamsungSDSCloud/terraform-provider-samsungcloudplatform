@@ -8,6 +8,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/project"
 	"github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/tag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"log"
 	"strconv"
 	"time"
 )
@@ -211,7 +212,6 @@ func FindScaleInfo(ctx context.Context, client *SCPClient, productGroupId string
 
 			if err != nil {
 				return -1, -1, fmt.Errorf("wrong memory size.")
-				continue
 			}
 		}
 	}
@@ -245,11 +245,22 @@ func FindScaleProduct(ctx context.Context, client *SCPClient, productGroupId str
 }
 
 func WaitForStatus(ctx context.Context, client *SCPClient, pendingStates []string, targetStates []string, refreshFunc resource.StateRefreshFunc) error {
+
+	timeout := DefaultTimeout
+	if deadline, ok := ctx.Deadline(); ok {
+		ctxTimeout := time.Until(deadline)
+		if ctxTimeout > DefaultTimeout {
+			timeout = ctxTimeout
+		}
+	}
+
+	log.Printf("[DEBUG] WaitForStatus - stateConf.Timeout: %v", timeout)
+
 	stateConf := &resource.StateChangeConf{
 		Pending:    pendingStates,
 		Target:     targetStates,
 		Refresh:    refreshFunc,
-		Timeout:    DefaultTimeout,
+		Timeout:    timeout,
 		Delay:      2 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}

@@ -14,7 +14,7 @@ Provides list of Object Storages.
 
 ```terraform
 data "samsungcloudplatform_obs_storages" "my_scp_obs_storages" {
-  zone_id = "ZONE-XXXXX"
+  service_zone_id = "ZONE-XXXXX"
 }
 
 output "output_my_scp_obs_storages" {
@@ -34,6 +34,7 @@ output "output_my_scp_obs_storages" {
 ### Optional
 
 - `is_multi_availability_zone` (Boolean) Is Multi Availability Zone
+- `object_storage_disk_type` (String) Object Storage Disk Type
 - `object_storage_name` (String) Object Storage Name
 - `page` (Number) Page start number from which to get the list
 - `size` (Number) Size to get list
@@ -57,6 +58,7 @@ Read-Only:
 - `modified_by` (String) Modified By
 - `modified_dt` (String) Modified Date
 - `object_storage_description` (String) Object Storage Description
+- `object_storage_disk_type` (String) Object Storage Disk Type
 - `object_storage_id` (String) Object Storage ID
 - `object_storage_name` (String) Object Storage Name
 - `project_id` (String) Project ID

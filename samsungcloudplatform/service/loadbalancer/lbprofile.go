@@ -118,28 +118,8 @@ func resourceLbProfileCreate(ctx context.Context, rd *schema.ResourceData, meta 
 	sessionTimeout := rd.Get("session_timeout").(int)
 	xForwardedFor := rd.Get("x_forwarded_for").(string)
 
-	// Extra validation
-	if category == "PERSISTENCE" {
-		if len(layerType) != 0 ||
-			requestHeaderSize != 0 ||
-			responseHeaderSize != 0 ||
-			responseTimeout != 0 ||
-			sessionTimeout != 0 ||
-			len(xForwardedFor) != 0 {
-			return diag.Errorf("In 'PERSISTENCE' category, following fields must not be set : layer_type, request_header_size, response_header_size, response_timeout, session_timeout, x_forwarded_for")
-		}
-		if len(persistenceType) == 0 {
-			return diag.Errorf("In 'PERSISTENCE' category, 'persistence_type' must be set.")
-		}
-	} else if category == "APPLICATION" {
-		if layerType == "L4" {
-			if requestHeaderSize != 0 ||
-				responseHeaderSize != 0 ||
-				responseTimeout != 0 ||
-				len(xForwardedFor) != 0 {
-				return diag.Errorf("In 'APPLICATION' category 'L4' layer, following fields must not be set : request_header_size, response_header_size, response_timeout, x_forwarded_for")
-			}
-		}
+	if err := validateLbProfileInput(category, layerType, persistenceType, requestHeaderSize, responseHeaderSize, responseTimeout, sessionTimeout, xForwardedFor); err != nil {
+		return diag.FromErr(err)
 	}
 
 	inst := meta.(*client.Instance)
@@ -152,27 +132,12 @@ func resourceLbProfileCreate(ctx context.Context, rd *schema.ResourceData, meta 
 		return diag.Errorf("Input profile name is invalid (maybe duplicated) : " + name)
 	}
 
-	protocol := "TCP"
+	protocol, newPersistenceType, err := determineProtocol(category, layerType, sessionTimeout, requestHeaderSize, responseHeaderSize, responseTimeout)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	if category == "APPLICATION" {
-		if sessionTimeout < 30 || sessionTimeout > 5400 {
-			return diag.Errorf("Session duration time is out of bounds. (30 ~ 5,400 sec). ")
-		}
-
-		if layerType == "L7" {
-			protocol = "HTTP"
-			persistenceType = "HTTP"
-			if requestHeaderSize < 1 || requestHeaderSize >= 65536 {
-				return diag.Errorf("Request header's size should be 1 ~ 65,536 bytes or less. ")
-			}
-			if responseHeaderSize < 1 || responseHeaderSize >= 65536 {
-				return diag.Errorf("Response header's size should be 1 ~ 65,536 bytes or less. ")
-			}
-			if responseTimeout < 1 || responseTimeout > 2147483647 {
-				return diag.Errorf("Response latency out of range. (1 ~ 2,147,483,647 sec)")
-			}
-		} else if layerType == "L4" {
-			persistenceType = "FAST_TCP"
-		}
+		persistenceType = newPersistenceType
 	}
 
 	tags := rd.Get("tags").(map[string]interface{})
@@ -189,6 +154,61 @@ func resourceLbProfileCreate(ctx context.Context, rd *schema.ResourceData, meta 
 	rd.SetId(result.ResourceId)
 
 	return resourceLbProfileRead(ctx, rd, meta)
+}
+
+func validateLbProfileInput(category, layerType, persistenceType string, requestHeaderSize, responseHeaderSize, responseTimeout, sessionTimeout int, xForwardedFor string) error {
+	if category == "PERSISTENCE" {
+		if len(layerType) != 0 ||
+			requestHeaderSize != 0 ||
+			responseHeaderSize != 0 ||
+			responseTimeout != 0 ||
+			sessionTimeout != 0 ||
+			len(xForwardedFor) != 0 {
+			return fmt.Errorf("In 'PERSISTENCE' category, following fields must not be set : layer_type, request_header_size, response_header_size, response_timeout, session_timeout, x_forwarded_for")
+		}
+		if len(persistenceType) == 0 {
+			return fmt.Errorf("In 'PERSISTENCE' category, 'persistence_type' must be set.")
+		}
+	} else if category == "APPLICATION" {
+		if layerType == "L4" {
+			if requestHeaderSize != 0 ||
+				responseHeaderSize != 0 ||
+				responseTimeout != 0 ||
+				len(xForwardedFor) != 0 {
+				return fmt.Errorf("In 'APPLICATION' category 'L4' layer, following fields must not be set : request_header_size, response_header_size, response_timeout, x_forwarded_for")
+			}
+		}
+	}
+	return nil
+}
+
+func determineProtocol(category, layerType string, sessionTimeout, requestHeaderSize, responseHeaderSize, responseTimeout int) (string, string, error) {
+	protocol := "TCP"
+	persistenceType := ""
+
+	if category == "APPLICATION" {
+		if sessionTimeout < 30 || sessionTimeout > 5400 {
+			return "", "", fmt.Errorf("Session duration time is out of bounds. (30 ~ 5,400 sec). ")
+		}
+
+		if layerType == "L7" {
+			protocol = "HTTP"
+			persistenceType = "HTTP"
+			if requestHeaderSize < 1 || requestHeaderSize >= 65536 {
+				return "", "", fmt.Errorf("Request header's size should be 1 ~ 65,536 bytes or less. ")
+			}
+			if responseHeaderSize < 1 || responseHeaderSize >= 65536 {
+				return "", "", fmt.Errorf("Response header's size should be 1 ~ 65,536 bytes or less. ")
+			}
+			if responseTimeout < 1 || responseTimeout > 2147483647 {
+				return "", "", fmt.Errorf("Response latency out of range. (1 ~ 2,147,483,647 sec)")
+			}
+		} else if layerType == "L4" {
+			persistenceType = "FAST_TCP"
+		}
+	}
+
+	return protocol, persistenceType, nil
 }
 
 func resourceLbProfileRead(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {

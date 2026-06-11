@@ -248,6 +248,12 @@ func ResourceVirtualServer() *schema.Resource {
 			},
 		},
 		Description: "Provides a Virtual Server resource.",
+        Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(client.DefaultTimeout),
+			Read:   schema.DefaultTimeout(client.DefaultTimeout),
+			Update: schema.DefaultTimeout(client.DefaultTimeout),
+			Delete: schema.DefaultTimeout(client.DefaultTimeout),
+		},
 	}
 }
 

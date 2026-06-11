@@ -209,34 +209,15 @@ func dataSourceRedisClusterSingle(ctx context.Context, rd *schema.ResourceData, 
 	}
 
 	rd.SetId(uuid.NewV4().String())
-	err = rd.Set("redis_name", dbInfo.RedisName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("redis_state", dbInfo.RedisState)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("image_id", dbInfo.ImageId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("timezone", dbInfo.Timezone)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("vpc_id", dbInfo.VpcId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("subnet_id", dbInfo.SubnetId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("security_group_ids", dbInfo.SecurityGroupIds)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs := &common.FieldSetter{Rd: rd}
+
+	fs.Set("redis_name", dbInfo.RedisName)
+	fs.Set("redis_state", dbInfo.RedisState)
+	fs.Set("image_id", dbInfo.ImageId)
+	fs.Set("timezone", dbInfo.Timezone)
+	fs.Set("vpc_id", dbInfo.VpcId)
+	fs.Set("subnet_id", dbInfo.SubnetId)
+	fs.Set("security_group_ids", dbInfo.SecurityGroupIds)
 
 	contract := database_common.HclListObject{}
 	if dbInfo.Contract != nil {
@@ -250,10 +231,7 @@ func dataSourceRedisClusterSingle(ctx context.Context, rd *schema.ResourceData, 
 		contract = append(contract, contractInfo)
 	}
 
-	err = rd.Set("contract", contract)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("contract", contract)
 
 	redisClusterInitialConfig := database_common.HclListObject{}
 	if dbInfo.RedisInitialConfig != nil {
@@ -263,10 +241,7 @@ func dataSourceRedisClusterSingle(ctx context.Context, rd *schema.ResourceData, 
 		redisClusterInitialConfig = append(redisClusterInitialConfig, redisClusterInitialConfigInfo)
 	}
 
-	err = rd.Set("redis_initial_config", redisClusterInitialConfig)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("redis_initial_config", redisClusterInitialConfig)
 
 	redisCluterServerGroup := database_common.HclListObject{}
 	if dbInfo.RedisServerGroup != nil {
@@ -310,10 +285,7 @@ func dataSourceRedisClusterSingle(ctx context.Context, rd *schema.ResourceData, 
 		redisCluterServerGroup = append(redisCluterServerGroup, redisClusterServerGroupInfo)
 	}
 
-	err = rd.Set("redis_server_group", redisCluterServerGroup)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("redis_server_group", redisCluterServerGroup)
 
 	maintenance := database_common.HclListObject{}
 	if dbInfo.Maintenance != nil {
@@ -325,10 +297,7 @@ func dataSourceRedisClusterSingle(ctx context.Context, rd *schema.ResourceData, 
 		maintenance = append(maintenance, maintenanceInfo)
 	}
 
-	err = rd.Set("maintenance", maintenance)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("maintenance", maintenance)
 
 	backupConfig := database_common.HclListObject{}
 	if dbInfo.BackupConfig != nil {
@@ -348,39 +317,15 @@ func dataSourceRedisClusterSingle(ctx context.Context, rd *schema.ResourceData, 
 		backupConfig = append(backupConfig, backupConfigInfo)
 	}
 
-	err = rd.Set("backup_config", backupConfig)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("backup_config", backupConfig)
 
-	err = rd.Set("project_id", dbInfo.ProjectId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("service_zone_id", dbInfo.ServiceZoneId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("block_id", dbInfo.BlockId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("created_by", dbInfo.CreatedBy)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("created_dt", dbInfo.CreatedDt.String())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("modified_by", dbInfo.ModifiedBy)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("modified_dt", dbInfo.ModifiedDt.String())
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("project_id", dbInfo.ProjectId)
+	fs.Set("service_zone_id", dbInfo.ServiceZoneId)
+	fs.Set("block_id", dbInfo.BlockId)
+	fs.Set("created_by", dbInfo.CreatedBy)
+	fs.Set("created_dt", dbInfo.CreatedDt.String())
+	fs.Set("modified_by", dbInfo.ModifiedBy)
+	fs.Set("modified_dt", dbInfo.ModifiedDt.String())
 
-	return nil
+	return fs.Diags()
 }

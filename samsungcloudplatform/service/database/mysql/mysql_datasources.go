@@ -220,47 +220,21 @@ func dataSourceMysqlSingle(ctx context.Context, rd *schema.ResourceData, meta in
 	}
 
 	if len(dbInfo.MysqlServerGroup.MysqlServers) == 0 {
-		diagnostics = diag.Errorf("no server found")
-		return
+		return diag.Errorf("no server found")
 	}
 
 	rd.SetId(uuid.NewV4().String())
-	err = rd.Set("project_id", dbInfo.ProjectId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("block_id", dbInfo.BlockId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("service_zone_id", dbInfo.ServiceZoneId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("mysql_cluster_id", dbInfo.MysqlClusterId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("mysql_cluster_name", dbInfo.MysqlClusterName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("mysql_cluster_state", dbInfo.MysqlClusterState)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("image_id", dbInfo.ImageId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_version", dbInfo.DatabaseVersion)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("timezone", dbInfo.Timezone)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs := &common.FieldSetter{Rd: rd}
+
+	fs.Set("project_id", dbInfo.ProjectId)
+	fs.Set("block_id", dbInfo.BlockId)
+	fs.Set("service_zone_id", dbInfo.ServiceZoneId)
+	fs.Set("mysql_cluster_id", dbInfo.MysqlClusterId)
+	fs.Set("mysql_cluster_name", dbInfo.MysqlClusterName)
+	fs.Set("mysql_cluster_state", dbInfo.MysqlClusterState)
+	fs.Set("image_id", dbInfo.ImageId)
+	fs.Set("database_version", dbInfo.DatabaseVersion)
+	fs.Set("timezone", dbInfo.Timezone)
 
 	contract := database_common.HclListObject{}
 	if dbInfo.Contract != nil {
@@ -273,27 +247,12 @@ func dataSourceMysqlSingle(ctx context.Context, rd *schema.ResourceData, meta in
 
 		contract = append(contract, contractInfo)
 	}
-	err = rd.Set("contract", contract)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("contract", contract)
 
-	err = rd.Set("vpc_id", dbInfo.VpcId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("subnet_id", dbInfo.SubnetId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("security_group_ids", dbInfo.SecurityGroupIds)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("nat_ip_address", dbInfo.NatIpAddress)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("vpc_id", dbInfo.VpcId)
+	fs.Set("subnet_id", dbInfo.SubnetId)
+	fs.Set("security_group_ids", dbInfo.SecurityGroupIds)
+	fs.Set("nat_ip_address", dbInfo.NatIpAddress)
 
 	mysqlInitialConfig := database_common.HclListObject{}
 	if dbInfo.MysqlInitialConfig != nil {
@@ -305,10 +264,7 @@ func dataSourceMysqlSingle(ctx context.Context, rd *schema.ResourceData, meta in
 
 		mysqlInitialConfig = append(mysqlInitialConfig, mysqlInitialConfigInfo)
 	}
-	err = rd.Set("mysql_initial_config", mysqlInitialConfig)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("mysql_initial_config", mysqlInitialConfig)
 
 	mysqlServerGroup := database_common.HclListObject{}
 	if dbInfo.MysqlServerGroup != nil {
@@ -352,20 +308,9 @@ func dataSourceMysqlSingle(ctx context.Context, rd *schema.ResourceData, meta in
 
 		mysqlServerGroup = append(mysqlServerGroup, mysqlServerGroupInfo)
 	}
-
-	err = rd.Set("mysql_server_group", mysqlServerGroup)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = rd.Set("mysql_replica_cluster_ids", dbInfo.MysqlReplicaClusterIds)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("mysql_master_cluster_id", dbInfo.MysqlMasterClusterId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("mysql_server_group", mysqlServerGroup)
+	fs.Set("mysql_replica_cluster_ids", dbInfo.MysqlReplicaClusterIds)
+	fs.Set("mysql_master_cluster_id", dbInfo.MysqlMasterClusterId)
 
 	maintenance := database_common.HclListObject{}
 	if dbInfo.Maintenance != nil {
@@ -376,10 +321,7 @@ func dataSourceMysqlSingle(ctx context.Context, rd *schema.ResourceData, meta in
 
 		maintenance = append(maintenance, maintenanceInfo)
 	}
-	err = rd.Set("maintenance", maintenance)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("maintenance", maintenance)
 
 	backupConfig := database_common.HclListObject{}
 	if dbInfo.BackupConfig != nil {
@@ -410,27 +352,12 @@ func dataSourceMysqlSingle(ctx context.Context, rd *schema.ResourceData, meta in
 		backupConfigInfo["incremental_backup_config"] = incrementalBackupConfig
 		backupConfig = append(backupConfig, backupConfigInfo)
 	}
-	err = rd.Set("backup_config", backupConfig)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("backup_config", backupConfig)
 
-	err = rd.Set("created_by", dbInfo.CreatedBy)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("created_dt", dbInfo.CreatedDt.String())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("modified_by", dbInfo.ModifiedBy)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("modified_dt", dbInfo.ModifiedDt.String())
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("created_by", dbInfo.CreatedBy)
+	fs.Set("created_dt", dbInfo.CreatedDt.String())
+	fs.Set("modified_by", dbInfo.ModifiedBy)
+	fs.Set("modified_dt", dbInfo.ModifiedDt.String())
 
-	return nil
+	return fs.Diags()
 }

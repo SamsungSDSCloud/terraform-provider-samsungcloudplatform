@@ -41,6 +41,7 @@ output "output_my_scp_obs_buckets" {
 - `modified_dt` (String) Modified Date
 - `object_storage_bucket_access_control_enabled` (Boolean) Object Storage Bucket Access Control Enabled
 - `object_storage_bucket_access_control_rules` (Block List) Object Storage Bucket Access Control Rules (see [below for nested schema](#nestedblock--object_storage_bucket_access_control_rules))
+- `object_storage_bucket_disk_type` (String) Object Storage Bucket Disk Type
 - `object_storage_bucket_dr_enabled` (Boolean) Object Storage Bucket DR Enabled
 - `object_storage_bucket_dr_type` (String) Object Storage Bucket DR Type
 - `object_storage_bucket_file_encryption_algorithm` (String) Object Storage Bucket File Encryption Algorithm

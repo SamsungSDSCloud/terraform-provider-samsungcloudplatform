@@ -226,44 +226,18 @@ func dataSourceEpasSingle(ctx context.Context, rd *schema.ResourceData, meta int
 		return
 	}
 
-	rd.SetId(uuid.NewV4().String())
-	err = rd.Set("project_id", dbInfo.ProjectId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("block_id", dbInfo.BlockId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("service_zone_id", dbInfo.ServiceZoneId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("epas_cluster_id", dbInfo.EpasClusterId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("epas_cluster_name", dbInfo.EpasClusterName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("epas_cluster_state", dbInfo.EpasClusterState)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("image_id", dbInfo.ImageId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_version", dbInfo.DatabaseVersion)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("timezone", dbInfo.Timezone)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs := &common.FieldSetter{Rd: rd}
 
+	rd.SetId(uuid.NewV4().String())
+	fs.Set("project_id", dbInfo.ProjectId)
+	fs.Set("block_id", dbInfo.BlockId)
+	fs.Set("service_zone_id", dbInfo.ServiceZoneId)
+	fs.Set("epas_cluster_id", dbInfo.EpasClusterId)
+	fs.Set("epas_cluster_name", dbInfo.EpasClusterName)
+	fs.Set("epas_cluster_state", dbInfo.EpasClusterState)
+	fs.Set("image_id", dbInfo.ImageId)
+	fs.Set("database_version", dbInfo.DatabaseVersion)
+	fs.Set("timezone", dbInfo.Timezone)
 	contract := database_common.HclListObject{}
 	if dbInfo.Contract != nil {
 		contractInfo := database_common.HclKeyValueObject{}
@@ -275,31 +249,12 @@ func dataSourceEpasSingle(ctx context.Context, rd *schema.ResourceData, meta int
 
 		contract = append(contract, contractInfo)
 	}
-	err = rd.Set("contract", contract)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = rd.Set("vpc_id", dbInfo.VpcId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("subnet_id", dbInfo.SubnetId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("security_group_ids", dbInfo.SecurityGroupIds)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("audit_enabled", dbInfo.AuditEnabled)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("nat_ip_address", dbInfo.NatIpAddress)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("contract", contract)
+	fs.Set("vpc_id", dbInfo.VpcId)
+	fs.Set("subnet_id", dbInfo.SubnetId)
+	fs.Set("security_group_ids", dbInfo.SecurityGroupIds)
+	fs.Set("audit_enabled", dbInfo.AuditEnabled)
+	fs.Set("nat_ip_address", dbInfo.NatIpAddress)
 
 	epasInitialConfig := database_common.HclListObject{}
 	if dbInfo.EpasInitialConfig != nil {
@@ -312,11 +267,7 @@ func dataSourceEpasSingle(ctx context.Context, rd *schema.ResourceData, meta int
 
 		epasInitialConfig = append(epasInitialConfig, epasInitialConfigInfo)
 	}
-	err = rd.Set("epas_initial_config", epasInitialConfig)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
+	fs.Set("epas_initial_config", epasInitialConfig)
 	epasServerGroup := database_common.HclListObject{}
 	if dbInfo.EpasServerGroup != nil {
 		epasServerGroupInfo := database_common.HclKeyValueObject{}
@@ -359,21 +310,9 @@ func dataSourceEpasSingle(ctx context.Context, rd *schema.ResourceData, meta int
 
 		epasServerGroup = append(epasServerGroup, epasServerGroupInfo)
 	}
-
-	err = rd.Set("epas_server_group", epasServerGroup)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = rd.Set("epas_replica_cluster_ids", dbInfo.EpasReplicaClusterIds)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("epas_master_cluster_id", dbInfo.EpasMasterClusterId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
+	fs.Set("epas_server_group", epasServerGroup)
+	fs.Set("epas_replica_cluster_ids", dbInfo.EpasReplicaClusterIds)
+	fs.Set("epas_master_cluster_id", dbInfo.EpasMasterClusterId)
 	maintenance := database_common.HclListObject{}
 	if dbInfo.Maintenance != nil {
 		maintenanceInfo := database_common.HclKeyValueObject{}
@@ -383,11 +322,7 @@ func dataSourceEpasSingle(ctx context.Context, rd *schema.ResourceData, meta int
 
 		maintenance = append(maintenance, maintenanceInfo)
 	}
-	err = rd.Set("maintenance", maintenance)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
+	fs.Set("maintenance", maintenance)
 	backupConfig := database_common.HclListObject{}
 	if dbInfo.BackupConfig != nil {
 		backupConfigInfo := database_common.HclKeyValueObject{}
@@ -417,27 +352,11 @@ func dataSourceEpasSingle(ctx context.Context, rd *schema.ResourceData, meta int
 		backupConfigInfo["incremental_backup_config"] = incrementalBackupConfig
 		backupConfig = append(backupConfig, backupConfigInfo)
 	}
-	err = rd.Set("backup_config", backupConfig)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("backup_config", backupConfig)
+	fs.Set("created_by", dbInfo.CreatedBy)
+	fs.Set("created_dt", dbInfo.CreatedDt.String())
+	fs.Set("modified_by", dbInfo.ModifiedBy)
+	fs.Set("modified_dt", dbInfo.ModifiedDt.String())
 
-	err = rd.Set("created_by", dbInfo.CreatedBy)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("created_dt", dbInfo.CreatedDt.String())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("modified_by", dbInfo.ModifiedBy)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("modified_dt", dbInfo.ModifiedDt.String())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	return fs.Diags()
 }

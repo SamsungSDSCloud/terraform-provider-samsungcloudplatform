@@ -12,6 +12,7 @@ import (
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/samsungcloudplatform/client/storage/objectstorage"
 	"github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/samsungcloudplatform/common"
 	tfTags "github.com/SamsungSDSCloud/terraform-provider-samsungcloudplatform/v3/samsungcloudplatform/service/tag"
+	objectstoragesdk "github.com/SamsungSDSCloud/terraform-sdk-samsungcloudplatform/v3/library/object-storage"
 	"github.com/antihax/optional"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -65,6 +66,11 @@ func ResourceObjectStorageBucket() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 				Description: "Object Storage Bucket Access Control Enabled",
+			},
+			"object_storage_bucket_disk_type": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Object Storage Bucket Disk Type",
 			},
 			"access_control_rules": {
 				Type:        schema.TypeList,
@@ -236,22 +242,8 @@ func createBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}
 	// input object storage id validation
 	ServiceZoneId := rd.Get("service_zone_id").(string)
 	ObjectStorageId := rd.Get("object_storage_id").(string)
-	readObjectStorageListResponses, err := inst.Client.ObjectStorage.ReadObjectStorageList(ctx, ServiceZoneId, objectstorage.ReadObjectStorageListRequest{})
-	if err != nil {
-		return diag.FromErr(err)
-	} else {
-		var ObjectStorageIds []string
-		for _, response := range readObjectStorageListResponses.Contents {
-			ObjectStorageIds = append(ObjectStorageIds, response.ObjectStorageId)
-		}
-		err = CheckStringInStringList(ObjectStorageIds, ObjectStorageId)
-
-		if err != nil {
-			if err.Error() == "input string is not in the string list" {
-				return diag.Errorf("Input \"Object Storage ID\" is invalid. Check if the Object Storage ID is valid in the project.")
-			}
-			return diag.Errorf("\"Object Storage ID\" validation check failed.")
-		}
+	if diagsObjectStorageId := validateObjectStorageId(ctx, inst, ServiceZoneId, ObjectStorageId); diagsObjectStorageId.HasError() {
+		return diagsObjectStorageId
 	}
 
 	// input product names validation
@@ -265,29 +257,8 @@ func createBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}
 	objectStorageBucketVersionEnabled := rd.Get("object_storage_bucket_version_enabled").(bool)
 	syncObjectStorageBucketId := rd.Get("sync_object_storage_bucket_id").(string)
 
-	if objectStorageBucketDrEnabled && !objectStorageBucketVersionEnabled {
-		return diag.Errorf("To use DR, the object storage bucket versioning must be enabled.")
-	} else if objectStorageBucketDrEnabled && objectStorageBucketVersionEnabled {
-		/*
-			TODO: add DR available service zone check
-			- Cannot check the sync object storage bucket is in DR capable service zone.
-			- There is no Open API for verification.
-		*/
-		if syncObjectStorageBucketId != "" {
-			syncBucketInfo, _, err := inst.Client.ObjectStorage.ReadBucket(ctx, syncObjectStorageBucketId)
-			if err != nil {
-				return diag.Errorf("Cannot get the information of input sync object storage bucket.")
-			} else {
-				if !*syncBucketInfo.ObjectStorageBucketVersionEnabled {
-					return diag.Errorf("To use DR, an object storage bucket versioning of input sync object storage bucket must be enabled.")
-				}
-				if *syncBucketInfo.ObjectStorageBucketDrEnabled {
-					return diag.Errorf("To use DR, a DR control of input sync object storage bucket must be disabled.")
-				}
-			}
-		} else {
-			return diag.Errorf("\"Sync Object Storage Bucket ID\" is required to use DR.")
-		}
+	if diagsDRPreconditions := validateDRPreconditions(ctx, objectStorageBucketDrEnabled, objectStorageBucketVersionEnabled, syncObjectStorageBucketId, inst); diagsDRPreconditions.HasError() {
+		return diagsDRPreconditions
 	}
 
 	// input object storage bucket name duplication check
@@ -345,6 +316,55 @@ func createBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}
 	return readBucket(ctx, rd, meta)
 }
 
+func validateObjectStorageId(ctx context.Context, inst *client.Instance, ServiceZoneId string, ObjectStorageId string) diag.Diagnostics {
+	readObjectStorageListResponses, err := inst.Client.ObjectStorage.ReadObjectStorageList(ctx, ServiceZoneId, objectstorage.ReadObjectStorageListRequest{})
+	if err != nil {
+		return diag.FromErr(err)
+	} else {
+		var ObjectStorageIds []string
+		for _, response := range readObjectStorageListResponses.Contents {
+			ObjectStorageIds = append(ObjectStorageIds, response.ObjectStorageId)
+		}
+		err = CheckStringInStringList(ObjectStorageIds, ObjectStorageId)
+
+		if err != nil {
+			if err.Error() == "input string is not in the string list" {
+				return diag.Errorf("Input \"Object Storage ID\" is invalid. Check if the Object Storage ID is valid in the project.")
+			}
+			return diag.Errorf("\"Object Storage ID\" validation check failed.")
+		}
+	}
+	return nil
+}
+
+func validateDRPreconditions(ctx context.Context, objectStorageBucketDrEnabled bool, objectStorageBucketVersionEnabled bool, syncObjectStorageBucketId string, inst *client.Instance) diag.Diagnostics {
+	if objectStorageBucketDrEnabled && !objectStorageBucketVersionEnabled {
+		return diag.Errorf("To use DR, the object storage bucket versioning must be enabled.")
+	} else if objectStorageBucketDrEnabled && objectStorageBucketVersionEnabled {
+		/*
+			TODO: add DR available service zone check
+			- Cannot check the sync object storage bucket is in DR capable service zone.
+			- There is no Open API for verification.
+		*/
+		if syncObjectStorageBucketId != "" {
+			syncBucketInfo, _, err := inst.Client.ObjectStorage.ReadBucket(ctx, syncObjectStorageBucketId)
+			if err != nil {
+				return diag.Errorf("Cannot get the information of input sync object storage bucket.")
+			} else {
+				if !*syncBucketInfo.ObjectStorageBucketVersionEnabled {
+					return diag.Errorf("To use DR, an object storage bucket versioning of input sync object storage bucket must be enabled.")
+				}
+				if *syncBucketInfo.ObjectStorageBucketDrEnabled {
+					return diag.Errorf("To use DR, a DR control of input sync object storage bucket must be disabled.")
+				}
+			}
+		} else {
+			return diag.Errorf("\"Sync Object Storage Bucket ID\" is required to use DR.")
+		}
+	}
+	return nil
+}
+
 func readBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	inst := meta.(*client.Instance)
 
@@ -378,6 +398,7 @@ func readBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}) 
 	rd.Set("object_storage_bucket_dr_enabled", info.ObjectStorageBucketDrEnabled)
 	rd.Set("sync_object_storage_bucket_id", info.SyncObjectStorageBucketId)
 	rd.Set("object_storage_bucket_dr_type", info.ObjectStorageBucketDrType)
+	rd.Set("object_storage_bucket_disk_type", info.ObjectStorageBucketDiskType)
 
 	tfTags.SetTags(ctx, rd, meta, rd.Id())
 
@@ -452,156 +473,11 @@ func updateBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}
 		}
 	}
 
-	switch rd.Get("object_storage_bucket_dr_type") {
-	case "":
-		if objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
-			if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning false -> true && DR false -> true
-				changeVersionControl(inst, ctx, rd, objectStorageBucketVersionEnabled)
-				changeDRControl(inst, ctx, rd, syncObjectStorageBucketId, objectStorageBucketDrEnabled)
-			} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning true -> false && DR false -> true
-				return diag.Errorf("To use DR, the object storage bucket versioning must be enabled.")
-			} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
-				// versioning false -> true && DR true -> false
-			} else {
-				// versioning true -> false && DR true -> false
-			}
-		} else if !objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
-			if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning true -> true && DR false -> true
-				changeDRControl(inst, ctx, rd, syncObjectStorageBucketId, objectStorageBucketDrEnabled)
-			} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning false -> false && DR false -> true
-				return diag.Errorf("To use DR, the object storage bucket versioning must be enabled.")
-			} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
-				// versioning true -> true && DR true -> false
-			} else {
-				// versioning false -> false && DR true -> false
-			}
-		} else if objectStorageBucketVersionChanged && !objectStorageBucketDrChanged {
-			if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning false -> true && DR true -> true
-			} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning true -> false && DR true -> true
-			} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
-				// versioning false -> true && DR false -> false
-				// versioning enable
-				changeVersionControl(inst, ctx, rd, objectStorageBucketVersionEnabled)
-			} else {
-				// versioning true -> false && DR false -> false
-				// versioning disable
-				changeVersionControl(inst, ctx, rd, objectStorageBucketVersionEnabled)
-			}
-		} else {
-			// !object_storage_bucket_version_changed && !object_storage_bucket_dr_changed
-			// nothing to update
-		}
-	case "ORIGIN":
-		if objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
-			if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning false -> true && DR false -> true
-			} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning true -> false && DR false -> true
-			} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
-				// versioning false -> true && DR true -> false
-			} else {
-				// versioning true -> false && DR true -> false
-				changeDRControl(inst, ctx, rd, syncObjectStorageBucketId, objectStorageBucketDrEnabled)
-				changeVersionControl(inst, ctx, rd, objectStorageBucketVersionEnabled)
-			}
-		} else if !objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
-			if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning true -> true && DR false -> true
-			} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning false -> false && DR false -> true
-			} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
-				// versioning true -> true && DR true -> false
-				changeDRControl(inst, ctx, rd, syncObjectStorageBucketId, objectStorageBucketDrEnabled)
-			} else {
-				// versioning false -> false && DR true -> false
-			}
-		} else if objectStorageBucketVersionChanged && !objectStorageBucketDrChanged {
-			if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning false -> true && DR true -> true
-			} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning true -> false && DR true -> true
-				return diag.Errorf("While DR is enabled, you cannot disable versioning for an object storage bucket.")
-			} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
-				// versioning false -> true && DR false -> false
-			} else {
-				// versioning true -> false && DR false -> false
-			}
-		} else {
-			// !object_storage_bucket_version_changed && !object_storage_bucket_dr_changed
-			// nothing to update
-		}
-	case "CLONE":
-		if objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
-			if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning false -> true && DR false -> true
-			} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning true -> false && DR false -> true
-			} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
-				// versioning false -> true && DR true -> false
-			} else {
-				// versioning true -> false && DR true -> false
-				// TODO: add unadapted change error(Clone bucket)
-				/*
-					diags := append(diag.Diagnostics{}, diag.Diagnostic{
-						Severity: diag.Warning,
-						Summary:  "Change of \"Object Storage Bucket DR Enabled\" is not applied",
-						Detail:   "If \"Object Storage Bucket DR Type\" is \"CLONE\", you cannot disable version control.",
-					})
-					diags = append(diag.Diagnostics{}, diag.Diagnostic{
-						Severity: diag.Warning,
-						Summary:  "Change of \"Object Storage Bucket Version Enabled\" is not applied",
-						Detail:   "If \"Object Storage Bucket DR Type\" is \"CLONE\", you cannot disable version control.",
-					})
-					return diags
-				*/
-			}
-		} else if !objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
-			if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning true -> true && DR false -> true
-			} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning false -> false && DR false -> true
-			} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
-				// versioning true -> true && DR true -> false
-				// return diag.Errorf("If \"Object Storage Bucket DR Type\" is \"CLONE\", you cannot disable DR sync.")
-				// TODO: add unadapted change error(Clone bucket)
-				/*
-					diags := append(diag.Diagnostics{}, diag.Diagnostic{
-						Severity: diag.Warning,
-						Summary:  "Change of \"Object Storage Bucket DR Enabled\" is not applied",
-						Detail:   "If \"Object Storage Bucket DR Type\" is \"CLONE\", you cannot disable version control.",
-					})
-					return diags
-				*/
-			} else {
-				// versioning false -> false && DR true -> false
-			}
-		} else if objectStorageBucketVersionChanged && !objectStorageBucketDrChanged {
-			if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning false -> true && DR true -> true
-			} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
-				// versioning true -> false && DR true -> true
-				// return diag.Errorf("If \"Object Storage Bucket DR Type\" is \"CLONE\", you cannot disable version control.")
-				diags := append(diag.Diagnostics{}, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Change of \"Object Storage Bucket Version Enabled\" is not applied",
-					Detail:   "If \"Object Storage Bucket DR Type\" is \"CLONE\", you cannot disable version control.",
-				})
-				return diags
-			} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
-				// versioning false -> true && DR false -> false
-			} else {
-				// versioning true -> false && DR false -> false
-			}
-		} else {
-			// !object_storage_bucket_version_changed && !object_storage_bucket_dr_changed
-			// nothing to update
-		}
+	if diags := handleDRTypeUpdate(ctx, inst, rd, rd.Get("object_storage_bucket_dr_type").(string),
+		objectStorageBucketVersionChanged, objectStorageBucketDrChanged,
+		objectStorageBucketVersionEnabled, objectStorageBucketDrEnabled,
+		syncObjectStorageBucketId); diags.HasError() {
+		return diags
 	}
 
 	err := tfTags.UpdateTags(ctx, rd, meta, rd.Id())
@@ -610,6 +486,242 @@ func updateBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}
 	}
 
 	return readBucket(ctx, rd, meta)
+}
+
+func handleDRTypeUpdate(ctx context.Context, inst *client.Instance, rd *schema.ResourceData, drType string,
+	objectStorageBucketVersionChanged bool, objectStorageBucketDrChanged bool,
+	objectStorageBucketVersionEnabled bool, objectStorageBucketDrEnabled bool,
+	syncObjectStorageBucketId string) diag.Diagnostics {
+	switch drType {
+	case "":
+		return handleNoDRType(objectStorageBucketVersionChanged, objectStorageBucketDrChanged, objectStorageBucketVersionEnabled, objectStorageBucketDrEnabled, inst, ctx, rd, syncObjectStorageBucketId)
+	case "ORIGIN":
+		return handleOriginDRType(objectStorageBucketVersionChanged, objectStorageBucketDrChanged, objectStorageBucketVersionEnabled, objectStorageBucketDrEnabled, inst, ctx, rd, syncObjectStorageBucketId)
+	case "CLONE":
+		return handleCloneDRType(objectStorageBucketVersionChanged, objectStorageBucketDrChanged, objectStorageBucketVersionEnabled, objectStorageBucketDrEnabled)
+	}
+	return nil
+}
+
+func handleNoDRType(objectStorageBucketVersionChanged bool, objectStorageBucketDrChanged bool,
+	objectStorageBucketVersionEnabled bool, objectStorageBucketDrEnabled bool,
+	inst *client.Instance, ctx context.Context, rd *schema.ResourceData, syncObjectStorageBucketId string) diag.Diagnostics {
+	if objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
+		if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning false -> true && DR false -> true
+			changeVersionControl(inst, ctx, rd, objectStorageBucketVersionEnabled)
+			changeDRControl(inst, ctx, rd, syncObjectStorageBucketId, objectStorageBucketDrEnabled)
+		} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning true -> false && DR false -> true
+			return diag.Errorf("To use DR, the object storage bucket versioning must be enabled.")
+		}
+	} else if !objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
+		if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning true -> true && DR false -> true
+			changeDRControl(inst, ctx, rd, syncObjectStorageBucketId, objectStorageBucketDrEnabled)
+		} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning false -> false && DR false -> true
+			return diag.Errorf("To use DR, the object storage bucket versioning must be enabled.")
+		}
+	} else if objectStorageBucketVersionChanged && !objectStorageBucketDrChanged {
+		// versioning changed while DR unchanged — apply versioning change
+		if !objectStorageBucketDrEnabled {
+			changeVersionControl(inst, ctx, rd, objectStorageBucketVersionEnabled)
+		}
+	}
+	/* Old logic before refactor, keep here just in case
+	if objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
+		if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning false -> true && DR false -> true
+			changeVersionControl(inst, ctx, rd, objectStorageBucketVersionEnabled)
+			changeDRControl(inst, ctx, rd, syncObjectStorageBucketId, objectStorageBucketDrEnabled)
+		} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning true -> false && DR false -> true
+			return diag.Errorf("To use DR, the object storage bucket versioning must be enabled.")
+		} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
+			// versioning false -> true && DR true -> false
+		} else {
+			// versioning true -> false && DR true -> false
+		}
+	} else if !objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
+		if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning true -> true && DR false -> true
+			changeDRControl(inst, ctx, rd, syncObjectStorageBucketId, objectStorageBucketDrEnabled)
+		} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning false -> false && DR false -> true
+			return diag.Errorf("To use DR, the object storage bucket versioning must be enabled.")
+		} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
+			// versioning true -> true && DR true -> false
+		} else {
+			// versioning false -> false && DR true -> false
+		}
+	} else if objectStorageBucketVersionChanged && !objectStorageBucketDrChanged {
+		if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning false -> true && DR true -> true
+		} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning true -> false && DR true -> true
+		} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
+			// versioning false -> true && DR false -> false
+			// versioning enable
+			changeVersionControl(inst, ctx, rd, objectStorageBucketVersionEnabled)
+		} else {
+			// versioning true -> false && DR false -> false
+			// versioning disable
+			changeVersionControl(inst, ctx, rd, objectStorageBucketVersionEnabled)
+		}
+	} else {
+		// !object_storage_bucket_version_changed && !object_storage_bucket_dr_changed
+		// nothing to update
+	}
+	*/
+	return nil
+}
+
+func handleOriginDRType(objectStorageBucketVersionChanged bool, objectStorageBucketDrChanged bool,
+	objectStorageBucketVersionEnabled bool, objectStorageBucketDrEnabled bool,
+	inst *client.Instance, ctx context.Context, rd *schema.ResourceData, syncObjectStorageBucketId string) diag.Diagnostics {
+	if objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
+		if !objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
+			// versioning true -> false && DR true -> false
+			changeDRControl(inst, ctx, rd, syncObjectStorageBucketId, objectStorageBucketDrEnabled)
+			changeVersionControl(inst, ctx, rd, objectStorageBucketVersionEnabled)
+		}
+	} else if !objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
+		if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
+			// versioning true -> true && DR true -> false
+			changeDRControl(inst, ctx, rd, syncObjectStorageBucketId, objectStorageBucketDrEnabled)
+		}
+	} else if objectStorageBucketVersionChanged && !objectStorageBucketDrChanged {
+		if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning true -> false && DR true -> true
+			return diag.Errorf("While DR is enabled, you cannot disable versioning for an object storage bucket.")
+		}
+	}
+	/* Old logic before refactor, keep here just in case
+	if objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
+		if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning false -> true && DR false -> true
+		} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning true -> false && DR false -> true
+		} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
+			// versioning false -> true && DR true -> false
+		} else {
+			// versioning true -> false && DR true -> false
+			changeDRControl(inst, ctx, rd, syncObjectStorageBucketId, objectStorageBucketDrEnabled)
+			changeVersionControl(inst, ctx, rd, objectStorageBucketVersionEnabled)
+		}
+	} else if !objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
+		if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning true -> true && DR false -> true
+		} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning false -> false && DR false -> true
+		} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
+			// versioning true -> true && DR true -> false
+			changeDRControl(inst, ctx, rd, syncObjectStorageBucketId, objectStorageBucketDrEnabled)
+		} else {
+			// versioning false -> false && DR true -> false
+		}
+	} else if objectStorageBucketVersionChanged && !objectStorageBucketDrChanged {
+		if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning false -> true && DR true -> true
+		} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning true -> false && DR true -> true
+			return diag.Errorf("While DR is enabled, you cannot disable versioning for an object storage bucket.")
+		} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
+			// versioning false -> true && DR false -> false
+		} else {
+			// versioning true -> false && DR false -> false
+		}
+	} else {
+		// !object_storage_bucket_version_changed && !object_storage_bucket_dr_changed
+		// nothing to update
+	}
+	*/
+	return nil
+}
+
+func handleCloneDRType(objectStorageBucketVersionChanged bool, objectStorageBucketDrChanged bool,
+	objectStorageBucketVersionEnabled bool, objectStorageBucketDrEnabled bool) diag.Diagnostics {
+	if objectStorageBucketVersionChanged && !objectStorageBucketDrChanged {
+		if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning true -> false && DR true -> true
+			// return diag.Errorf("If \"Object Storage Bucket DR Type\" is \"CLONE\", you cannot disable version control.")
+			diags := append(diag.Diagnostics{}, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Change of \"Object Storage Bucket Version Enabled\" is not applied",
+				Detail:   "If \"Object Storage Bucket DR Type\" is \"CLONE\", you cannot disable version control.",
+			})
+			return diags
+		}
+	}
+	/* Old logic before refactor, keep here just in case
+	if objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
+		if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning false -> true && DR false -> true
+		} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning true -> false && DR false -> true
+		} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
+			// versioning false -> true && DR true -> false
+		} else {
+			// versioning true -> false && DR true -> false
+			// TODO: add unadapted change error(Clone bucket)
+			//
+				// diags := append(diag.Diagnostics{}, diag.Diagnostic{
+				// 	Severity: diag.Warning,
+				// 	Summary:  "Change of \"Object Storage Bucket DR Enabled\" is not applied",
+				// 	Detail:   "If \"Object Storage Bucket DR Type\" is \"CLONE\", you cannot disable version control.",
+				// })
+				// diags = append(diag.Diagnostics{}, diag.Diagnostic{
+				// 	Severity: diag.Warning,
+				// 	Summary:  "Change of \"Object Storage Bucket Version Enabled\" is not applied",
+				// 	Detail:   "If \"Object Storage Bucket DR Type\" is \"CLONE\", you cannot disable version control.",
+				// })
+				// return diags
+			//
+		}
+	} else if !objectStorageBucketVersionChanged && objectStorageBucketDrChanged {
+		if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning true -> true && DR false -> true
+		} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning false -> false && DR false -> true
+		} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
+			// versioning true -> true && DR true -> false
+			// return diag.Errorf("If \"Object Storage Bucket DR Type\" is \"CLONE\", you cannot disable DR sync.")
+			// TODO: add unadapted change error(Clone bucket)
+			//
+				// diags := append(diag.Diagnostics{}, diag.Diagnostic{
+				// 	Severity: diag.Warning,
+				// 	Summary:  "Change of \"Object Storage Bucket DR Enabled\" is not applied",
+				// 	Detail:   "If \"Object Storage Bucket DR Type\" is \"CLONE\", you cannot disable version control.",
+				// })
+				// return diags
+			//
+		} else {
+			// versioning false -> false && DR true -> false
+		}
+	} else if objectStorageBucketVersionChanged && !objectStorageBucketDrChanged {
+		if objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning false -> true && DR true -> true
+		} else if !objectStorageBucketVersionEnabled && objectStorageBucketDrEnabled {
+			// versioning true -> false && DR true -> true
+			// return diag.Errorf("If \"Object Storage Bucket DR Type\" is \"CLONE\", you cannot disable version control.")
+			diags := append(diag.Diagnostics{}, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Change of \"Object Storage Bucket Version Enabled\" is not applied",
+				Detail:   "If \"Object Storage Bucket DR Type\" is \"CLONE\", you cannot disable version control.",
+			})
+			return diags
+		} else if objectStorageBucketVersionEnabled && !objectStorageBucketDrEnabled {
+			// versioning false -> true && DR false -> false
+		} else {
+			// versioning true -> false && DR false -> false
+		}
+	} else {
+		// !object_storage_bucket_version_changed && !object_storage_bucket_dr_changed
+		// nothing to update
+	}
+	*/
+	return nil
 }
 
 func deleteBucket(ctx context.Context, rd *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -733,51 +845,59 @@ func ValidateObjectStorageBucketUserPurpose(v interface{}, path cty.Path) diag.D
 }
 
 func changeDRControl(inst *client.Instance, ctx context.Context, rd *schema.ResourceData, syncBucketId string, drEnabled bool) diag.Diagnostics {
-	if syncBucketId != "" {
-		syncBucketInfo, _, err := inst.Client.ObjectStorage.ReadBucket(ctx, syncBucketId)
-		if err != nil {
-			return diag.Errorf("Cannot get the information of input sync object storage bucket.")
-		} else {
-			if drEnabled { // drEnabled == true
-				/*
-					TODO: add DR available service zone check
-					- cannot check the sync object storage bucket is in DR capable service zone.
-					- There is no Open API for verification.
-				*/
-				if !*syncBucketInfo.ObjectStorageBucketVersionEnabled {
-					return diag.Errorf("To use DR, an object storage bucket versioning of input sync object storage bucket must be enabled.")
-				} else if *syncBucketInfo.ObjectStorageBucketDrEnabled {
-					return diag.Errorf("To use DR, a DR control of input sync object storage bucket must be disabled.")
-				} else {
-					err = inst.Client.ObjectStorage.UpdateBucketDr(ctx, rd.Id(), drEnabled, syncBucketId)
-					if err != nil {
-						return diag.FromErr(err)
-					}
-					err = waitForObjectStorageStatus(ctx, inst.Client, rd.Id(), []string{"UPDATING"}, []string{"ACTIVE"}, true)
-					if err != nil {
-						return diag.FromErr(err)
-					}
-				}
+	if syncBucketId == "" {
+		return diag.Errorf("\"Sync Object Storage Bucket ID\" is required to use DR.")
+	}
 
-			} else { // drEnabled == false
-				if syncBucketInfo.SyncObjectStorageBucketId == rd.Id() && syncBucketInfo.ObjectStorageBucketDrType == "CLONE" {
-					err = inst.Client.ObjectStorage.UpdateBucketDr(ctx, rd.Id(), drEnabled, syncBucketId)
-					if err != nil {
-						return diag.FromErr(err)
-					}
-					// clear sync_object_storage_bucket_id
-					rd.Set("sync_object_storage_bucket_id", "")
-					err = waitForObjectStorageStatus(ctx, inst.Client, rd.Id(), []string{"UPDATING"}, []string{"ACTIVE"}, true)
-					if err != nil {
-						return diag.FromErr(err)
-					}
-				} else {
-					return diag.Errorf("\"Sync Object Storage Bucket ID\" is not valid.")
-				}
-			}
+	syncBucketInfo, _, err := inst.Client.ObjectStorage.ReadBucket(ctx, syncBucketId)
+	if err != nil {
+		return diag.Errorf("Cannot get the information of input sync object storage bucket.")
+	}
+
+	if drEnabled {
+		return enableDR(ctx, inst, rd, syncBucketId, syncBucketInfo)
+	}
+	return disableDR(ctx, inst, rd, syncBucketId, syncBucketInfo)
+}
+
+func enableDR(ctx context.Context, inst *client.Instance, rd *schema.ResourceData, syncBucketId string, syncBucketInfo objectstoragesdk.ObjectStorageBucketDetailV4Response) diag.Diagnostics {
+	/*
+		TODO: add DR available service zone check
+		- cannot check the sync object storage bucket is in DR capable service zone.
+		- There is no Open API for verification.
+	*/
+	if !*syncBucketInfo.ObjectStorageBucketVersionEnabled {
+		return diag.Errorf("To use DR, an object storage bucket versioning of input sync object storage bucket must be enabled.")
+	}
+	if *syncBucketInfo.ObjectStorageBucketDrEnabled {
+		return diag.Errorf("To use DR, a DR control of input sync object storage bucket must be disabled.")
+	}
+
+	err := inst.Client.ObjectStorage.UpdateBucketDr(ctx, rd.Id(), true, syncBucketId)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = waitForObjectStorageStatus(ctx, inst.Client, rd.Id(), []string{"UPDATING"}, []string{"ACTIVE"}, true)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
+}
+
+func disableDR(ctx context.Context, inst *client.Instance, rd *schema.ResourceData, syncBucketId string, syncBucketInfo objectstoragesdk.ObjectStorageBucketDetailV4Response) diag.Diagnostics {
+	if syncBucketInfo.SyncObjectStorageBucketId == rd.Id() && syncBucketInfo.ObjectStorageBucketDrType == "CLONE" {
+		err := inst.Client.ObjectStorage.UpdateBucketDr(ctx, rd.Id(), false, syncBucketId)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		// clear sync_object_storage_bucket_id
+		rd.Set("sync_object_storage_bucket_id", "")
+		err = waitForObjectStorageStatus(ctx, inst.Client, rd.Id(), []string{"UPDATING"}, []string{"ACTIVE"}, true)
+		if err != nil {
+			return diag.FromErr(err)
 		}
 	} else {
-		return diag.Errorf("\"Sync Object Storage Bucket ID\" is required to use DR.")
+		return diag.Errorf("\"Sync Object Storage Bucket ID\" is not valid.")
 	}
 	return nil
 }

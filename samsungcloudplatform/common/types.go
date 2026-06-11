@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 )
 
 // TODO : contents to resource data (with filter)
@@ -94,4 +96,22 @@ func convertStructToMap(itemValue reflect.Value) map[string]interface{} {
 		itemMap[fieldName] = fieldValue
 	}
 	return itemMap
+}
+
+type FieldSetter struct {
+	Rd   *schema.ResourceData
+	Errs []error
+}
+
+func (s *FieldSetter) Set(key string, value interface{}) {
+	if err := s.Rd.Set(key, value); err != nil {
+		s.Errs = append(s.Errs, err)
+	}
+}
+
+func (s *FieldSetter) Diags() diag.Diagnostics {
+	if len(s.Errs) > 0 {
+		return diag.FromErr(s.Errs[0])
+	}
+	return nil
 }

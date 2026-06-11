@@ -221,48 +221,20 @@ func dataSourceMariadbSingle(ctx context.Context, rd *schema.ResourceData, meta 
 	}
 
 	if len(dbInfo.MariadbServerGroup.MariadbServers) == 0 {
-		diagnostics = diag.Errorf("no server found")
-		return
+		return diag.Errorf("no server found")
 	}
+	fs := &common.FieldSetter{Rd: rd}
 
 	rd.SetId(uuid.NewV4().String())
-	err = rd.Set("project_id", dbInfo.ProjectId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("block_id", dbInfo.BlockId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("service_zone_id", dbInfo.ServiceZoneId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("mariadb_cluster_id", dbInfo.MariadbClusterId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("mariadb_cluster_name", dbInfo.MariadbClusterName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("mariadb_cluster_state", dbInfo.MariadbClusterState)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("image_id", dbInfo.ImageId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_version", dbInfo.DatabaseVersion)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("timezone", dbInfo.Timezone)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
+	fs.Set("project_id", dbInfo.ProjectId)
+	fs.Set("block_id", dbInfo.BlockId)
+	fs.Set("service_zone_id", dbInfo.ServiceZoneId)
+	fs.Set("mariadb_cluster_id", dbInfo.MariadbClusterId)
+	fs.Set("mariadb_cluster_name", dbInfo.MariadbClusterName)
+	fs.Set("mariadb_cluster_state", dbInfo.MariadbClusterState)
+	fs.Set("image_id", dbInfo.ImageId)
+	fs.Set("database_version", dbInfo.DatabaseVersion)
+	fs.Set("timezone", dbInfo.Timezone)
 	contract := database_common.HclListObject{}
 	if dbInfo.Contract != nil {
 		contractInfo := database_common.HclKeyValueObject{}
@@ -274,32 +246,12 @@ func dataSourceMariadbSingle(ctx context.Context, rd *schema.ResourceData, meta 
 
 		contract = append(contract, contractInfo)
 	}
-	err = rd.Set("contract", contract)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = rd.Set("vpc_id", dbInfo.VpcId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("subnet_id", dbInfo.SubnetId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("security_group_ids", dbInfo.SecurityGroupIds)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("audit_enabled", dbInfo.AuditEnabled)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("nat_ip_address", dbInfo.NatIpAddress)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
+	fs.Set("contract", contract)
+	fs.Set("vpc_id", dbInfo.VpcId)
+	fs.Set("subnet_id", dbInfo.SubnetId)
+	fs.Set("security_group_ids", dbInfo.SecurityGroupIds)
+	fs.Set("audit_enabled", dbInfo.AuditEnabled)
+	fs.Set("nat_ip_address", dbInfo.NatIpAddress)
 	mariadbInitialConfig := database_common.HclListObject{}
 	if dbInfo.MariadbInitialConfig != nil {
 		mariadbInitialConfigInfo := database_common.HclKeyValueObject{}
@@ -310,11 +262,7 @@ func dataSourceMariadbSingle(ctx context.Context, rd *schema.ResourceData, meta 
 
 		mariadbInitialConfig = append(mariadbInitialConfig, mariadbInitialConfigInfo)
 	}
-	err = rd.Set("mariadb_initial_config", mariadbInitialConfig)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
+	fs.Set("mariadb_initial_config", mariadbInitialConfig)
 	mariadbServerGroup := database_common.HclListObject{}
 	if dbInfo.MariadbServerGroup != nil {
 		mariadbServerGroupInfo := database_common.HclKeyValueObject{}
@@ -357,21 +305,9 @@ func dataSourceMariadbSingle(ctx context.Context, rd *schema.ResourceData, meta 
 
 		mariadbServerGroup = append(mariadbServerGroup, mariadbServerGroupInfo)
 	}
-
-	err = rd.Set("mariadb_server_group", mariadbServerGroup)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = rd.Set("mariadb_replica_cluster_ids", dbInfo.MariadbReplicaClusterIds)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("mariadb_master_cluster_id", dbInfo.MariadbMasterClusterId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
+	fs.Set("mariadb_server_group", mariadbServerGroup)
+	fs.Set("mariadb_replica_cluster_ids", dbInfo.MariadbReplicaClusterIds)
+	fs.Set("mariadb_master_cluster_id", dbInfo.MariadbMasterClusterId)
 	maintenance := database_common.HclListObject{}
 	if dbInfo.Maintenance != nil {
 		maintenanceInfo := database_common.HclKeyValueObject{}
@@ -381,11 +317,7 @@ func dataSourceMariadbSingle(ctx context.Context, rd *schema.ResourceData, meta 
 
 		maintenance = append(maintenance, maintenanceInfo)
 	}
-	err = rd.Set("maintenance", maintenance)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
+	fs.Set("maintenance", maintenance)
 	backupConfig := database_common.HclListObject{}
 	if dbInfo.BackupConfig != nil {
 		backupConfigInfo := database_common.HclKeyValueObject{}
@@ -415,27 +347,11 @@ func dataSourceMariadbSingle(ctx context.Context, rd *schema.ResourceData, meta 
 		backupConfigInfo["incremental_backup_config"] = incrementalBackupConfig
 		backupConfig = append(backupConfig, backupConfigInfo)
 	}
-	err = rd.Set("backup_config", backupConfig)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("backup_config", backupConfig)
+	fs.Set("created_by", dbInfo.CreatedBy)
+	fs.Set("created_dt", dbInfo.CreatedDt.String())
+	fs.Set("modified_by", dbInfo.ModifiedBy)
+	fs.Set("modified_dt", dbInfo.ModifiedDt.String())
 
-	err = rd.Set("created_by", dbInfo.CreatedBy)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("created_dt", dbInfo.CreatedDt.String())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("modified_by", dbInfo.ModifiedBy)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("modified_dt", dbInfo.ModifiedDt.String())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	return fs.Diags()
 }

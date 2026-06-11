@@ -171,7 +171,7 @@ func NewDefaultConfig(config *Config, servicePath string) *scpsdk.Configuration 
 	cfg := &scpsdk.Configuration{
 		BasePath:      basePath,
 		DefaultHeader: make(map[string]string),
-		UserAgent:     "scp-trf/3.18.0",
+		UserAgent:     "scp-trf/3.19.0",
 		ProjectId:     config.ProjectId,
 		UserId:        config.UserId,
 		Email:         config.Email,

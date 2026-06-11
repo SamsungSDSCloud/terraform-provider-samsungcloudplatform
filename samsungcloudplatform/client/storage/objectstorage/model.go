@@ -19,6 +19,7 @@ type CreateBucketRequest struct {
 
 type ReadBucketRequest struct {
 	EndModifiedDt                    optional.Time
+	ObjectStorageBucketDiskType      optional.String
 	ObjectStorageBucketIds           optional.Interface
 	ObjectStorageBucketName          optional.String
 	ObjectStorageBucketPurposes      optional.Interface
@@ -57,6 +58,7 @@ type ReadBucketListRequest struct {
 
 type ReadObjectStorageListRequest struct {
 	IsMultiAvailabilityZone optional.Bool
+	ObjectStorageDiskType   optional.String
 	ObjectStorageName       optional.String
 	Page                    optional.Int32
 	Size                    optional.Int32

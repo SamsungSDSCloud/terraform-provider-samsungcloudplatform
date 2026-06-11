@@ -543,14 +543,6 @@ func resourceKafkaCreate(ctx context.Context, rd *schema.ResourceData, meta inte
 }
 
 func resourceKafkaRead(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
-	var err error = nil
-	defer func() {
-		if err != nil {
-			rd.SetId("")
-			diagnostics = diag.FromErr(err)
-		}
-	}()
-
 	inst := meta.(*client.Instance)
 
 	dbInfo, _, err := inst.Client.Kafka.DetailKafkaCluster(ctx, rd.Id())
@@ -567,64 +559,20 @@ func resourceKafkaRead(ctx context.Context, rd *schema.ResourceData, meta interf
 		diagnostics = diag.Errorf("Kafka is not found")
 		return
 	}
-
-	err = rd.Set("kafka_cluster_name", dbInfo.KafkaClusterName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("kafka_cluster_state", dbInfo.KafkaClusterState)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = rd.Set("service_zone_id", dbInfo.ServiceZoneId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("image_id", dbInfo.ImageId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = rd.Set("vpc_id", dbInfo.VpcId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("subnet_id", dbInfo.SubnetId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("security_group_ids", dbInfo.SecurityGroupIds)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("nat_enabled", rd.Get("nat_enabled").(bool))
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = rd.Set("broker_sasl_account", dbInfo.KafkaInitialConfig.BrokerInitialConfig.BrokerSaslAccount)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("broker_port", dbInfo.KafkaInitialConfig.BrokerInitialConfig.BrokerPort)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("zookeeper_sasl_account", dbInfo.KafkaInitialConfig.ZookeeperInitialConfig.ZookeeperSaslAccount)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("zookeeper_port", dbInfo.KafkaInitialConfig.ZookeeperInitialConfig.ZookeeperPort)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = rd.Set("broker_server_type", dbInfo.BrokerNodeGroup.ServerType)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
+	fs := &common.FieldSetter{Rd: rd}
+	fs.Set("kafka_cluster_name", dbInfo.KafkaClusterName)
+	fs.Set("kafka_cluster_state", dbInfo.KafkaClusterState)
+	fs.Set("service_zone_id", dbInfo.ServiceZoneId)
+	fs.Set("image_id", dbInfo.ImageId)
+	fs.Set("vpc_id", dbInfo.VpcId)
+	fs.Set("subnet_id", dbInfo.SubnetId)
+	fs.Set("security_group_ids", dbInfo.SecurityGroupIds)
+	fs.Set("nat_enabled", rd.Get("nat_enabled").(bool))
+	fs.Set("broker_sasl_account", dbInfo.KafkaInitialConfig.BrokerInitialConfig.BrokerSaslAccount)
+	fs.Set("broker_port", dbInfo.KafkaInitialConfig.BrokerInitialConfig.BrokerPort)
+	fs.Set("zookeeper_sasl_account", dbInfo.KafkaInitialConfig.ZookeeperInitialConfig.ZookeeperSaslAccount)
+	fs.Set("zookeeper_port", dbInfo.KafkaInitialConfig.ZookeeperInitialConfig.ZookeeperPort)
+	fs.Set("broker_server_type", dbInfo.BrokerNodeGroup.ServerType)
 	brokerNodes := database_common.HclListObject{}
 	for _, node := range dbInfo.BrokerNodeGroup.BrokerNodes {
 		brokerNodeInfo := database_common.HclKeyValueObject{}
@@ -646,17 +594,10 @@ func resourceKafkaRead(ctx context.Context, rd *schema.ResourceData, meta interf
 		blockStorageInfo["block_storage_group_id"] = bs.BlockStorageGroupId
 		brokerBlockStorages = append(brokerBlockStorages, blockStorageInfo)
 	}
-	err = rd.Set("broker_block_storages", brokerBlockStorages)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("broker_block_storages", brokerBlockStorages)
 
 	if dbInfo.ZookeeperNodeGroup != nil {
-		err = rd.Set("zookeeper_server_type", dbInfo.ZookeeperNodeGroup.ServerType)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
+		fs.Set("zookeeper_server_type", dbInfo.ZookeeperNodeGroup.ServerType)
 		for _, node := range dbInfo.ZookeeperNodeGroup.ZookeeperNodes {
 			brokerNodeInfo := database_common.HclKeyValueObject{}
 			brokerNodeInfo["zookeeper_node_name"] = node.ZookeeperNodeName
@@ -677,49 +618,34 @@ func resourceKafkaRead(ctx context.Context, rd *schema.ResourceData, meta interf
 			blockStorageInfo["block_storage_group_id"] = bs.BlockStorageGroupId
 			zookeeperBlockStorages = append(zookeeperBlockStorages, blockStorageInfo)
 		}
-		err = rd.Set("zookeeper_block_storages", zookeeperBlockStorages)
-		if err != nil {
-			return diag.FromErr(err)
-		}
+		fs.Set("zookeeper_block_storages", zookeeperBlockStorages)
 	}
 
-	err = rd.Set("akhq_enabled", rd.Get("akhq_enabled").(bool))
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("akhq_enabled", rd.Get("akhq_enabled").(bool))
 
 	if dbInfo.AkhqNodeGroup != nil {
-		err = rd.Set("akhq_account", dbInfo.KafkaInitialConfig.AkhqInitialConfig.AkhqAccount)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		err = rd.Set("akhq_port", dbInfo.KafkaInitialConfig.AkhqInitialConfig.AkhqPort)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
+		fs.Set("akhq_account", dbInfo.KafkaInitialConfig.AkhqInitialConfig.AkhqAccount)
+		fs.Set("akhq_port", dbInfo.KafkaInitialConfig.AkhqInitialConfig.AkhqPort)
 		akhqNode := database_common.HclListObject{}
 		akhqNodeInfo := database_common.HclKeyValueObject{}
 		akhqNodeInfo["akhq_node_name"] = dbInfo.AkhqNodeGroup.AkhqNodeName
 		akhqNodeInfo["akhq_availability_zone_name"] = dbInfo.AkhqNodeGroup.AvailabilityZoneName
 		akhqNodeInfo["akhq_server_type"] = dbInfo.AkhqNodeGroup.ServerType
 		akhqNode = append(akhqNode, akhqNodeInfo)
-		err = rd.Set("akhq_node", akhqNode)
-		if err != nil {
-			return diag.FromErr(err)
-		}
+		fs.Set("akhq_node", akhqNode)
 	}
 
 	availabilityZoneConfig := rd.Get("availability_zone_config").(*schema.Set).List()
-	err = rd.Set("availability_zone_config", availabilityZoneConfig)
+	fs.Set("availability_zone_config", availabilityZoneConfig)
+	fs.Set("timezone", dbInfo.Timezone)
 
-	err = rd.Set("timezone", dbInfo.Timezone)
-	if err != nil {
-		return diag.FromErr(err)
+	if diags := fs.Diags(); diags != nil {
+		rd.SetId("")
+		return diags
 	}
-
 	err = tfTags.SetTags(ctx, rd, meta, rd.Id())
 	if err != nil {
+		rd.SetId("")
 		return diag.FromErr(err)
 	}
 

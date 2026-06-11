@@ -419,14 +419,6 @@ func resourceMysqlCreate(ctx context.Context, rd *schema.ResourceData, meta inte
 }
 
 func resourceMysqlRead(ctx context.Context, rd *schema.ResourceData, meta interface{}) (diagnostics diag.Diagnostics) {
-	var err error = nil
-	defer func() {
-		if err != nil {
-			rd.SetId("")
-			diagnostics = diag.FromErr(err)
-		}
-	}()
-
 	inst := meta.(*client.Instance)
 
 	dbInfo, _, err := inst.Client.Mysql.DetailMysqlCluster(ctx, rd.Id())
@@ -440,8 +432,7 @@ func resourceMysqlRead(ctx context.Context, rd *schema.ResourceData, meta interf
 	}
 
 	if len(dbInfo.MysqlServerGroup.MysqlServers) == 0 {
-		diagnostics = diag.Errorf("no server found")
-		return
+		return diag.Errorf("no server found")
 	}
 
 	blockStorages := database_common.HclListObject{}
@@ -489,96 +480,40 @@ func resourceMysqlRead(ctx context.Context, rd *schema.ResourceData, meta interf
 		return MysqlServers[i].(map[string]interface{})["server_role_type"].(string) < MysqlServers[j].(map[string]interface{})["server_role_type"].(string)
 	})
 
-	err = rd.Set("image_id", dbInfo.ImageId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("nat_public_ip_id", rd.Get("nat_public_ip_id").(string))
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("mysql_cluster_name", dbInfo.MysqlClusterName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("mysql_cluster_state", dbInfo.MysqlClusterState)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs := &common.FieldSetter{Rd: rd}
 
-	err = rd.Set("database_case_sensitivity", rd.Get("database_case_sensitivity").(bool))
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_character_set", dbInfo.MysqlInitialConfig.DatabaseCharacterSet)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_name", dbInfo.MysqlInitialConfig.DatabaseName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_port", dbInfo.MysqlInitialConfig.DatabasePort)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("database_user_name", dbInfo.MysqlInitialConfig.DatabaseUserName)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("image_id", dbInfo.ImageId)
+	fs.Set("nat_public_ip_id", rd.Get("nat_public_ip_id").(string))
+	fs.Set("mysql_cluster_name", dbInfo.MysqlClusterName)
+	fs.Set("mysql_cluster_state", dbInfo.MysqlClusterState)
 
-	err = rd.Set("block_storages", blockStorages)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("encryption_enabled", dbInfo.MysqlServerGroup.EncryptionEnabled)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("mysql_servers", MysqlServers)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("server_type", dbInfo.MysqlServerGroup.ServerType)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("database_case_sensitivity", rd.Get("database_case_sensitivity").(bool))
+	fs.Set("database_character_set", dbInfo.MysqlInitialConfig.DatabaseCharacterSet)
+	fs.Set("database_name", dbInfo.MysqlInitialConfig.DatabaseName)
+	fs.Set("database_port", dbInfo.MysqlInitialConfig.DatabasePort)
+	fs.Set("database_user_name", dbInfo.MysqlInitialConfig.DatabaseUserName)
 
-	err = rd.Set("security_group_ids", dbInfo.SecurityGroupIds)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("service_zone_id", dbInfo.ServiceZoneId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("subnet_id", dbInfo.SubnetId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("timezone", dbInfo.Timezone)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("backup", backup)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("virtual_ip_address", dbInfo.MysqlServerGroup.VirtualIpAddress)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("nat_ip_address", dbInfo.NatIpAddress)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = rd.Set("vpc_id", dbInfo.VpcId)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	fs.Set("block_storages", blockStorages)
+	fs.Set("encryption_enabled", dbInfo.MysqlServerGroup.EncryptionEnabled)
+	fs.Set("mysql_servers", MysqlServers)
+	fs.Set("server_type", dbInfo.MysqlServerGroup.ServerType)
 
+	fs.Set("security_group_ids", dbInfo.SecurityGroupIds)
+	fs.Set("service_zone_id", dbInfo.ServiceZoneId)
+	fs.Set("subnet_id", dbInfo.SubnetId)
+	fs.Set("timezone", dbInfo.Timezone)
+	fs.Set("backup", backup)
+	fs.Set("virtual_ip_address", dbInfo.MysqlServerGroup.VirtualIpAddress)
+	fs.Set("nat_ip_address", dbInfo.NatIpAddress)
+	fs.Set("vpc_id", dbInfo.VpcId)
+
+	if diags := fs.Diags(); diags != nil {
+		rd.SetId("")
+		return diags
+	}
 	err = tfTags.SetTags(ctx, rd, meta, rd.Id())
 	if err != nil {
+		rd.SetId("")
 		return diag.FromErr(err)
 	}
 

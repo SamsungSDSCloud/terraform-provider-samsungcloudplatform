@@ -96,6 +96,7 @@ resource "samsungcloudplatform_virtual_server" "server_001" {
 - `server_group_id` (String) Server Group Id for Anti-affinity
 - `server_type` (String) Server Type (s1v1m2,..)
 - `tags` (Map of String)
+- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `use_dns` (Boolean) Enable DNS feature for this virtual server.
 
 ### Read-Only
@@ -139,5 +140,16 @@ Optional:
 Read-Only:
 
 - `id` (String) Network interface id
+
+
+<a id="nestedblock--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String)
+- `delete` (String)
+- `read` (String)
+- `update` (String)
 
 
